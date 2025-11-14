@@ -39,10 +39,10 @@
   overflow-x: hidden;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 40px rgba(37, 99, 235, 0.2),
+    0 0 40px rgba(8, 145, 178, 0.2),
     var(--shadow-glow);
   animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid rgba(37, 99, 235, 0.2);
+  border: 2px solid rgba(8, 145, 178, 0.2);
   backdrop-filter: blur(20px) saturate(180%);
   position: relative;
   margin: auto;
@@ -65,7 +65,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
-  border-bottom: 2px solid rgba(37, 99, 235, 0.1);
+  border-bottom: 2px solid rgba(8, 145, 178, 0.1);
   background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
   border-radius: 24px 24px 0 0;
 }
@@ -110,13 +110,13 @@
   gap: 0.5rem;
   margin-bottom: 1.25rem;
   background: linear-gradient(135deg, 
-    rgba(37, 99, 235, 0.1) 0%, 
+    rgba(8, 145, 178, 0.1) 0%, 
     rgba(251, 191, 36, 0.08) 50%,
     rgba(245, 158, 11, 0.08) 100%);
   padding: 0.5rem;
   border-radius: 16px;
-  border: 2px solid rgba(37, 99, 235, 0.2);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  border: 2px solid rgba(8, 145, 178, 0.2);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.1);
 }
 
 .mode-btn {
@@ -157,13 +157,13 @@
   background: var(--accent-gradient);
   color: white;
   box-shadow: 
-    0 4px 16px rgba(37, 99, 235, 0.4),
-    0 0 20px rgba(37, 99, 235, 0.2);
+    0 4px 16px rgba(8, 145, 178, 0.4),
+    0 0 20px rgba(8, 145, 178, 0.2);
   transform: translateY(-2px);
 }
 
 .upload-dropzone {
-  border: 3px dashed rgba(37, 99, 235, 0.3);
+  border: 3px dashed rgba(8, 145, 178, 0.3);
   border-radius: 20px;
   padding: 2rem 2rem;
   text-align: center;
@@ -171,12 +171,12 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 1.25rem;
   background: linear-gradient(135deg, 
-    rgba(37, 99, 235, 0.08) 0%, 
+    rgba(8, 145, 178, 0.08) 0%, 
     rgba(251, 191, 36, 0.05) 50%,
     rgba(245, 158, 11, 0.05) 100%);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 4px 16px rgba(8, 145, 178, 0.1);
 }
 
 .upload-dropzone::before {
@@ -188,7 +188,7 @@
   height: 100%;
   background: linear-gradient(90deg, 
     transparent, 
-    rgba(37, 99, 235, 0.1), 
+    rgba(8, 145, 178, 0.1), 
     transparent);
   transition: left 0.5s ease;
 }
@@ -201,24 +201,24 @@
 .upload-dropzone.active {
   border-color: var(--primary-color);
   background: linear-gradient(135deg, 
-    rgba(37, 99, 235, 0.15) 0%, 
+    rgba(8, 145, 178, 0.15) 0%, 
     rgba(251, 191, 36, 0.12) 50%,
     rgba(245, 158, 11, 0.12) 100%);
   box-shadow: 
-    0 8px 32px rgba(37, 99, 235, 0.3),
-    0 0 40px rgba(37, 99, 235, 0.2);
+    0 8px 32px rgba(8, 145, 178, 0.3),
+    0 0 40px rgba(8, 145, 178, 0.2);
   transform: translateY(-4px);
 }
 
 .upload-dropzone.has-file {
   border-color: var(--primary-color);
   background: linear-gradient(135deg, 
-    rgba(37, 99, 235, 0.12) 0%, 
+    rgba(8, 145, 178, 0.12) 0%, 
     rgba(251, 191, 36, 0.08) 100%);
   padding: 2rem;
   box-shadow: 
-    0 4px 20px rgba(37, 99, 235, 0.2),
-    0 0 30px rgba(37, 99, 235, 0.1);
+    0 4px 20px rgba(8, 145, 178, 0.2),
+    0 0 30px rgba(8, 145, 178, 0.1);
 }
 
 .dropzone-content {
@@ -231,7 +231,7 @@
 .dropzone-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
-  filter: drop-shadow(0 4px 12px rgba(37, 99, 235, 0.4));
+  filter: drop-shadow(0 4px 12px rgba(8, 145, 178, 0.4));
   animation: float 3s ease-in-out infinite;
   transition: transform 0.3s ease;
 }
@@ -247,7 +247,7 @@
 
 .upload-dropzone:hover .dropzone-icon {
   transform: scale(1.1) translateY(-5px);
-  filter: drop-shadow(0 6px 20px rgba(37, 99, 235, 0.6));
+  filter: drop-shadow(0 6px 20px rgba(8, 145, 178, 0.6));
 }
 
 .dropzone-content p {
@@ -270,9 +270,9 @@
   gap: 1.25rem;
   justify-content: center;
   padding: 1rem;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(8, 145, 178, 0.1);
   border-radius: 16px;
-  border: 2px solid rgba(37, 99, 235, 0.3);
+  border: 2px solid rgba(8, 145, 178, 0.3);
   width: 100%;
   animation: slideIn 0.3s ease;
 }
@@ -290,7 +290,7 @@
 
 .file-icon {
   font-size: 2.5rem;
-  filter: drop-shadow(0 2px 8px rgba(37, 99, 235, 0.3));
+  filter: drop-shadow(0 2px 8px rgba(8, 145, 178, 0.3));
 }
 
 .file-name {
@@ -308,9 +308,9 @@
   font-size: 0.95rem;
   font-weight: 500;
   padding: 0.25rem 0.75rem;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(8, 145, 178, 0.1);
   border-radius: 8px;
-  border: 1px solid rgba(37, 99, 235, 0.2);
+  border: 1px solid rgba(8, 145, 178, 0.2);
 }
 
 .form-group {
@@ -335,17 +335,17 @@
 .form-group select {
   width: 100%;
   padding: 0.875rem 1rem;
-  border: 2px solid rgba(37, 99, 235, 0.2);
+  border: 2px solid rgba(8, 145, 178, 0.2);
   border-radius: 12px;
   background: linear-gradient(180deg, 
-    rgba(37, 99, 235, 0.05) 0%, 
+    rgba(8, 145, 178, 0.05) 0%, 
     rgba(251, 191, 36, 0.03) 100%);
   color: var(--text-primary);
   font-size: 1rem;
   font-family: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(10px);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.05);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.05);
 }
 
 .form-group select {
@@ -363,19 +363,19 @@
   outline: none;
   border-color: var(--primary-color);
   background: linear-gradient(180deg, 
-    rgba(37, 99, 235, 0.1) 0%, 
+    rgba(8, 145, 178, 0.1) 0%, 
     rgba(251, 191, 36, 0.06) 100%);
   box-shadow: 
-    0 0 20px rgba(37, 99, 235, 0.3),
-    0 4px 16px rgba(37, 99, 235, 0.2);
+    0 0 20px rgba(8, 145, 178, 0.3),
+    0 4px 16px rgba(8, 145, 178, 0.2);
   transform: translateY(-2px);
 }
 
 .form-group input:hover,
 .form-group textarea:hover,
 .form-group select:hover {
-  border-color: rgba(37, 99, 235, 0.4);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  border-color: rgba(8, 145, 178, 0.4);
+  box-shadow: 0 4px 12px rgba(8, 145, 178, 0.15);
 }
 
 .form-group textarea {
@@ -384,8 +384,8 @@
 }
 
 .upload-progress {
-  background: rgba(37, 99, 235, 0.1);
-  border: 2px solid rgba(37, 99, 235, 0.3);
+  background: rgba(8, 145, 178, 0.1);
+  border: 2px solid rgba(8, 145, 178, 0.3);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -410,7 +410,7 @@
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(8, 145, 178, 0.1);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -420,7 +420,7 @@
   background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
   border-radius: 4px;
   transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+  box-shadow: 0 0 10px rgba(8, 145, 178, 0.5);
 }
 
 .form-error {
@@ -441,26 +441,26 @@
 
 .btn-secondary {
   background: linear-gradient(135deg, 
-    rgba(37, 99, 235, 0.08) 0%, 
+    rgba(8, 145, 178, 0.08) 0%, 
     rgba(251, 191, 36, 0.05) 100%);
   color: var(--text-primary);
-  border: 2px solid rgba(37, 99, 235, 0.3);
+  border: 2px solid rgba(8, 145, 178, 0.3);
   padding: 0.875rem 2rem;
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 1rem;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.1);
 }
 
 .btn-secondary:hover {
   background: linear-gradient(135deg, 
-    rgba(37, 99, 235, 0.15) 0%, 
+    rgba(8, 145, 178, 0.15) 0%, 
     rgba(251, 191, 36, 0.1) 100%);
   border-color: var(--primary-color);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 4px 16px rgba(8, 145, 178, 0.2);
 }
 
 .btn-primary {
@@ -473,8 +473,8 @@
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 4px 16px rgba(37, 99, 235, 0.4),
-    0 0 20px rgba(37, 99, 235, 0.2);
+    0 4px 16px rgba(8, 145, 178, 0.4),
+    0 0 20px rgba(8, 145, 178, 0.2);
   font-size: 1rem;
   position: relative;
   overflow: hidden;
@@ -501,8 +501,8 @@
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 
-    0 8px 24px rgba(37, 99, 235, 0.5),
-    0 0 40px rgba(37, 99, 235, 0.3);
+    0 8px 24px rgba(8, 145, 178, 0.5),
+    0 0 40px rgba(8, 145, 178, 0.3);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -513,6 +513,6 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.2);
 }
 
