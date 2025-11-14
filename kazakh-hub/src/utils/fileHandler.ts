@@ -23,6 +23,12 @@ export interface FolderStructure {
   };
 }
 
+export const isImageFile = (filename: string): boolean => {
+  const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'];
+  return imageExtensions.includes(ext);
+};
+
 export const detectLanguage = (filename: string): string => {
   const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
   
@@ -53,22 +59,43 @@ export const isSupportedFile = (filename: string): boolean => {
 export const readFileContent = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result;
-      if (typeof result === 'string') {
-        resolve(result);
-      } else {
-        reject(new Error(`Файлды оқу мүмкін емес: ${file.name} (мәтіндік емес файл)`));
+    
+    // For image files, read as data URL (base64)
+    if (isImageFile(file.name)) {
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          resolve(result); // Returns data:image/...;base64,... format
+        } else {
+          reject(new Error(`Кескінді оқу мүмкін емес: ${file.name}`));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error(`Кескінді оқу қатесі: ${file.name}`));
+      };
+      try {
+        reader.readAsDataURL(file);
+      } catch (err) {
+        reject(new Error(`Кескінді оқу мүмкін емес: ${file.name}`));
       }
-    };
-    reader.onerror = () => {
-      reject(new Error(`Файлды оқу қатесі: ${file.name}`));
-    };
-    // Try to read as text, if fails, it will be caught by onerror
-    try {
-      reader.readAsText(file, 'UTF-8');
-    } catch (err) {
-      reject(new Error(`Файлды оқу мүмкін емес: ${file.name}`));
+    } else {
+      // For text files, read as text
+      reader.onload = (e) => {
+        const result = e.target?.result;
+        if (typeof result === 'string') {
+          resolve(result);
+        } else {
+          reject(new Error(`Файлды оқу мүмкін емес: ${file.name} (мәтіндік емес файл)`));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error(`Файлды оқу қатесі: ${file.name}`));
+      };
+      try {
+        reader.readAsText(file, 'UTF-8');
+      } catch (err) {
+        reject(new Error(`Файлды оқу мүмкін емес: ${file.name}`));
+      }
     }
   });
 };
