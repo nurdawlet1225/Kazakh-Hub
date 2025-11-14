@@ -1,0 +1,136 @@
+.code-editor {
+  background: var(--bg-code);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.code-editor.read-only {
+  border: none;
+  height: 500px;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: auto;
+  max-width: 804px;
+  width: 804px;
+}
+
+.code-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.code-editor-language {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.code-editor-copy {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.code-editor-copy:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.code-editor-textarea {
+  width: 100%;
+  min-height: 400px;
+  padding: 1.5rem;
+  background: var(--bg-code);
+  color: var(--text-primary);
+  border: none;
+  outline: none;
+  font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: vertical;
+  tab-size: 2;
+}
+
+.code-editor-textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.code-editor-textarea:focus {
+  outline: none;
+}
+
+.code-editor-content {
+  overflow: visible;
+  position: relative;
+}
+
+.code-editor.read-only .code-editor-content {
+  height: 500px;
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: auto;
+  max-width: 804px;
+  width: 804px;
+}
+
+/* Custom scrollbar for code editor */
+.code-editor.read-only .code-editor-content::-webkit-scrollbar,
+.code-editor.read-only .code-editor-content pre::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.code-editor.read-only .code-editor-content::-webkit-scrollbar-track,
+.code-editor.read-only .code-editor-content pre::-webkit-scrollbar-track {
+  background: var(--bg-code);
+  border-radius: 6px;
+}
+
+.code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb,
+.code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3b82f6 0%, #10b981 50%, #fbbf24 100%);
+  border-radius: 6px;
+  border: 2px solid var(--bg-code);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb:hover,
+.code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #059669 50%, #f59e0b 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.code-editor.read-only .code-editor-content pre {
+  overflow: visible !important;
+  margin: 0 !important;
+  height: auto;
+  max-height: none;
+  max-width: 100%;
+  width: 100%;
+  white-space: pre;
+  word-wrap: normal;
+  word-break: normal;
+}
+
+.code-editor.read-only .code-editor-content code {
+  overflow: visible !important;
+  display: block;
+}
+
