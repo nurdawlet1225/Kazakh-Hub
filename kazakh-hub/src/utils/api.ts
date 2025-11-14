@@ -97,7 +97,7 @@ class ApiService {
       if (error instanceof Error) {
         // Network error or other fetch errors
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error('Серверге қосылу мүмкін емес. Backend-тің http://localhost:3000-де жұмыс істеп тұрғанын тексеріңіз');
+          throw new Error('Серверге қосылу мүмкін емес. Backend-тің http://127.0.0.1:3000-де жұмыс істеп тұрғанын тексеріңіз');
         }
         throw error;
       }

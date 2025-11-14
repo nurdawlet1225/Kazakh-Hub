@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -16,14 +16,17 @@ import ChatPage from './pages/ChatPage';
 import './styles/globals.css';
 import './styles/theme.css';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const { t } = useTranslation();
+  const location = useLocation();
+  
+  // Hide header and sidebar on login/register pages
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   
   return (
-    <Router>
-      <ScrollToTop />
-      <div className="app">
-        <Header />
+    <div className="app">
+      {!isAuthPage && <Header />}
+      {!isAuthPage ? (
         <div className="app-body">
           <Sidebar />
           <main className="app-main">
@@ -34,8 +37,6 @@ const App: React.FC = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/chat" element={<ChatPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
               <Route path="*" element={
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                   <h1>{t('viewCode.404')}</h1>
@@ -45,8 +46,24 @@ const App: React.FC = () => {
             </Routes>
           </main>
         </div>
-        <Footer />
-      </div>
+      ) : (
+        <main className="app-main-auth">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Routes>
+        </main>
+      )}
+      {!isAuthPage && <Footer />}
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <Router>
+      <ScrollToTop />
+      <AppContent />
     </Router>
   );
 };

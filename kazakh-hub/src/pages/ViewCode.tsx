@@ -9,6 +9,7 @@ import { apiService } from '../utils/api';
 import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
 import UploadModal from '../components/UploadModal';
+import { isImageFile } from '../utils/fileHandler';
 import './ViewCode.css';
 
 interface CommentItemProps {
@@ -778,28 +779,95 @@ const ViewCode: React.FC = () => {
                     <span className="file-path">{selectedFile.folderPath}</span>
                   </div>
                 </div>
-                  <div className="code-wrapper">
-                <CodeEditor
-                  code={selectedFile.content}
-                  language={selectedFile.language}
-                  readOnly={true}
-                  lineNumbers={true}
-                />
-                  <button
-                      className="btn-copy-code-sticky"
-                    onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(selectedFile.content);
-                          setIsCopied(true);
-                          setTimeout(() => setIsCopied(false), 5000);
-                      } catch (err) {
-                          console.error('Failed to copy:', err);
-                      }
-                    }}
-                  >
-                      {isCopied ? <><FontAwesomeIcon icon={faCheck} /> Код көшірілді</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyCode')}</>}
-                  </button>
-                  </div>
+                  {isImageFile(selectedFile.title) ? (
+                    <div className="image-preview-wrapper">
+                      <div className="image-preview-container">
+                        <img 
+                          src={(() => {
+                            const content = selectedFile.content;
+                            // If already a data URL or HTTP URL, use as is
+                            if (content.startsWith('data:') || content.startsWith('http://') || content.startsWith('https://')) {
+                              return content;
+                            }
+                            // If it's base64 without prefix, add the data URL prefix
+                            const ext = selectedFile.title.split('.').pop()?.toLowerCase() || 'png';
+                            const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' :
+                                           ext === 'png' ? 'image/png' :
+                                           ext === 'gif' ? 'image/gif' :
+                                           ext === 'webp' ? 'image/webp' :
+                                           ext === 'svg' ? 'image/svg+xml' :
+                                           ext === 'bmp' ? 'image/bmp' : 'image/png';
+                            return `data:${mimeType};base64,${content}`;
+                          })()}
+                          alt={selectedFile.title}
+                          className="image-preview"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const errorDiv = document.createElement('div');
+                            errorDiv.className = 'image-error';
+                            errorDiv.textContent = 'Кескінді көрсету мүмкін емес';
+                            target.parentElement?.appendChild(errorDiv);
+                          }}
+                        />
+                      </div>
+                      <button
+                        className="btn-copy-code-sticky"
+                        onClick={async () => {
+                          try {
+                            const img = document.querySelector('.image-preview') as HTMLImageElement;
+                            if (img && img.src) {
+                              const response = await fetch(img.src);
+                              const blob = await response.blob();
+                              await navigator.clipboard.write([
+                                new ClipboardItem({ [blob.type]: blob })
+                              ]);
+                              setIsCopied(true);
+                              setTimeout(() => setIsCopied(false), 5000);
+                            }
+                          } catch (err) {
+                            console.error('Failed to copy image:', err);
+                            // Fallback: copy image URL
+                            try {
+                              const img = document.querySelector('.image-preview') as HTMLImageElement;
+                              if (img && img.src) {
+                                await navigator.clipboard.writeText(img.src);
+                                setIsCopied(true);
+                                setTimeout(() => setIsCopied(false), 5000);
+                              }
+                            } catch (err2) {
+                              console.error('Failed to copy image URL:', err2);
+                            }
+                          }
+                        }}
+                      >
+                        {isCopied ? <><FontAwesomeIcon icon={faCheck} /> Кескін көшірілді</> : <><FontAwesomeIcon icon={faCopy} /> Кескінді көшіру</>}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="code-wrapper">
+                      <CodeEditor
+                        code={selectedFile.content}
+                        language={selectedFile.language}
+                        readOnly={true}
+                        lineNumbers={true}
+                      />
+                      <button
+                        className="btn-copy-code-sticky"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(selectedFile.content);
+                            setIsCopied(true);
+                            setTimeout(() => setIsCopied(false), 5000);
+                          } catch (err) {
+                            console.error('Failed to copy:', err);
+                          }
+                        }}
+                      >
+                        {isCopied ? <><FontAwesomeIcon icon={faCheck} /> Код көшірілді</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyCode')}</>}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </>
               ) : (
