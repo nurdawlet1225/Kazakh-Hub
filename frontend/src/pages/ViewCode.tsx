@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -10,6 +10,7 @@ import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
 import UploadModal from '../components/UploadModal';
 import { isImageFile } from '../utils/fileHandler';
+import JSZip from 'jszip';
 import './ViewCode.css';
 
 interface CommentItemProps {
@@ -30,7 +31,6 @@ interface CommentItemProps {
   onCancelReply: () => void;
   onSubmitReply: (e: React.FormEvent, parentId: string) => void;
   onLike: (commentId: string) => void;
-  onDislike: (commentId: string) => void;
   formatDate: (dateString: string) => string;
   allComments?: Comment[];
 }
@@ -53,15 +53,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onCancelReply,
   onSubmitReply,
   onLike,
-  onDislike,
   formatDate,
   allComments = [],
 }) => {
   const { t } = useTranslation();
   const isLiked = currentUser ? comment.likes?.includes(currentUser.id) : false;
-  const isDisliked = currentUser ? comment.dislikes?.includes(currentUser.id) : false;
   const likeCount = comment.likes?.length || 0;
-  const dislikeCount = comment.dislikes?.length || 0;
   const isReply = comment.parentId ? true : false;
   
   // Find parent comment
@@ -141,14 +138,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
           title="Лайк"
         >
           👍 {likeCount}
-        </button>
-        <button
-          className={`comment-reaction-btn ${isDisliked ? 'disliked' : ''}`}
-          onClick={() => onDislike(comment.id)}
-          disabled={!currentUser}
-          title="Дизлайк"
-        >
-          👎 {dislikeCount}
         </button>
         {currentUser && (
           <button
@@ -325,6 +314,54 @@ const ViewCode: React.FC = () => {
   const handleRefreshFolder = async () => {
     if (code && id) {
       await loadFolderFiles(id);
+    }
+  };
+
+  const handleExportFolder = async () => {
+    if (!folderFiles || folderFiles.length === 0) {
+      alert('Экспорттауға файлдар жоқ');
+      return;
+    }
+
+    try {
+      const zip = new JSZip();
+      
+      // Add all files to ZIP maintaining folder structure
+      for (const file of folderFiles) {
+        const filePath = file.folderPath || file.title;
+        
+        // Handle image files - convert base64 to blob
+        if (isImageFile(file.title)) {
+          let imageData = file.content;
+          // If it's a data URL, extract base64 part
+          if (imageData.startsWith('data:')) {
+            const base64Match = imageData.match(/base64,(.+)/);
+            if (base64Match) {
+              imageData = base64Match[1];
+            }
+          }
+          zip.file(filePath, imageData, { base64: true });
+        } else {
+          // Text files
+          zip.file(filePath, file.content);
+        }
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Create download link
+      const url = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${code?.title || 'folder'}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export folder:', err);
+      alert('Папканы экспорттау қатесі');
     }
   };
 
@@ -552,16 +589,6 @@ const ViewCode: React.FC = () => {
     }
   };
 
-  const handleDislikeComment = async (commentId: string) => {
-    if (!code || !currentUser) return;
-
-    try {
-      const updatedCode = await apiService.dislikeComment(code.id, commentId, currentUser.id);
-      setCode(updatedCode);
-    } catch (err) {
-      console.error('Failed to dislike comment:', err);
-    }
-  };
 
   // Organize comments: top-level comments first, then all their replies below (flat structure, recursive)
   const organizeComments = (comments: Comment[]): Comment[] => {
@@ -722,6 +749,15 @@ const ViewCode: React.FC = () => {
             </div>
           )}
           <div className="meta-item meta-actions">
+            {code.isFolder && folderFiles.length > 0 && (
+              <button
+                className="btn-export-folder"
+                onClick={handleExportFolder}
+                title="Папканың барлығын жаздыру"
+              >
+                <FontAwesomeIcon icon={faDownload} /> Экспорттау
+              </button>
+            )}
             <button
               className={`like-button-header ${isLiked ? 'liked' : ''}`}
               onClick={handleLike}
@@ -937,7 +973,6 @@ const ViewCode: React.FC = () => {
                           onCancelReply={handleCancelReply}
                       onSubmitReply={handleSubmitReply}
                       onLike={handleLikeComment}
-                      onDislike={handleDislikeComment}
                           formatDate={formatDate}
                       allComments={code.comments || []}
                         />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, googleProvider } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import './Auth.css';
@@ -42,7 +42,8 @@ const Register: React.FC = () => {
         await apiService.register(
           userData.username,
           userData.email,
-          '' // No password for Google auth
+          '', // No password for Google auth
+          userData.id // Firebase UID
         );
       } catch (err) {
         // User might already exist, try to login
@@ -50,7 +51,7 @@ const Register: React.FC = () => {
           await apiService.login(userData.email, '');
         } catch (loginErr) {
           // If both fail, continue anyway since Firebase auth succeeded
-          console.log('Backend sync failed, but Firebase auth succeeded');
+          console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
         }
       }
 
@@ -61,6 +62,8 @@ const Register: React.FC = () => {
         setError('Google тіркелу терезесі жабылды');
       } else if (err.code === 'auth/cancelled-popup-request') {
         setError('Google тіркелу тоқтатылды');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
       } else {
         setError(err.message || 'Google тіркелу қатесі');
       }
@@ -83,29 +86,70 @@ const Register: React.FC = () => {
       return;
     }
 
+    if (!formData.username.trim()) {
+      setError('Пайдаланушы атын енгізіңіз');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Register user
-      await apiService.register(
-        formData.username,
+      // Register user with Firebase Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
         formData.email,
         formData.password
       );
+
+      const user = userCredential.user;
+
+      // Update Firebase user profile with username
+      await updateProfile(user, {
+        displayName: formData.username,
+      });
+
+      // Extract user info from Firebase
+      const userData = {
+        id: user.uid,
+        username: formData.username,
+        email: user.email || '',
+        avatar: user.photoURL || '',
+      };
+
+      // Save user to localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      // Automatically login after registration
-      const loginResponse = await apiService.login(
-        formData.email,
-        formData.password
-      );
-      
-      // Save user to localStorage (in a real app, save JWT token)
-      localStorage.setItem('user', JSON.stringify(loginResponse.user));
+      // Optionally sync with your backend
+      try {
+        await apiService.register(
+          userData.username,
+          userData.email,
+          '', // No password for Firebase auth
+          userData.id // Firebase UID
+        );
+      } catch (err) {
+        // Backend sync failed, but Firebase auth succeeded
+        console.log('Backend sync failed, but Firebase auth succeeded:', err);
+      }
       
       // Redirect to home
       navigate('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Тіркелу қатесі');
+    } catch (err: any) {
+      let errorMessage = 'Тіркелу қатесі';
+      
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'Бұл электрондық пошта бойынша тіркелгі бар';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Электрондық пошта дұрыс емес';
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = 'Құпия сөз тым әлсіз';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

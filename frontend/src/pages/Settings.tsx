@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faExclamationTriangle, faFileCode, faComment, faUserFriends, faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { deleteUser, signOut } from 'firebase/auth';
+import { auth } from '../utils/firebase';
 import { User } from '../utils/api';
 import { apiService } from '../utils/api';
 import './Settings.css';
@@ -67,7 +69,8 @@ const Settings: React.FC = () => {
       '• Барлық код файлдарыңыз жойылады\n' +
       '• Барлық пікірлеріңіз жойылады\n' +
       '• Барлық достар деректері жойылады\n' +
-      '• Барлық хабарламалар жойылады\n\n' +
+      '• Барлық хабарламалар жойылады\n' +
+      '• Firebase аккаунтыңыз да жойылады\n\n' +
       'Бұл әрекетті қайтару мүмкін емес!'
     );
 
@@ -87,12 +90,44 @@ const Settings: React.FC = () => {
 
     try {
       setIsDeleting(true);
-      await apiService.deleteAccount(user.id, user.email);
+      
+      // Backend-тен аккаунтты жою
+      try {
+        await apiService.deleteAccount(user.id, user.email);
+      } catch (backendErr) {
+        console.error('Backend account deletion error:', backendErr);
+        // Backend қатесі болса да, Firebase аккаунтын жоюға тырысамыз
+      }
+      
+      // Firebase Authentication-да аккаунтты жою
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        try {
+          await deleteUser(currentUser);
+          console.log('Firebase account deleted successfully');
+        } catch (firebaseErr: any) {
+          console.error('Firebase account deletion error:', firebaseErr);
+          // Егер пайдаланушы соңғы кіруден кейін көп уақыт өткен болса, қайта кіру керек
+          if (firebaseErr.code === 'auth/requires-recent-login') {
+            alert('Қауіпсіздік үшін қайта кіріңіз, содан кейін аккаунтты жоюға болады.');
+            setIsDeleting(false);
+            // Пайдаланушыны шығару
+            await signOut(auth);
+            navigate('/login');
+            return;
+          }
+          // Басқа қателер үшін хабарлама
+          throw new Error('Firebase аккаунтын жою қатесі: ' + (firebaseErr.message || 'Белгісіз қате'));
+        }
+      }
       
       // Барлық localStorage деректерін тазалау
       localStorage.removeItem('user');
       localStorage.removeItem('savedEmail');
       localStorage.removeItem('savedUsername');
+      
+      // Firebase-тен шығу
+      await signOut(auth);
       
       // Login бетіне бағыттау
       navigate('/login');

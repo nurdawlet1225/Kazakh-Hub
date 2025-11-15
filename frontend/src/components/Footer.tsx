@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faInfoCircle, faLink, faBook, faList, faLock, faRocket, faLaptop } from '@fortawesome/free-solid-svg-icons';
-import { faGithub as faGithubBrand } from '@fortawesome/free-brands-svg-icons';
+import BrainCircuitIcon from './BrainCircuitIcon';
 import './Footer.css';
 
 const Footer: React.FC = () => {
@@ -20,10 +20,10 @@ const Footer: React.FC = () => {
                 {t('footer.description')}
               </p>
               <div className="footer-social">
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="social-link" title="GitHub">
-                  <span className="social-icon"><FontAwesomeIcon icon={faGithubBrand} /></span>
+                <a href="https://oyji.org" target="_blank" rel="noopener noreferrer" className="social-link" title="OyJI">
+                  <span className="social-icon"><BrainCircuitIcon size={32} /></span>
                 </a>
-                <a href="mailto:support@kazakhhub.kz" className="social-link" title="Email">
+                <a href="nurdawlettawirbaev01@gmail.com" className="social-link" title="Email">
                   <span className="social-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
                 </a>
               </div>
@@ -37,15 +37,15 @@ const Footer: React.FC = () => {
             </h4>
             <ul className="footer-links">
               <li>
-                <a href="mailto:support@kazakhhub.kz">
+                <a href="nurdawlettawirbaev01@gmail.com">
                   <span className="link-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
-                  support@kazakhhub.kz
+                 nurdawlettawirbaev01@gmail.com
                 </a>
               </li>
               <li>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer">
-                  <span className="link-icon"><FontAwesomeIcon icon={faGithubBrand} /></span>
-                  GitHub
+                <a href="https://oyji.org" target="_blank" rel="noopener noreferrer">
+                  <span className="link-icon link-icon-svg"><BrainCircuitIcon size={18} /></span>
+                  OyJI
                 </a>
               </li>
             </ul>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import './Auth.css';
@@ -46,7 +46,8 @@ const Login: React.FC = () => {
         await apiService.register(
           userData.username,
           userData.email,
-          '' // No password for Google auth
+          '', // No password for Google auth
+          userData.id // Firebase UID
         );
       } catch (err) {
         // User might already exist, try to login
@@ -54,7 +55,7 @@ const Login: React.FC = () => {
           await apiService.login(userData.email, '');
         } catch (loginErr) {
           // If both fail, continue anyway since Firebase auth succeeded
-          console.log('Backend sync failed, but Firebase auth succeeded');
+          console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
         }
       }
 
@@ -65,6 +66,8 @@ const Login: React.FC = () => {
         setError('Google кіру терезесі жабылды');
       } else if (err.code === 'auth/cancelled-popup-request') {
         setError('Google кіру тоқтатылды');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
       } else {
         setError(err.message || 'Google кіру қатесі');
       }
@@ -79,15 +82,73 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await apiService.login(formData.emailOrUsername, formData.password);
+      // Determine if input is email or username
+      const isEmail = formData.emailOrUsername.includes('@');
+      let email = formData.emailOrUsername;
+
+      // If username, try to find email from backend (for backward compatibility)
+      if (!isEmail) {
+        try {
+          // Try to login with backend first to get email
+          const response = await apiService.login(formData.emailOrUsername, formData.password);
+          // If backend login succeeds, use that
+          localStorage.setItem('user', JSON.stringify(response.user));
+          navigate('/');
+          return;
+        } catch (backendErr) {
+          // If backend fails, try Firebase with username as email (might work if user registered with Firebase)
+          email = formData.emailOrUsername;
+        }
+      }
+
+      // Sign in with Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        formData.password
+      );
+
+      const user = userCredential.user;
+
+      // Extract user info from Firebase
+      const userData = {
+        id: user.uid,
+        username: user.displayName || user.email?.split('@')[0] || 'User',
+        email: user.email || '',
+        avatar: user.photoURL || '',
+      };
+
+      // Save user to localStorage
+      localStorage.setItem('user', JSON.stringify(userData));
       
-      // Save user to localStorage (in a real app, save JWT token)
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Optionally sync with your backend
+      try {
+        await apiService.login(userData.email, '');
+      } catch (err) {
+        // Backend sync failed, but Firebase auth succeeded
+        console.log('Backend sync failed, but Firebase auth succeeded');
+      }
       
       // Redirect to home
       navigate('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Кіру қатесі');
+    } catch (err: any) {
+      let errorMessage = 'Кіру қатесі';
+      
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'Пайдаланушы табылмады';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = 'Құпия сөз дұрыс емес';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Электрондық пошта дұрыс емес';
+      } else if (err.code === 'auth/invalid-credential') {
+        errorMessage = 'Электрондық пошта немесе құпия сөз дұрыс емес';
+      } else if (err.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

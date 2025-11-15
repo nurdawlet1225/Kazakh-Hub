@@ -7,7 +7,6 @@ export interface Comment {
   createdAt: string;
   replies?: Comment[]; // Replies to this comment
   likes?: string[]; // Array of user IDs who liked
-  dislikes?: string[]; // Array of user IDs who disliked
   parentId?: string; // ID of parent comment if this is a reply
 }
 
@@ -166,10 +165,10 @@ class ApiService {
   }
 
   // Authentication
-  async register(username: string, email: string, password: string): Promise<{ user: User; message: string }> {
+  async register(username: string, email: string, password: string, firebaseUid?: string): Promise<{ user: User; message: string }> {
     return this.request<{ user: User; message: string }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, email, password, firebase_uid: firebaseUid }),
     });
   }
 
@@ -243,12 +242,6 @@ class ApiService {
     });
   }
 
-  async dislikeComment(codeId: string, commentId: string, userId: string): Promise<CodeFile> {
-    return this.request<CodeFile>(`/codes/${codeId}/comments/${commentId}/dislike`, {
-      method: 'POST',
-      body: JSON.stringify({ userId }),
-    });
-  }
 
   // Views
   async incrementView(codeId: string, userId: string | null): Promise<CodeFile> {

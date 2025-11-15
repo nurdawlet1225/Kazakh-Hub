@@ -50,7 +50,6 @@ The server will run on port 3000 by default (or the PORT environment variable if
 - `PUT /api/codes/{id}/comments/{commentId}` - Update a comment
 - `DELETE /api/codes/{id}/comments/{commentId}` - Delete a comment
 - `POST /api/codes/{id}/comments/{commentId}/like` - Like a comment
-- `POST /api/codes/{id}/comments/{commentId}/dislike` - Dislike a comment
 
 ### Authentication
 - `POST /api/auth/register` - Register a new user

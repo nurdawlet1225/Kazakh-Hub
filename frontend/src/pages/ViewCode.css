@@ -647,6 +647,33 @@
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
 }
 
+.btn-export-folder {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.btn-export-folder:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
+}
+
+.btn-export-folder:active {
+  transform: translateY(0);
+}
+
 .like-button-header {
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -1170,11 +1197,6 @@
   color: var(--primary-color);
 }
 
-.comment-reaction-btn.disliked {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: #ef4444;
-  color: #ef4444;
-}
 
 .btn-comment-reply {
   background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(8, 145, 178, 0.05) 100%);

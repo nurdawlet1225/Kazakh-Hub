@@ -77,7 +77,8 @@ class CodeUpdate(BaseModel):
 class UserRegister(BaseModel):
     username: str
     email: str
-    password: str
+    password: Optional[str] = None  # Optional for Firebase auth users
+    firebase_uid: Optional[str] = None  # Firebase user ID
     
     @field_validator('email')
     @classmethod
@@ -87,7 +88,7 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: Optional[str] = None
     username: Optional[str] = None
-    password: str
+    password: Optional[str] = None  # Optional for Firebase auth users
     
     @field_validator('email')
     @classmethod
@@ -561,7 +562,6 @@ async def add_comment(code_id: str, comment_data: CommentCreate):
         'createdAt': datetime.now().isoformat(),
         'replies': [],
         'likes': [],
-        'dislikes': [],
         'parentId': comment_data.parentId
     }
     
@@ -618,11 +618,6 @@ async def like_comment(code_id: str, comment_id: str, request: LikeRequest):
     
     if 'likes' not in comment:
         comment['likes'] = []
-    if 'dislikes' not in comment:
-        comment['dislikes'] = []
-    
-    # Remove from dislikes if exists
-    comment['dislikes'] = [id for id in comment['dislikes'] if id != request.userId]
     
     # Toggle like
     if request.userId in comment['likes']:
@@ -634,73 +629,59 @@ async def like_comment(code_id: str, comment_id: str, request: LikeRequest):
     save_codes()
     return code
 
-@app.post("/api/codes/{code_id}/comments/{comment_id}/dislike")
-async def dislike_comment(code_id: str, comment_id: str, request: LikeRequest):
-    code = find_code_by_id(code_id)
-    if not code or 'comments' not in code:
-        raise HTTPException(status_code=404, detail="Code file or comment not found")
-    
-    comment = next((c for c in code['comments'] if c['id'] == comment_id), None)
-    if not comment:
-        raise HTTPException(status_code=404, detail="Comment not found")
-    
-    if 'likes' not in comment:
-        comment['likes'] = []
-    if 'dislikes' not in comment:
-        comment['dislikes'] = []
-    
-    # Remove from likes if exists
-    comment['likes'] = [id for id in comment['likes'] if id != request.userId]
-    
-    # Toggle dislike
-    if request.userId in comment['dislikes']:
-        comment['dislikes'] = [id for id in comment['dislikes'] if id != request.userId]
-    else:
-        comment['dislikes'].append(request.userId)
-    
-    code['updatedAt'] = datetime.now().isoformat()
-    save_codes()
-    return code
 
 # Authentication endpoints
 @app.post("/api/auth/register")
 async def register(user_data: UserRegister):
     # Check if user already exists
-    if any(u['email'] == user_data.email or u['username'] == user_data.username for u in users):
-        raise HTTPException(status_code=400, detail="User already exists")
+    existing_user = next((u for u in users if u['email'] == user_data.email or u['username'] == user_data.username), None)
+    if existing_user:
+        # If user exists, return existing user (for Firebase auth sync)
+        return {"user": existing_user, "message": "User already exists"}
+    
+    # Use Firebase UID if provided, otherwise generate UUID
+    user_id = user_data.firebase_uid if user_data.firebase_uid else str(uuid.uuid4())
     
     new_user = {
-        'id': str(uuid.uuid4()),
+        'id': user_id,
         'username': user_data.username,
         'email': user_data.email,
         'avatar': None
     }
     
     users.append(new_user)
-    passwords[user_data.email] = user_data.password  # In real app, hash the password
+    # Only save password if provided (not for Firebase auth)
+    if user_data.password:
+        passwords[user_data.email] = user_data.password  # In real app, hash the password
+        save_passwords()
     save_users()
-    save_passwords()
     return {"user": new_user, "message": "User registered successfully"}
 
 @app.post("/api/auth/login")
 async def login(login_data: UserLogin):
-    if not login_data.password:
-        raise HTTPException(status_code=400, detail="Password required")
-    
     if not login_data.email and not login_data.username:
         raise HTTPException(status_code=400, detail="Email or username required")
     
     user = None
-    stored_password = None
     
     if login_data.email:
         user = next((u for u in users if u['email'] == login_data.email), None)
-        if user:
-            stored_password = passwords.get(login_data.email)
     elif login_data.username:
         user = next((u for u in users if u['username'] == login_data.username), None)
+    
+    # If no password provided, assume Firebase auth and return user if found
+    if not login_data.password:
         if user:
-            stored_password = passwords.get(user['email'])
+            return {"user": user, "message": "Login successful"}
+        else:
+            raise HTTPException(status_code=401, detail="User not found")
+    
+    # Traditional password-based login
+    stored_password = None
+    if login_data.email:
+        stored_password = passwords.get(login_data.email)
+    elif login_data.username and user:
+        stored_password = passwords.get(user['email'])
     
     if not user or stored_password != login_data.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -863,6 +844,49 @@ async def delete_user(request: DeleteUserRequest):
     except Exception as e:
         print(f'Error deleting account: {e}')
         raise HTTPException(status_code=500, detail="Internal server error while deleting account")
+
+@app.delete("/api/users/delete-all")
+async def delete_all_accounts():
+    """
+    Барлық аккаунттарды жою - Бұл операция қайтымсыз!
+    Барлық пайдаланушылар, кодтар, хабарламалар, достар және басқа деректер жойылады.
+    """
+    try:
+        # Барлық пайдаланушыларды санау
+        users_count = len(users)
+        
+        # Барлық пайдаланушыларды жою
+        users.clear()
+        save_users()
+        
+        # Барлық парольдерді жою
+        passwords.clear()
+        save_passwords()
+        
+        # Барлық кодтарды жою
+        codes.clear()
+        save_codes()
+        
+        # Барлық достарды жою
+        friends.clear()
+        save_friends()
+        
+        # Барлық хабарламаларды жою
+        messages.clear()
+        save_messages()
+        
+        # Барлық дос болу сұрауларын жою
+        friend_requests.clear()
+        save_friend_requests()
+        
+        return {
+            "message": f"Барлық аккаунттар жойылды",
+            "deletedAccounts": users_count,
+            "warning": "Бұл операция қайтымсыз!"
+        }
+    except Exception as e:
+        print(f'Error deleting all accounts: {e}')
+        raise HTTPException(status_code=500, detail="Internal server error while deleting all accounts")
 
 # Friends endpoints
 @app.get("/api/friends/{user_id}")
