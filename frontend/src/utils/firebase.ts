@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore, collection, query, where, getDocs, limit, orderBy, startAt, doc, setDoc, getDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQV1oUnC4GISVmWPAk-fIk-3UOoEYBink",
@@ -17,8 +18,26 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
+// Initialize Firestore
+export const db = getFirestore(app);
+
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
+
+// Helper function to save/update user in Firestore
+export const saveUserToFirestore = async (userData: { id: string; username: string; email: string; avatar?: string }) => {
+  try {
+    const userRef = doc(db, 'users', userData.id);
+    await setDoc(userRef, {
+      username: userData.username,
+      email: userData.email,
+      avatar: userData.avatar || null,
+      updatedAt: new Date().toISOString()
+    }, { merge: true }); // merge: true allows updating existing documents
+  } catch (error) {
+    console.error('Error saving user to Firestore:', error);
+  }
+};
 
 export default app;
 

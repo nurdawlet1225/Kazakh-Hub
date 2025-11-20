@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faInfoCircle, faLink, faBook, faList, faLock, faRocket, faLaptop } from '@fortawesome/free-solid-svg-icons';
-import BrainCircuitIcon from './BrainCircuitIcon';
 import './Footer.css';
 
 const Footer: React.FC = () => {
@@ -21,7 +20,7 @@ const Footer: React.FC = () => {
               </p>
               <div className="footer-social">
                 <a href="https://oyji.org" target="_blank" rel="noopener noreferrer" className="social-link" title="OyJI">
-                  <span className="social-icon"><BrainCircuitIcon size={32} /></span>
+                  <span className="social-icon"><img src="https://oyji.org/favicon.ico" alt="OyJI" style={{ width: '24px', height: '24px', objectFit: 'contain' }} /></span>
                 </a>
                 <a href="nurdawlettawirbaev01@gmail.com" className="social-link" title="Email">
                   <span className="social-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
@@ -44,7 +43,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <a href="https://oyji.org" target="_blank" rel="noopener noreferrer">
-                  <span className="link-icon link-icon-svg"><BrainCircuitIcon size={18} /></span>
+                  <span className="link-icon link-icon-svg"><img src="https://oyji.org/favicon.ico" alt="OyJI" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /></span>
                   OyJI
                 </a>
               </li>

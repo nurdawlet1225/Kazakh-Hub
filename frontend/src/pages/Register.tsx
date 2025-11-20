@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, googleProvider } from '../utils/firebase';
+import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import './Auth.css';
 
@@ -35,6 +35,14 @@ const Register: React.FC = () => {
 
       // Save user to localStorage
       localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Save user to Firestore for search functionality
+      try {
+        await saveUserToFirestore(userData);
+      } catch (firestoreErr) {
+        console.error('Failed to save user to Firestore:', firestoreErr);
+        // Continue even if Firestore save fails
+      }
       
       // Optionally sync with your backend
       try {
@@ -91,6 +99,18 @@ const Register: React.FC = () => {
       return;
     }
 
+    if (!formData.email.trim()) {
+      setError('Электрондық поштаны енгізіңіз');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Электрондық пошта дұрыс емес');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -119,6 +139,14 @@ const Register: React.FC = () => {
       // Save user to localStorage
       localStorage.setItem('user', JSON.stringify(userData));
       
+      // Save user to Firestore for search functionality
+      try {
+        await saveUserToFirestore(userData);
+      } catch (firestoreErr) {
+        console.error('Failed to save user to Firestore:', firestoreErr);
+        // Continue even if Firestore save fails
+      }
+      
       // Optionally sync with your backend
       try {
         await apiService.register(
@@ -135,6 +163,7 @@ const Register: React.FC = () => {
       // Redirect to home
       navigate('/');
     } catch (err: any) {
+      console.error('Registration error:', err);
       let errorMessage = 'Тіркелу қатесі';
       
       if (err.code === 'auth/email-already-in-use') {
@@ -142,11 +171,17 @@ const Register: React.FC = () => {
       } else if (err.code === 'auth/invalid-email') {
         errorMessage = 'Электрондық пошта дұрыс емес';
       } else if (err.code === 'auth/weak-password') {
-        errorMessage = 'Құпия сөз тым әлсіз';
+        errorMessage = 'Құпия сөз тым әлсіз (кемінде 6 таңба)';
       } else if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз.';
+        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз. FIREBASE_SETUP.md файлын қараңыз.';
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = 'Интернет байланысы жоқ. Интернетті тексеріңіз.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Тым көп сұраулар. Кейінірек қайталаңыз.';
       } else if (err.message) {
         errorMessage = err.message;
+      } else if (err.toString) {
+        errorMessage = err.toString();
       }
       
       setError(errorMessage);

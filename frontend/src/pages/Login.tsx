@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, googleProvider } from '../utils/firebase';
+import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import './Auth.css';
 
@@ -39,6 +39,9 @@ const Login: React.FC = () => {
 
       // Save user to localStorage
       localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Save user to Firestore for search functionality
+      await saveUserToFirestore(userData);
       
       // Optionally sync with your backend
       try {
@@ -79,6 +82,18 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Validation
+    if (!formData.emailOrUsername.trim()) {
+      setError('Ник немесе электрондық поштаны енгізіңіз');
+      return;
+    }
+
+    if (!formData.password.trim()) {
+      setError('Құпия сөзді енгізіңіз');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -92,7 +107,17 @@ const Login: React.FC = () => {
           // Try to login with backend first to get email
           const response = await apiService.login(formData.emailOrUsername, formData.password);
           // If backend login succeeds, use that
-          localStorage.setItem('user', JSON.stringify(response.user));
+          const userData = response.user;
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          // Save user to Firestore for search functionality
+          try {
+            await saveUserToFirestore(userData);
+          } catch (firestoreErr) {
+            console.error('Failed to save user to Firestore:', firestoreErr);
+            // Continue even if Firestore save fails
+          }
+          
           navigate('/');
           return;
         } catch (backendErr) {
@@ -121,6 +146,14 @@ const Login: React.FC = () => {
       // Save user to localStorage
       localStorage.setItem('user', JSON.stringify(userData));
       
+      // Save user to Firestore for search functionality
+      try {
+        await saveUserToFirestore(userData);
+      } catch (firestoreErr) {
+        console.error('Failed to save user to Firestore:', firestoreErr);
+        // Continue even if Firestore save fails
+      }
+      
       // Optionally sync with your backend
       try {
         await apiService.login(userData.email, '');
@@ -132,10 +165,11 @@ const Login: React.FC = () => {
       // Redirect to home
       navigate('/');
     } catch (err: any) {
+      console.error('Login error:', err);
       let errorMessage = 'Кіру қатесі';
       
       if (err.code === 'auth/user-not-found') {
-        errorMessage = 'Пайдаланушы табылмады';
+        errorMessage = 'Пайдаланушы табылмады. Тіркелгіңіз бар ма?';
       } else if (err.code === 'auth/wrong-password') {
         errorMessage = 'Құпия сөз дұрыс емес';
       } else if (err.code === 'auth/invalid-email') {
@@ -143,9 +177,15 @@ const Login: React.FC = () => {
       } else if (err.code === 'auth/invalid-credential') {
         errorMessage = 'Электрондық пошта немесе құпия сөз дұрыс емес';
       } else if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз.';
+        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз. FIREBASE_SETUP.md файлын қараңыз.';
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = 'Интернет байланысы жоқ. Интернетті тексеріңіз.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = 'Тым көп сұраулар. Кейінірек қайталаңыз.';
       } else if (err.message) {
         errorMessage = err.message;
+      } else if (err.toString) {
+        errorMessage = err.toString();
       }
       
       setError(errorMessage);

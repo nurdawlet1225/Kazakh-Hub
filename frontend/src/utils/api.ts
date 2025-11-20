@@ -319,9 +319,74 @@ class ApiService {
     });
   }
 
-  // User Search
-  async searchUsers(query: string): Promise<User[]> {
-    return this.request<User[]>(`/users/search?query=${encodeURIComponent(query)}`);
+  // User Search - Using Firebase Firestore
+  async searchUsers(searchQuery: string): Promise<User[]> {
+    try {
+      // Import Firebase functions dynamically to avoid issues
+      const { db } = await import('./firebase');
+      const { collection, query, where, getDocs, limit } = await import('firebase/firestore');
+      
+      const searchTerm = searchQuery.toLowerCase().trim();
+      if (!searchTerm || searchTerm.length < 1) {
+        return [];
+      }
+
+      const usersRef = collection(db, 'users');
+      const users: User[] = [];
+
+      // Search by username
+      const usernameQuery = query(
+        usersRef,
+        where('username', '>=', searchTerm),
+        where('username', '<=', searchTerm + '\uf8ff'),
+        limit(20)
+      );
+      
+      const usernameSnapshot = await getDocs(usernameQuery);
+      usernameSnapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push({
+          id: doc.id,
+          username: data.username || '',
+          email: data.email || '',
+          avatar: data.avatar || undefined
+        });
+      });
+
+      // Search by email (if username search didn't find enough results)
+      if (users.length < 20 && searchTerm.includes('@')) {
+        const emailQuery = query(
+          usersRef,
+          where('email', '>=', searchTerm),
+          where('email', '<=', searchTerm + '\uf8ff'),
+          limit(20 - users.length)
+        );
+        
+        const emailSnapshot = await getDocs(emailQuery);
+        emailSnapshot.forEach((doc) => {
+          const data = doc.data();
+          // Avoid duplicates
+          if (!users.some(u => u.id === doc.id)) {
+            users.push({
+              id: doc.id,
+              username: data.username || '',
+              email: data.email || '',
+              avatar: data.avatar || undefined
+            });
+          }
+        });
+      }
+
+      // Filter results to match search term (case-insensitive)
+      return users.filter(user => 
+        user.username.toLowerCase().includes(searchTerm) || 
+        user.email.toLowerCase().includes(searchTerm)
+      );
+    } catch (error) {
+      console.error('Firebase search error:', error);
+      // Fallback to backend API if Firebase fails
+      return this.request<User[]>(`/users/search?query=${encodeURIComponent(searchQuery)}`);
+    }
   }
 }
 
