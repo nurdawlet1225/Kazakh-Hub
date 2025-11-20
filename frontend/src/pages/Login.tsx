@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInWithPopup, signInWithRedirect, signInWithEmailAndPassword, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import './Auth.css';
@@ -21,12 +21,13 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // Handle redirect result on component mount
+  // Handle redirect result when page loads (for signInWithRedirect fallback)
   useEffect(() => {
     const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth);
-        if (result) {
+        if (result && result.user) {
+          setGoogleLoading(true);
           const user = result.user;
 
           // Extract user info from Firebase
@@ -52,9 +53,11 @@ const Login: React.FC = () => {
               userData.id // Firebase UID
             );
           } catch (err) {
+            // User might already exist, try to login
             try {
               await apiService.login(userData.email, '');
             } catch (loginErr) {
+              // If both fail, continue anyway since Firebase auth succeeded
               console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
             }
           }
@@ -66,12 +69,54 @@ const Login: React.FC = () => {
         console.error('Redirect result error:', err);
         if (err.code === 'auth/operation-not-allowed') {
           setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
+        } else {
+          setError('Google кіру қатесі');
         }
+      } finally {
+        setGoogleLoading(false);
       }
     };
 
     handleRedirectResult();
   }, [navigate]);
+
+  const processGoogleAuth = async (user: any) => {
+    // Extract user info from Firebase
+    const userData = {
+      id: user.uid,
+      username: user.displayName || user.email?.split('@')[0] || 'User',
+      email: user.email || '',
+      avatar: user.photoURL || '',
+    };
+
+    // Save user to localStorage
+    localStorage.setItem('user', JSON.stringify(userData));
+    
+    // Save user to Firestore for search functionality
+    await saveUserToFirestore(userData);
+    
+    // Optionally sync with your backend
+    try {
+      // Check if user exists in backend, if not create
+      await apiService.register(
+        userData.username,
+        userData.email,
+        '', // No password for Google auth
+        userData.id // Firebase UID
+      );
+    } catch (err) {
+      // User might already exist, try to login
+      try {
+        await apiService.login(userData.email, '');
+      } catch (loginErr) {
+        // If both fail, continue anyway since Firebase auth succeeded
+        console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
+      }
+    }
+
+    // Redirect to home
+    navigate('/');
+  };
 
   const handleGoogleSignIn = async () => {
     setError(null);
@@ -80,57 +125,24 @@ const Login: React.FC = () => {
     try {
       // Try popup first
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      // Extract user info from Firebase
-      const userData = {
-        id: user.uid,
-        username: user.displayName || user.email?.split('@')[0] || 'User',
-        email: user.email || '',
-        avatar: user.photoURL || '',
-      };
-
-      // Save user to localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Save user to Firestore for search functionality
-      await saveUserToFirestore(userData);
-      
-      // Optionally sync with your backend
-      try {
-        // Check if user exists in backend, if not create
-        await apiService.register(
-          userData.username,
-          userData.email,
-          '', // No password for Google auth
-          userData.id // Firebase UID
-        );
-      } catch (err) {
-        // User might already exist, try to login
-        try {
-          await apiService.login(userData.email, '');
-        } catch (loginErr) {
-          // If both fail, continue anyway since Firebase auth succeeded
-          console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
-        }
-      }
-
-      // Redirect to home
-      navigate('/');
+      await processGoogleAuth(result.user);
     } catch (err: any) {
-      if (err.code === 'auth/popup-blocked') {
-        // Fallback to redirect if popup is blocked
-        setError('Попап терезесі бұғатталған. Браузер параметрлерінде попаптарды рұқсат етіңіз немесе басқа терезеде ашылады...');
+      // If popup fails due to COOP or popup blocking, fall back to redirect
+      if (
+        err.code === 'auth/popup-blocked' ||
+        err.code === 'auth/popup-closed-by-user' ||
+        err.code === 'auth/cancelled-popup-request' ||
+        err.message?.includes('Cross-Origin-Opener-Policy') ||
+        err.message?.includes('window.closed')
+      ) {
         try {
+          // Fall back to redirect method
           await signInWithRedirect(auth, googleProvider);
-          // The redirect will happen, so we don't need to do anything else
+          // The redirect will be handled by useEffect above
+          return;
         } catch (redirectErr: any) {
-          setError('Google кіру қатесі. Браузер параметрлерінде попаптарды рұқсат етіңіз.');
+          setError('Google кіру қатесі. Браузер параметрлерін тексеріңіз.');
         }
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        setError('Google кіру терезесі жабылды');
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        setError('Google кіру тоқтатылды');
       } else if (err.code === 'auth/operation-not-allowed') {
         setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
       } else {
@@ -366,4 +378,3 @@ const Login: React.FC = () => {
 };
 
 export default Login;
-
