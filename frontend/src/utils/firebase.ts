@@ -34,8 +34,12 @@ export const saveUserToFirestore = async (userData: { id: string; username: stri
       avatar: userData.avatar || null,
       updatedAt: new Date().toISOString()
     }, { merge: true }); // merge: true allows updating existing documents
-  } catch (error) {
-    console.error('Error saving user to Firestore:', error);
+  } catch (error: any) {
+    // Silently handle Firestore errors (may be blocked by ad blockers)
+    // This is not critical for authentication to work
+    if (error?.code !== 'unavailable' && !error?.message?.includes('BLOCKED_BY_CLIENT')) {
+      console.warn('Firestore save failed (non-critical):', error?.message || error);
+    }
   }
 };
 
