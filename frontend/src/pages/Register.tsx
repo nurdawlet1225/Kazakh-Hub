@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signInWithPopup, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, createUserWithEmailAndPassword, updateProfile, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import './Auth.css';
@@ -17,11 +17,68 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Handle redirect result on component mount
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          const user = result.user;
+
+          // Extract user info from Firebase
+          const userData = {
+            id: user.uid,
+            username: user.displayName || user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+            avatar: user.photoURL || '',
+          };
+
+          // Save user to localStorage
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          // Save user to Firestore for search functionality
+          try {
+            await saveUserToFirestore(userData);
+          } catch (firestoreErr) {
+            console.error('Failed to save user to Firestore:', firestoreErr);
+          }
+          
+          // Optionally sync with your backend
+          try {
+            await apiService.register(
+              userData.username,
+              userData.email,
+              '', // No password for Google auth
+              userData.id // Firebase UID
+            );
+          } catch (err) {
+            try {
+              await apiService.login(userData.email, '');
+            } catch (loginErr) {
+              console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
+            }
+          }
+
+          // Redirect to home
+          navigate('/');
+        }
+      } catch (err: any) {
+        console.error('Redirect result error:', err);
+        if (err.code === 'auth/operation-not-allowed') {
+          setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
+        }
+      }
+    };
+
+    handleRedirectResult();
+  }, [navigate]);
+
   const handleGoogleSignIn = async () => {
     setError(null);
     setGoogleLoading(true);
 
     try {
+      // Try popup first
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
@@ -66,7 +123,16 @@ const Register: React.FC = () => {
       // Redirect to home
       navigate('/');
     } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/popup-blocked') {
+        // Fallback to redirect if popup is blocked
+        setError('Попап терезесі бұғатталған. Браузер параметрлерінде попаптарды рұқсат етіңіз немесе басқа терезеде ашылады...');
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          // The redirect will happen, so we don't need to do anything else
+        } catch (redirectErr: any) {
+          setError('Google тіркелу қатесі. Браузер параметрлерінде попаптарды рұқсат етіңіз.');
+        }
+      } else if (err.code === 'auth/popup-closed-by-user') {
         setError('Google тіркелу терезесі жабылды');
       } else if (err.code === 'auth/cancelled-popup-request') {
         setError('Google тіркелу тоқтатылды');
