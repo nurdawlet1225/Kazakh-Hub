@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder, faUser, faCalendar, faHeart, faComment, faEye } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
+import { formatDate } from '../utils/dateFormatter';
 import './CodeCard.css';
 
 interface CodeCardProps {
@@ -13,15 +15,7 @@ interface CodeCardProps {
 }
 
 const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected = false, onToggleSelect }) => {
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('kk-KZ', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const { i18n } = useTranslation();
 
   const getLanguageColor = (language: string): string => {
     const colors: Record<string, string> = {
@@ -43,6 +37,18 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
   const truncateContent = (content: string, maxLength: number = 150): string => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
+  };
+
+  // Check if content is JSON structure (folder structure data)
+  const isJsonStructure = (content: string): boolean => {
+    if (!content) return false;
+    try {
+      const parsed = JSON.parse(content);
+      return parsed && typeof parsed === 'object' && 'structure' in parsed;
+    } catch {
+      // If content starts with JSON-like structure indicators, hide it
+      return content.trim().startsWith('{') && content.includes('"structure"');
+    }
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
@@ -103,16 +109,18 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
         <p className="code-card-description">{code.description}</p>
       )}
 
-      <div className="code-card-content">
-        <pre className="code-preview">
-          <code>{truncateContent(code.content)}</code>
-        </pre>
-      </div>
+      {!code.isFolder && !isJsonStructure(code.content) && (
+        <div className="code-card-content">
+          <pre className="code-preview">
+            <code>{truncateContent(code.content)}</code>
+          </pre>
+        </div>
+      )}
 
       <div className="code-card-footer">
         <div className="code-card-meta">
           <span className="code-card-author"><FontAwesomeIcon icon={faUser} /> {code.author}</span>
-          <span className="code-card-date"><FontAwesomeIcon icon={faCalendar} /> {formatDate(code.createdAt)}</span>
+          <span className="code-card-date"><FontAwesomeIcon icon={faCalendar} /> {formatDate(code.createdAt, i18n.language)}</span>
           {code.likes && code.likes.length > 0 && (
             <span className="code-card-likes"><FontAwesomeIcon icon={faHeart} /> {code.likes.length}</span>
           )}

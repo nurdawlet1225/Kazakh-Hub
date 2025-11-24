@@ -153,4 +153,3 @@ class OfflineStorage {
 
 export const offlineStorage = new OfflineStorage();
 export type { PendingUpload };
-

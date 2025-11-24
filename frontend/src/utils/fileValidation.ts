@@ -179,4 +179,3 @@ export const isDangerousFile = (filename: string): boolean => {
   const ext = getFileExtension(filename);
   return DANGEROUS_EXTENSIONS.includes(ext);
 };
-

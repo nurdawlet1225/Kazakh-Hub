@@ -2,10 +2,13 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBook, faLaptop, faUsers, faStar, faSearch, faFileAlt } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faLaptop, faUsers, faStar, faFileAlt, faList } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
+import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
+import { useTheme } from '../contexts/ThemeContext';
 import CodeCard from '../components/CodeCard';
+import CodesListModal from '../components/CodesListModal';
 import './Home.css';
 
 type SortOption = 'newest' | 'oldest' | 'title' | 'author';
@@ -13,6 +16,7 @@ type ViewMode = 'grid' | 'list';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const [searchParams] = useSearchParams();
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +28,7 @@ const Home: React.FC = () => {
     const saved = localStorage.getItem('homeViewMode');
     return (saved === 'grid' || saved === 'list') ? saved : 'grid';
   });
+  const [isCodesModalOpen, setIsCodesModalOpen] = useState(false);
 
   const loadCodes = useCallback(async () => {
     try {
@@ -39,7 +44,89 @@ const Home: React.FC = () => {
   }, [t]);
 
   useEffect(() => {
-    loadCodes();
+    let apiCodes: CodeFile[] = [];
+    let realTimeInitialized = false;
+    
+    // Алдымен API-дан жүктеу
+    const loadInitialCodes = async () => {
+      try {
+        const codes = await apiService.getCodeFiles();
+        apiCodes = codes;
+        setCodes(codes);
+        setLoading(false);
+        console.log('Home: Loaded codes from API:', codes.length, 'folders:', codes.filter(c => c.isFolder === true).length);
+      } catch (err) {
+        console.error('Failed to load codes from API:', err);
+        setLoading(false);
+        setError(err instanceof Error ? err.message : t('home.error'));
+      }
+    };
+    
+    loadInitialCodes();
+    
+    // Real-time listener қосу (барлық кодтар үшін)
+    // Ескерту: Егер ad blocker болса, real-time жұмыс істемейді, сондықтан API деректерін пайдаланамыз
+    const unsubscribeListener = subscribeToCodes(
+      null, // folderId = null - барлық кодтар
+      (updatedCodes) => {
+        realTimeInitialized = true;
+        
+        // Егер real-time listener 0 код қайтарса, бірақ API-да кодтар бар болса, API-дан пайдалану
+        // Бұл Firestore-да деректер синхрондалмаған немесе ad blocker бөгет жасаған кезде болады
+        if (updatedCodes.length === 0 && apiCodes.length > 0) {
+          // Тыныштықпен API деректерін пайдалану - қосымша хабарлама көрсетпеу
+          setCodes(apiCodes);
+          return;
+        }
+        
+        // Егер real-time listener кодтар қайтарса, оларды пайдалану
+        if (updatedCodes.length > 0) {
+          const folderCount = updatedCodes.filter(c => c.isFolder === true).length;
+          console.log('Home: Real-time update received. Total codes:', updatedCodes.length, 'Folders:', folderCount);
+          setCodes(updatedCodes);
+          // API деректерін жаңарту
+          apiCodes = updatedCodes;
+        }
+      },
+      (error: any) => {
+        // ERR_BLOCKED_BY_CLIENT қатесін (ad blocker) елемеу
+        if (error?.code === 'unavailable' || 
+            error?.code === 'permission-denied' ||
+            error?.message?.includes('BLOCKED_BY_CLIENT') ||
+            error?.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
+            error?.message?.includes('network') ||
+            error?.message?.includes('Failed to fetch')) {
+          // Тыныштықпен API деректерін пайдалану
+          if (apiCodes.length > 0) {
+            setCodes(apiCodes);
+          } else {
+            loadCodes();
+          }
+          return;
+        }
+        console.error('Real-time codes listener error:', error);
+        // Егер real-time жұмыс істемесе, API-дан жүктеу
+        if (apiCodes.length > 0) {
+          setCodes(apiCodes);
+        } else {
+          loadCodes();
+        }
+      }
+    );
+    
+    // Егер 5 секунттан кейін real-time listener жұмыс істемесе, API-дан жүктеу
+    const fallbackTimeout = setTimeout(() => {
+      if (!realTimeInitialized && apiCodes.length > 0) {
+        // Тыныштықпен API деректерін пайдалану
+        setCodes(apiCodes);
+      }
+    }, 5000);
+    
+    return () => {
+      clearTimeout(fallbackTimeout);
+      unsubscribeListener();
+      unsubscribe('codes-all');
+    };
   }, [loadCodes]);
 
   useEffect(() => {
@@ -56,10 +143,10 @@ const Home: React.FC = () => {
   }, [loadCodes]);
 
   useEffect(() => {
-    // Іздеу сұрауын URL параметрлерімен синхрондау
+    // Sync search query with URL params from Header
     const urlSearch = searchParams.get('search') || '';
     setSearchQuery(urlSearch);
-  }, [searchParams, setSearchQuery]);
+  }, [searchParams]);
 
   const stats = useMemo(() => {
     const totalCodes = codes.length;
@@ -82,18 +169,20 @@ const Home: React.FC = () => {
 
   const filteredAndSortedCodes = useMemo(() => {
     let filtered = codes.filter((code) => {
-      const matchesSearch =
+      // Іздеу сұрауын тексеру (Header-дан келген)
+      const matchesSearch = !searchQuery || 
         code.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         code.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         code.description?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesLanguage = filterLanguage === 'all' || code.language === filterLanguage;
+      // Папкалар үшін тіл фильтрін елемеу (олардың language 'folder' болуы мүмкін)
+      const matchesLanguage = filterLanguage === 'all' || code.language === filterLanguage || code.isFolder;
       
       return matchesSearch && matchesLanguage;
     });
 
     // Папкалар мен файлдарды ажырату
-    const folders = filtered.filter(code => code.isFolder);
+    const folders = filtered.filter(code => code.isFolder === true);
     const files = filtered.filter(code => !code.isFolder);
 
     // Папкаларды сұрыптау
@@ -151,7 +240,7 @@ const Home: React.FC = () => {
     <div className="home-container">
       <div className="home-header">
         <div className="home-header-content">
-          <h1>Kazakh Hub</h1>
+          <h1>{t('header.appName')}</h1>
           <p className="home-subtitle">{t('home.subtitle')}</p>
         </div>
       </div>
@@ -190,47 +279,41 @@ const Home: React.FC = () => {
 
       {/* Сүзгілер және басқару элементтері */}
       <div className="home-controls">
-        <div className="home-filters">
-          <div className="search-box">
-            <span className="search-icon"><FontAwesomeIcon icon={faSearch} /></span>
-            <input
-              type="text"
-              placeholder={t('home.search')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-          </div>
-          <div className="language-filter">
-            <label htmlFor="language-filter">{t('home.language')}</label>
-            <select
-              id="language-filter"
-              value={filterLanguage}
-              onChange={(e) => setFilterLanguage(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">{t('home.allLanguages')}</option>
-              {languages.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="sort-filter">
-            <label htmlFor="sort-filter">{t('home.sortBy')}:</label>
-            <select
-              id="sort-filter"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="filter-select"
-            >
-              <option value="newest">{t('home.newest')}</option>
-              <option value="oldest">{t('home.oldest')}</option>
-              <option value="title">{t('home.byTitle')}</option>
-              <option value="author">{t('home.byAuthor')}</option>
-            </select>
-          </div>
+        <button 
+          className="btn-header-list"
+          onClick={() => setIsCodesModalOpen(true)}
+        >
+          <FontAwesomeIcon icon={faList} /> {t('header.codesList')}
+        </button>
+        <div className="language-filter">
+          <label htmlFor="language-filter">{t('home.language')}</label>
+          <select
+            id="language-filter"
+            value={filterLanguage}
+            onChange={(e) => setFilterLanguage(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">{t('home.allLanguages')}</option>
+            {languages.map((lang) => (
+              <option key={lang} value={lang}>
+                {lang.charAt(0).toUpperCase() + lang.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="sort-filter">
+          <label htmlFor="sort-filter">{t('home.sortBy')}:</label>
+          <select
+            id="sort-filter"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="filter-select"
+          >
+            <option value="newest">{t('home.newest')}</option>
+            <option value="oldest">{t('home.oldest')}</option>
+            <option value="title">{t('home.byTitle')}</option>
+            <option value="author">{t('home.byAuthor')}</option>
+          </select>
         </div>
         <div className="view-toggle">
           <button
@@ -289,6 +372,10 @@ const Home: React.FC = () => {
             />
           ))}
         </div>
+      <CodesListModal 
+        isOpen={isCodesModalOpen} 
+        onClose={() => setIsCodesModalOpen(false)} 
+      />
     </div>
   );
 };

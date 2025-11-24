@@ -37,6 +37,11 @@
   max-width: 650px;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.light-theme .modal-content {
+  background: #ffffff;
+}
   overflow-x: hidden;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.3),
@@ -279,6 +284,20 @@
   background: rgba(251, 191, 36, 0.1);
   border-color: #fbbf24;
   color: #fbbf24;
+}
+
+.dark-theme .btn-remove-avatar:hover {
+  background: rgba(6, 182, 212, 0.1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-remove-avatar:hover {
+    background: rgba(6, 182, 212, 0.1);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+  }
 }
 
 .password-change-section {

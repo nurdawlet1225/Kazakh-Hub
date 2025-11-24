@@ -239,9 +239,29 @@
   color: white;
 }
 
+.dark-theme .chat-friend-item.active {
+  background: var(--accent-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-friend-item.active {
+    background: var(--accent-color);
+  }
+}
+
 .chat-friend-item.has-unread {
   background: rgba(0, 123, 255, 0.1);
   font-weight: 500;
+}
+
+.dark-theme .chat-friend-item.has-unread {
+  background: rgba(6, 182, 212, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-friend-item.has-unread {
+    background: rgba(6, 182, 212, 0.1);
+  }
 }
 
 .chat-friend-item.has-unread .chat-friend-name {

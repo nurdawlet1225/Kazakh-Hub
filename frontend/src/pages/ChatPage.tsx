@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComment, faSearch, faTimes, faUserMinus, faUserPlus, faClock, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
+import { formatDateTime } from '../utils/dateFormatter';
+import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';
 import '../components/Chat.css';
 
 interface FriendWithLastMessage extends User {
@@ -11,6 +14,7 @@ interface FriendWithLastMessage extends User {
 }
 
 const ChatPage: React.FC = () => {
+  const { i18n } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [friends, setFriends] = useState<FriendWithLastMessage[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -57,10 +61,45 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     if (currentUser && selectedFriend) {
+      // Алдымен бір рет жүктеу
       loadMessages();
-      // Auto-refresh messages every 3 seconds
-      const interval = setInterval(loadMessages, 3000);
-      return () => clearInterval(interval);
+      
+      // Real-time listener қосу
+      const unsubscribeListener = subscribeToMessages(
+        currentUser.id,
+        selectedFriend.id,
+        (updatedMessages) => {
+          setMessages(updatedMessages);
+          
+          // Mark unread messages as read
+          const unreadMessages = updatedMessages.filter(
+            msg => msg.toUserId === currentUser.id && !msg.read
+          );
+          
+          if (unreadMessages.length > 0) {
+            Promise.all(
+              unreadMessages.map(msg => 
+                apiService.markMessageAsRead(msg.id).catch(err => 
+                  console.error('Failed to mark message as read:', err)
+                )
+              )
+            );
+            
+            // Reload friends to update unread counts
+            loadFriends();
+          }
+        },
+        (error) => {
+          console.error('Real-time messages listener error:', error);
+          // Егер real-time жұмыс істемесе, қалыпты жолмен жүктеу
+          loadMessages();
+        }
+      );
+      
+      return () => {
+        unsubscribeListener();
+        unsubscribe(`messages-${currentUser.id}-${selectedFriend.id}`);
+      };
     }
   }, [currentUser, selectedFriend]);
 
@@ -384,12 +423,7 @@ const ChatPage: React.FC = () => {
     if (minutes < 60) return `${minutes} мин бұрын`;
     if (minutes < 1440) return `${Math.floor(minutes / 60)} сағ бұрын`;
     
-    return date.toLocaleDateString('kk-KZ', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatDateTime(dateString, i18n.language);
   };
 
   return (

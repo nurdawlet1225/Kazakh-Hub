@@ -1,3 +1,7 @@
 {
-    "cmake.sourceDirectory": "C:/Users/nurda/react/nairee_cli"
+    "cmake.sourceDirectory": "C:/Users/nurda/react/nairee_cli",
+    "python.defaultInterpreterPath": "C:/Users/nurda/AppData/Local/Programs/Python/Python310/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/backend"
+    ]
 }

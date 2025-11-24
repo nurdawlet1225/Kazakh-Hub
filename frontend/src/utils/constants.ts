@@ -21,4 +21,3 @@ export const SUPPORTED_EXTENSIONS = [
   '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h',
   '.html', '.css', '.json', '.md', '.xml', '.yaml', '.yml'
 ];
-

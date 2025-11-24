@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faExclamationTriangle, faFileCode, faComment, faUserFriends, faEnvelope } from '@fortawesome/free-solid-svg-icons';
-import { deleteUser, signOut } from 'firebase/auth';
-import { auth } from '../utils/firebase';
 import { User } from '../utils/api';
 import { apiService } from '../utils/api';
 import './Settings.css';
@@ -19,7 +16,6 @@ const Settings: React.FC = () => {
     emailNotifications: true,
   });
   const [user, setUser] = useState<User | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     // Load saved language from localStorage
@@ -60,82 +56,6 @@ const Settings: React.FC = () => {
     alert(t('common.success') || 'Параметрлер сақталды!');
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user) return;
-
-    // Растау диалогы
-    const confirmed = window.confirm(
-      'Аккаунтты толықтай жоюға сенімдісіз бе?\n\nБұл әрекет:\n' +
-      '• Барлық код файлдарыңыз жойылады\n' +
-      '• Барлық пікірлеріңіз жойылады\n' +
-      '• Барлық достар деректері жойылады\n' +
-      '• Барлық хабарламалар жойылады\n' +
-      '• Firebase аккаунтыңыз да жойылады\n\n' +
-      'Бұл әрекетті қайтару мүмкін емес!'
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    // Екінші растау
-    const doubleConfirmed = window.confirm(
-      'ШЫНЫМЕН ДЕ аккаунтты жоюға дайынсыз ба?\n\n' +
-      'Бұл әрекетті қайтару мүмкін емес!'
-    );
-
-    if (!doubleConfirmed) {
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      
-      // Backend-тен аккаунтты жою
-      try {
-        await apiService.deleteAccount(user.id, user.email);
-      } catch (backendErr) {
-        console.error('Backend account deletion error:', backendErr);
-        // Backend қатесі болса да, Firebase аккаунтын жоюға тырысамыз
-      }
-      
-      // Firebase Authentication-да аккаунтты жою
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        try {
-          await deleteUser(currentUser);
-          console.log('Firebase account deleted successfully');
-        } catch (firebaseErr: any) {
-          console.error('Firebase account deletion error:', firebaseErr);
-          // Егер пайдаланушы соңғы кіруден кейін көп уақыт өткен болса, қайта кіру керек
-          if (firebaseErr.code === 'auth/requires-recent-login') {
-            alert('Қауіпсіздік үшін қайта кіріңіз, содан кейін аккаунтты жоюға болады.');
-            setIsDeleting(false);
-            // Пайдаланушыны шығару
-            await signOut(auth);
-            navigate('/login');
-            return;
-          }
-          // Басқа қателер үшін хабарлама
-          throw new Error('Firebase аккаунтын жою қатесі: ' + (firebaseErr.message || 'Белгісіз қате'));
-        }
-      }
-      
-      // Барлық localStorage деректерін тазалау
-      localStorage.removeItem('user');
-      localStorage.removeItem('savedEmail');
-      localStorage.removeItem('savedUsername');
-      
-      // Firebase-тен шығу
-      await signOut(auth);
-      
-      // Login бетіне бағыттау
-      navigate('/login');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Аккаунтты жою қатесі');
-      setIsDeleting(false);
-    }
-  };
 
   return (
     <div className="settings-container">
@@ -151,9 +71,9 @@ const Settings: React.FC = () => {
             value={settings.language}
             onChange={(e) => handleChange('language', e.target.value)}
           >
-            <option value="kk">Қазақша</option>
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
+            <option value="kk">{t('settings.languageKazakh')}</option>
+            <option value="ru">{t('settings.languageRussian')}</option>
+            <option value="en">{t('settings.languageEnglish')}</option>
           </select>
         </div>
 
@@ -213,44 +133,6 @@ const Settings: React.FC = () => {
           });
         }}>
           {t('common.cancel') || 'Болдырмау'}
-        </button>
-      </div>
-
-      <div className="settings-danger-zone">
-        <div className="danger-zone-header">
-          <div className="danger-zone-icon">
-            <FontAwesomeIcon icon={faExclamationTriangle} />
-          </div>
-          <h2 className="danger-zone-title">Қауіпті аймақ</h2>
-        </div>
-        <p className="danger-zone-description">
-          Аккаунтты жою - бұл қайтару мүмкін емес әрекет. Барлық деректеріңіз мәңгілікке жойылады.
-        </p>
-        <div className="danger-zone-warning">
-          <div className="warning-item">
-            <FontAwesomeIcon icon={faFileCode} className="warning-icon" />
-            <span>Барлық код файлдарыңыз жойылады</span>
-          </div>
-          <div className="warning-item">
-            <FontAwesomeIcon icon={faComment} className="warning-icon" />
-            <span>Барлық пікірлеріңіз жойылады</span>
-          </div>
-          <div className="warning-item">
-            <FontAwesomeIcon icon={faUserFriends} className="warning-icon" />
-            <span>Барлық достар деректері жойылады</span>
-          </div>
-          <div className="warning-item">
-            <FontAwesomeIcon icon={faEnvelope} className="warning-icon" />
-            <span>Барлық хабарламалар жойылады</span>
-          </div>
-        </div>
-        <button
-          className="btn-delete-account"
-          onClick={handleDeleteAccount}
-          disabled={isDeleting}
-        >
-          <FontAwesomeIcon icon={faTrash} />
-          <span>{isDeleting ? 'Жойылуда...' : 'Аккаунтты толықтай жою'}</span>
         </button>
       </div>
     </div>

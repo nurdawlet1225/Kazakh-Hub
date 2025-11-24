@@ -117,6 +117,28 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
+.dark-theme .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb,
+.dark-theme .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #22d3ee 100%);
+}
+
+.dark-theme .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb:hover,
+.dark-theme .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #67e8f9 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb,
+  .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #22d3ee 100%);
+  }
+
+  .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb:hover,
+  .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #67e8f9 100%);
+  }
+}
+
 .code-editor.read-only .code-editor-content pre {
   overflow: visible !important;
   margin: 0 !important;

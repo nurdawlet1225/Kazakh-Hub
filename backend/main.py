@@ -9,6 +9,14 @@ import uuid
 from datetime import datetime
 import re
 
+# Firestore синхрондау модулін импорттау
+try:
+    from firestore_sync import init_firestore, sync_code_to_firestore, sync_message_to_firestore, delete_code_from_firestore
+    FIRESTORE_SYNC_AVAILABLE = True
+except ImportError:
+    FIRESTORE_SYNC_AVAILABLE = False
+    print("Warning: Firestore sync module not available. Real-time features will be disabled.")
+
 app = FastAPI(title="Kazakh Hub API", version="1.0.0")
 
 # CORS middleware
@@ -250,6 +258,14 @@ def save_codes():
         with open(CODES_FILE, 'w', encoding='utf-8') as f:
             f.write(json_data)
         print(f'Codes saved successfully, file size: {len(json_data)} bytes')
+        
+        # Firestore-ға синхрондау (барлық кодтарды)
+        if FIRESTORE_SYNC_AVAILABLE:
+            try:
+                for code in codes:
+                    sync_code_to_firestore(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed: {e}')
     except Exception as e:
         print(f'Error saving codes: {e}')
         raise
@@ -279,6 +295,16 @@ def save_messages():
     try:
         with open(MESSAGES_FILE, 'w', encoding='utf-8') as f:
             json.dump(messages, f, indent=2, ensure_ascii=False)
+        
+        # Firestore-ға синхрондау (соңғы хабарламаларды)
+        if FIRESTORE_SYNC_AVAILABLE:
+            try:
+                # Соңғы 100 хабарламаны синхрондау (performance үшін)
+                recent_messages = messages[-100:] if len(messages) > 100 else messages
+                for message in recent_messages:
+                    sync_message_to_firestore(message)
+            except Exception as e:
+                print(f'Warning: Firestore messages sync failed: {e}')
     except Exception as e:
         print(f'Error saving messages: {e}')
 
@@ -297,6 +323,10 @@ friends = {}
 messages = []
 friend_requests = []
 load_data()
+
+# Firestore-ты инициализациялау
+if FIRESTORE_SYNC_AVAILABLE:
+    init_firestore()
 
 # Helper functions
 def find_code_by_id(code_id: str):
@@ -418,6 +448,14 @@ async def create_code(code_data: CodeCreate):
         
         codes.append(new_code)
         save_codes()
+        
+        # Firestore-ға тікелей синхрондау (real-time үшін)
+        if FIRESTORE_SYNC_AVAILABLE:
+            try:
+                sync_code_to_firestore(new_code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for new code: {e}')
+        
         return new_code
     except HTTPException:
         raise
@@ -447,6 +485,14 @@ async def update_code(code_id: str, code_data: CodeUpdate):
     code['updatedAt'] = datetime.now().isoformat()
     
     save_codes()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_code_to_firestore(code)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for update: {e}')
+    
     return code
 
 @app.delete("/api/codes/{code_id}")
@@ -456,6 +502,7 @@ async def delete_code(code_id: str):
         raise HTTPException(status_code=404, detail="Code file not found")
     
     # If it's a folder, delete all files in the folder first
+    folder_files = []
     if code.get('isFolder'):
         folder_files = [c for c in codes if c.get('folderId') == code_id]
         for file in folder_files:
@@ -464,6 +511,17 @@ async def delete_code(code_id: str):
     # Delete the code itself
     codes.remove(code)
     save_codes()
+    
+    # Firestore-дан жою (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            delete_code_from_firestore(code_id)
+            # Also delete folder files from Firestore if it's a folder
+            for file in folder_files:
+                delete_code_from_firestore(file['id'])
+        except Exception as e:
+            print(f'Warning: Firestore delete failed: {e}')
+    
     return JSONResponse(status_code=204)
 
 @app.post("/api/codes/delete-multiple")
@@ -488,6 +546,13 @@ async def delete_multiple_codes(request: DeleteMultipleRequest):
         if code:
             codes.remove(code)
             deleted_count += 1
+            
+            # Firestore-дан жою (real-time үшін)
+            if FIRESTORE_SYNC_AVAILABLE:
+                try:
+                    delete_code_from_firestore(code_id)
+                except Exception as e:
+                    print(f'Warning: Firestore delete failed for {code_id}: {e}')
     
     save_codes()
     return {"message": f"{deleted_count} код(тар) жойылды", "deletedCount": deleted_count}
@@ -505,6 +570,13 @@ async def like_code(code_id: str, request: LikeRequest):
         code['likes'].append(request.userId)
         code['updatedAt'] = datetime.now().isoformat()
         save_codes()
+        
+        # Firestore-ға тікелей синхрондау (real-time үшін)
+        if FIRESTORE_SYNC_AVAILABLE:
+            try:
+                sync_code_to_firestore(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for like: {e}')
     
     return code
 
@@ -520,6 +592,14 @@ async def unlike_code(code_id: str, request: LikeRequest):
     code['likes'] = [id for id in code['likes'] if id != request.userId]
     code['updatedAt'] = datetime.now().isoformat()
     save_codes()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_code_to_firestore(code)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for unlike: {e}')
+    
     return code
 
 @app.post("/api/codes/{code_id}/view")
@@ -539,10 +619,24 @@ async def view_code(code_id: str, request: ViewRequest):
             code['views'] = (code.get('views', 0) or 0) + 1
             code['updatedAt'] = datetime.now().isoformat()
             save_codes()
+            
+            # Firestore-ға тікелей синхрондау (real-time үшін)
+            if FIRESTORE_SYNC_AVAILABLE:
+                try:
+                    sync_code_to_firestore(code)
+                except Exception as e:
+                    print(f'Warning: Firestore sync failed for view: {e}')
     else:
         code['views'] = (code.get('views', 0) or 0) + 1
         code['updatedAt'] = datetime.now().isoformat()
         save_codes()
+        
+        # Firestore-ға тікелей синхрондау (real-time үшін)
+        if FIRESTORE_SYNC_AVAILABLE:
+            try:
+                sync_code_to_firestore(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for view: {e}')
     
     return code
 
@@ -568,6 +662,14 @@ async def add_comment(code_id: str, comment_data: CommentCreate):
     code['comments'].append(new_comment)
     code['updatedAt'] = datetime.now().isoformat()
     save_codes()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_code_to_firestore(code)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for comment: {e}')
+    
     return code
 
 @app.put("/api/codes/{code_id}/comments/{comment_id}")
@@ -586,6 +688,14 @@ async def update_comment(code_id: str, comment_id: str, comment_data: CommentUpd
     comment['content'] = comment_data.content
     code['updatedAt'] = datetime.now().isoformat()
     save_codes()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_code_to_firestore(code)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for comment update: {e}')
+    
     return code
 
 @app.delete("/api/codes/{code_id}/comments/{comment_id}")
@@ -604,6 +714,14 @@ async def delete_comment(code_id: str, comment_id: str):
     code['comments'].pop(comment_index)
     code['updatedAt'] = datetime.now().isoformat()
     save_codes()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_code_to_firestore(code)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for comment delete: {e}')
+    
     return code
 
 @app.post("/api/codes/{code_id}/comments/{comment_id}/like")
@@ -627,6 +745,14 @@ async def like_comment(code_id: str, comment_id: str, request: LikeRequest):
     
     code['updatedAt'] = datetime.now().isoformat()
     save_codes()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_code_to_firestore(code)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for comment like: {e}')
+    
     return code
 
 
@@ -983,6 +1109,14 @@ async def create_message(message_data: MessageCreate):
     
     messages.append(new_message)
     save_messages()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_message_to_firestore(new_message)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for message: {e}')
+    
     return new_message
 
 @app.put("/api/messages/{message_id}/read")
@@ -993,6 +1127,14 @@ async def mark_message_read(message_id: str):
     
     message['read'] = True
     save_messages()
+    
+    # Firestore-ға тікелей синхрондау (real-time үшін)
+    if FIRESTORE_SYNC_AVAILABLE:
+        try:
+            sync_message_to_firestore(message)
+        except Exception as e:
+            print(f'Warning: Firestore sync failed for message read: {e}')
+    
     return message
 
 # Friend Requests endpoints

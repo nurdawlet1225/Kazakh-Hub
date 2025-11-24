@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
         <div className="footer-content">
           <div className="footer-section">
             <div className="footer-logo-section">
-              <h3 className="footer-title">Kazakh Hub</h3>
+              <h3 className="footer-title">{t('header.appName')}</h3>
               <p className="footer-description">
                 {t('footer.description')}
               </p>
@@ -80,7 +80,7 @@ const Footer: React.FC = () => {
 
         <div className="footer-bottom">
           <div className="footer-bottom-content">
-            <p>&copy; {currentYear} Kazakh Hub. {t('footer.copyright')}</p>
+            <p>&copy; {currentYear} {t('header.appName')}. {t('footer.copyright')}</p>
             <div className="footer-badges">
               <span className="badge"><FontAwesomeIcon icon={faRocket} /> {t('footer.kazakhstan')}</span>
               <span className="badge"><FontAwesomeIcon icon={faLaptop} /> {t('footer.openSource')}</span>

@@ -206,4 +206,3 @@ export const processFolder = async (files: FileList): Promise<FolderInfo> => {
     structure,
   };
 };
-

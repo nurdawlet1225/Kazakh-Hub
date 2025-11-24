@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { useFileUpload } from '../hooks/useFileUpload';
@@ -11,6 +12,7 @@ interface UploadModalProps {
 }
 
 const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [title, setTitle] = useState('');
@@ -61,13 +63,13 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
     
     // Тіл міндетті
     if (!language) {
-      alert('Тілді таңдаңыз');
+      alert(t('settings.selectLanguage'));
       return;
     }
     
     // Папка үшін проект сипаттамасы міндетті
     if (!projectDescription.trim()) {
-      alert('Проект сипаттамасын енгізіңіз');
+      alert(t('settings.enterProjectDescription'));
       return;
     }
 
@@ -99,7 +101,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
     <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Код жүктеу</h2>
+          <h2>{t('settings.uploadCode')}</h2>
           <button className="modal-close" onClick={handleClose}>×</button>
         </div>
 
@@ -125,50 +127,50 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
               <div className="file-selected">
                 <span className="file-icon"><FontAwesomeIcon icon={faFolder} /></span>
                 <span className="file-name">
-                  {selectedFiles[0]?.webkitRelativePath?.split('/')[0] || 'Папка'}
+                  {selectedFiles[0]?.webkitRelativePath?.split('/')[0] || t('settings.folder')}
                 </span>
-                <span className="file-size">{selectedFiles.length} файл(дар)</span>
+                <span className="file-size">{selectedFiles.length} {t('settings.files')}</span>
               </div>
             ) : (
               <div className="dropzone-content">
                 <span className="dropzone-icon"><FontAwesomeIcon icon={faFolder} /></span>
-                <p>Папканы осы жерге тартып тастаңыз немесе таңдау үшін басыңыз</p>
-                <p className="dropzone-hint">Папкадағы барлық файлдар өңделеді (шектеусіз)</p>
+                <p>{t('settings.dragFolderHere')}</p>
+                <p className="dropzone-hint">{t('settings.allFilesProcessed')}</p>
               </div>
             )}
           </div>
 
           <div className="form-group">
-            <label htmlFor="title">Атауы</label>
+            <label htmlFor="title">{t('settings.title')}</label>
             <input
               id="title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Кодтың атауын енгізіңіз"
+              placeholder={t('settings.enterCodeTitle')}
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="language">Тіл <span className="required">*</span></label>
+            <label htmlFor="language">{t('settings.languageRequired')} <span className="required">*</span></label>
             <input
               id="language"
               type="text"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              placeholder="Мысалы: JavaScript, Python, TypeScript..."
+              placeholder={t('settings.languagePlaceholder')}
               required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="projectDescription">Проект сипаттамасы <span className="required">*</span></label>
+            <label htmlFor="projectDescription">{t('settings.projectDescription')} <span className="required">*</span></label>
             <textarea
               id="projectDescription"
               value={projectDescription}
               onChange={(e) => setProjectDescription(e.target.value)}
-              placeholder="Папкадағы проект қандай екенін сипаттаңыз..."
+              placeholder={t('settings.projectDescriptionPlaceholder')}
               rows={4}
               required
             />
@@ -178,7 +180,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
             <div className="upload-progress">
               <div className="progress-info">
                 <span>
-                  {`Жүктелуде: ${uploadProgress.current} / ${uploadProgress.total} файл`}
+                  {`${t('settings.uploadingProgress')}: ${uploadProgress.current} / ${uploadProgress.total} ${t('settings.filesProgress')}`}
                 </span>
                 <span className="progress-time">
                   {(() => {
@@ -189,7 +191,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
                     const remaining = uploadProgress.current > 0 && uploadProgress.total > uploadProgress.current
                       ? ((Date.now() - uploadProgress.startTime) / uploadProgress.current * (uploadProgress.total - uploadProgress.current) / 1000).toFixed(1)
                       : '0';
-                    return `Өткен: ${elapsed}с${uploadProgress.total > uploadProgress.current ? ` | Қалған: ~${remaining}с` : ''} | ${percentage}%`;
+                    return `${t('settings.elapsed')}: ${elapsed}с${uploadProgress.total > uploadProgress.current ? ` | ${t('settings.remaining')}: ~${remaining}с` : ''} | ${percentage}%`;
                   })()}
                 </span>
               </div>
@@ -217,7 +219,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
               className="btn-primary" 
               disabled={!selectedFiles || !language || !projectDescription.trim() || uploading}
             >
-              {uploading ? 'Жүктелуде...' : 'Жүктеу'}
+              {uploading ? t('settings.uploading') : t('settings.upload')}
             </button>
           </div>
         </form>

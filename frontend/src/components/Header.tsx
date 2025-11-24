@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faList, faUpload, faLock, faUser } from '@fortawesome/free-solid-svg-icons';
-import CodesListModal from './CodesListModal';
+import { faSearch, faUpload, faLock, faUser, faMoon, faCloudSun } from '@fortawesome/free-solid-svg-icons';
+import { useTheme } from '../contexts/ThemeContext';
 import UploadModal from './UploadModal';
 import './Header.css';
 
@@ -14,19 +14,19 @@ const getLogoPath = () => {
     return '/logo.png';
   } catch {
     // Екінші нұсқа: бастапқы атау
-    return encodeURI('/ChatGPT Image 9 нояб. 2025 г., 19_46_29.png');
+    return encodeURI('/Image 9 нояб. 2025 г., 19_46_29.png');
   }
 };
 
 const Header: React.FC = () => {
   const { t } = useTranslation();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<{ username: string; email: string; avatar?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [isCodesModalOpen, setIsCodesModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const loadUser = () => {
@@ -122,7 +122,7 @@ const Header: React.FC = () => {
               }
             }}
           />
-          <span className="logo-text">Kazakh Hub</span>
+          <span className="logo-text">{t('header.appName')}</span>
         </Link>
         
         <nav className="header-nav">
@@ -138,15 +138,17 @@ const Header: React.FC = () => {
               <span className="header-search-icon"><FontAwesomeIcon icon={faSearch} /></span>
             </div>
           </form>
-          <button 
-            className="btn-header-list"
-            onClick={() => setIsCodesModalOpen(true)}
-          >
-            <FontAwesomeIcon icon={faList} /> {t('header.codesList')}
-          </button>
         </nav>
 
         <div className="header-actions">
+          <button 
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            title={theme === 'light' ? t('header.switchToDark') : t('header.switchToLight')}
+            aria-label={theme === 'light' ? t('header.switchToDark') : t('header.switchToLight')}
+          >
+            <FontAwesomeIcon icon={theme === 'light' ? faCloudSun : faMoon} />
+          </button>
           <button 
             className="btn-primary"
             onClick={() => {
@@ -170,17 +172,15 @@ const Header: React.FC = () => {
             </Link>
           )}
           {!isLoggedIn && (
-            <Link to="/login" className="btn-secondary">
-              <span className="btn-icon"><FontAwesomeIcon icon={faLock} /></span>
-              <span className="btn-text">{t('common.login')}</span>
-            </Link>
+            <div className="login-btn-wrapper">
+              <Link to="/login" className="btn-secondary">
+                <span className="btn-icon"><FontAwesomeIcon icon={faLock} /></span>
+                <span className="btn-text">{t('common.login')}</span>
+              </Link>
+            </div>
           )}
         </div>
       </div>
-      <CodesListModal 
-        isOpen={isCodesModalOpen} 
-        onClose={() => setIsCodesModalOpen(false)} 
-      />
       <UploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}

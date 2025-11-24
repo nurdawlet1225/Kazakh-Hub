@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
   const handleLogout = () => {
     // Растау диалогы
-    const confirmed = window.confirm('Шығуға сенімдісіз бе?');
+    const confirmed = window.confirm(t('settings.logoutConfirm'));
     
     if (!confirmed) {
       return; // Егер растамаса, шығудан бас тарту

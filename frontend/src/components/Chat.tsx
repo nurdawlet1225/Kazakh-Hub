@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComment } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
+import { formatDateTime } from '../utils/dateFormatter';
+import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';
 import './Chat.css';
 
 interface ChatProps {
@@ -11,6 +14,7 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
+  const { i18n } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [friends, setFriends] = useState<User[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -46,10 +50,27 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (currentUser && selectedFriend) {
+      // Алдымен бір рет жүктеу
       loadMessages();
-      // Auto-refresh messages every 3 seconds
-      const interval = setInterval(loadMessages, 3000);
-      return () => clearInterval(interval);
+      
+      // Real-time listener қосу
+      const unsubscribeListener = subscribeToMessages(
+        currentUser.id,
+        selectedFriend.id,
+        (updatedMessages) => {
+          setMessages(updatedMessages);
+        },
+        (error) => {
+          console.error('Real-time messages listener error:', error);
+          // Егер real-time жұмыс істемесе, қалыпты жолмен жүктеу
+          loadMessages();
+        }
+      );
+      
+      return () => {
+        unsubscribeListener();
+        unsubscribe(`messages-${currentUser.id}-${selectedFriend.id}`);
+      };
     }
   }, [currentUser, selectedFriend]);
 
@@ -196,12 +217,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
     if (minutes < 60) return `${minutes} мин бұрын`;
     if (minutes < 1440) return `${Math.floor(minutes / 60)} сағ бұрын`;
     
-    return date.toLocaleDateString('kk-KZ', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatDateTime(dateString, i18n.language);
   };
 
   if (!isOpen) return null;

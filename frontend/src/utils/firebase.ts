@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, collection, query, where, getDocs, limit, orderBy, startAt, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQV1oUnC4GISVmWPAk-fIk-3UOoEYBink",
@@ -37,15 +37,21 @@ export const saveUserToFirestore = async (userData: { id: string; username: stri
   } catch (error: any) {
     // Silently handle Firestore errors (may be blocked by ad blockers)
     // This is not critical for authentication to work
-    if (error?.code !== 'unavailable' && !error?.message?.includes('BLOCKED_BY_CLIENT')) {
-      console.warn('Firestore save failed (non-critical):', error?.message || error);
+    const errorMessage = error?.message || error?.toString() || '';
+    const isBlocked = 
+      error?.code === 'unavailable' || 
+      error?.code === 'permission-denied' ||
+      errorMessage.includes('BLOCKED_BY_CLIENT') ||
+      errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('Failed to fetch');
+    
+    // Only log non-blocked errors (error suppression utility will handle console output)
+    if (!isBlocked) {
+      // Error suppression will handle this if it's a known pattern
+      console.warn('Firestore save failed (non-critical):', errorMessage);
     }
   }
 };
 
 export default app;
-
-
-
-
-

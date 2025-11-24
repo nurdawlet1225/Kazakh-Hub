@@ -10,6 +10,8 @@ import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
 import UploadModal from '../components/UploadModal';
 import { isImageFile } from '../utils/fileHandler';
+import { formatDate as formatDateUtil, formatDateTime } from '../utils/dateFormatter';
+import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import JSZip from 'jszip';
 import './ViewCode.css';
 
@@ -31,8 +33,8 @@ interface CommentItemProps {
   onCancelReply: () => void;
   onSubmitReply: (e: React.FormEvent, parentId: string) => void;
   onLike: (commentId: string) => void;
-  formatDate: (dateString: string) => string;
   allComments?: Comment[];
+  currentLanguage: string;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -53,8 +55,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onCancelReply,
   onSubmitReply,
   onLike,
-  formatDate,
   allComments = [],
+  currentLanguage,
 }) => {
   const { t } = useTranslation();
   const isLiked = currentUser ? comment.likes?.includes(currentUser.id) : false;
@@ -82,7 +84,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
       <div className="comment-header">
         <div className="comment-header-left">
           <span className="comment-author"><FontAwesomeIcon icon={faUser} /> {comment.author}</span>
-          <span className="comment-date">{formatDate(comment.createdAt)}</span>
+          <span className="comment-date">{formatDateTime(comment.createdAt, currentLanguage)}</span>
         </div>
         {currentUser && currentUser.username === comment.author && (
           <div className="comment-actions">
@@ -189,9 +191,10 @@ const CommentItem: React.FC<CommentItemProps> = ({
 };
 
 const ViewCode: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const currentLanguage = i18n.language;
   const [code, setCode] = useState<CodeFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -204,6 +207,8 @@ const ViewCode: React.FC = () => {
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [folderFiles, setFolderFiles] = useState<CodeFile[]>([]);
+  const [filteredFolderFiles, setFilteredFolderFiles] = useState<CodeFile[]>([]);
+  const [filterLanguage, setFilterLanguage] = useState<string>('all');
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -218,6 +223,26 @@ const ViewCode: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadCode(id);
+      
+      // Real-time listener қосу
+      const unsubscribeListener = subscribeToCode(
+        id,
+        (updatedCode) => {
+          setCode(updatedCode);
+        },
+        (error) => {
+          console.error('Real-time listener error:', error);
+          // Егер real-time жұмыс істемесе, қалыпты жолмен жүктеу
+          if (!code) {
+            loadCode(id);
+          }
+        }
+      );
+      
+      return () => {
+        unsubscribeListener();
+        unsubscribe(`code-${id}`);
+      };
     }
   }, [id]);
 
@@ -287,8 +312,14 @@ const ViewCode: React.FC = () => {
         console.error('Failed to increment view:', viewError);
       }
       
-      // Load files
-      await loadFolderFiles(codeId);
+      // Load files only if it's a folder
+      if (data.isFolder) {
+        await loadFolderFiles(codeId);
+      } else {
+        // If it's not a folder, clear folder files
+        setFolderFiles([]);
+        setSelectedFile(null);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Кодты жүктеу қатесі');
     } finally {
@@ -301,6 +332,7 @@ const ViewCode: React.FC = () => {
       setLoadingFiles(true);
       const files = await apiService.getCodeFiles(folderId);
       setFolderFiles(files);
+      applyLanguageFilter(files, filterLanguage);
       if (files.length > 0) {
         setSelectedFile(files[0]);
       }
@@ -309,6 +341,21 @@ const ViewCode: React.FC = () => {
     } finally {
       setLoadingFiles(false);
     }
+  };
+
+  const applyLanguageFilter = (files: CodeFile[], language: string) => {
+    if (language === 'all') {
+      setFilteredFolderFiles(files);
+    } else {
+      const filtered = files.filter(file => file.language === language);
+      setFilteredFolderFiles(filtered);
+    }
+  };
+
+  const handleLanguageFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const language = e.target.value;
+    setFilterLanguage(language);
+    applyLanguageFilter(folderFiles, language);
   };
 
   const handleRefreshFolder = async () => {
@@ -433,18 +480,6 @@ const ViewCode: React.FC = () => {
     setIsEditing(false);
     setEditTitle('');
     setEditDescription('');
-  };
-
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('kk-KZ', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const handleLike = async () => {
@@ -740,12 +775,12 @@ const ViewCode: React.FC = () => {
           </div>
           <div className="meta-item">
             <span className="meta-label">{t('viewCode.created')}:</span>
-            <span className="meta-value">{formatDate(code.createdAt)}</span>
+            <span className="meta-value">{formatDateUtil(code.createdAt, currentLanguage, 'long')}</span>
           </div>
           {code.updatedAt !== code.createdAt && (
             <div className="meta-item">
               <span className="meta-label">{t('viewCode.updated')}:</span>
-              <span className="meta-value">{formatDate(code.updatedAt)}</span>
+              <span className="meta-value">{formatDateUtil(code.updatedAt, currentLanguage, 'long')}</span>
             </div>
           )}
           <div className="meta-item meta-actions">
@@ -779,22 +814,41 @@ const ViewCode: React.FC = () => {
         )}
       </div>
 
+      {code.isFolder && (
       <div className="folder-view-wrapper">
         <div className="folder-view">
           <div className="folder-explorer">
               <div className="folder-explorer-header">
-                <h3 className="folder-explorer-title">Файлдар ({folderFiles.length})</h3>
-                <button
-                  className="btn-refresh-folder"
-                  onClick={handleRefreshFolder}
-                  disabled={loadingFiles}
-                  title="Жаңарту"
-                >
-                  {loadingFiles ? '⏳' : '🔄'}
-                </button>
+                <h3 className="folder-explorer-title">Файлдар ({filteredFolderFiles.length})</h3>
+                <div className="folder-filters">
+                  <div className="folder-language-filter">
+                    <label htmlFor="folder-language-filter">{t('home.language') || 'Тіл'}:</label>
+                    <select
+                      id="folder-language-filter"
+                      value={filterLanguage}
+                      onChange={handleLanguageFilterChange}
+                      className="filter-select"
+                    >
+                      <option value="all">{t('home.allLanguages') || 'Барлығы'}</option>
+                      {Array.from(new Set(folderFiles.map(file => file.language))).map((lang) => (
+                        <option key={lang} value={lang}>
+                          {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    className="btn-refresh-folder"
+                    onClick={handleRefreshFolder}
+                    disabled={loadingFiles}
+                    title="Жаңарту"
+                  >
+                    {loadingFiles ? '⏳' : '🔄'}
+                  </button>
+                </div>
               </div>
             <FileExplorer
-              files={folderFiles}
+              files={filteredFolderFiles}
               onFileSelect={handleFileSelect}
               selectedFileId={selectedFile?.id}
               showFolderStructure={true}
@@ -973,8 +1027,8 @@ const ViewCode: React.FC = () => {
                           onCancelReply={handleCancelReply}
                       onSubmitReply={handleSubmitReply}
                       onLike={handleLikeComment}
-                          formatDate={formatDate}
                       allComments={code.comments || []}
+                      currentLanguage={currentLanguage}
                         />
                       ))
                     ) : (
@@ -984,6 +1038,7 @@ const ViewCode: React.FC = () => {
                 </div>
           </div>
         </div>
+      )}
 
       {/* Edit Modal */}
       {isEditing && (

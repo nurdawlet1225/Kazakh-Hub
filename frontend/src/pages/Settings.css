@@ -15,7 +15,7 @@
 }
 
 .settings-section {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.95) 100%);
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 2rem;
@@ -28,6 +28,15 @@
 .settings-section:hover {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
+  border-color: var(--border-hover);
+}
+
+.dark-theme .settings-section {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .settings-section:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .section-title {
@@ -69,7 +78,11 @@
 .setting-input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark-theme .setting-input:focus {
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
 }
 
 .setting-toggle {

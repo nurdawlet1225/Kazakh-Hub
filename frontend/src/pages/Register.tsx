@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
+import { isCOOPBlockingPopups } from '../utils/errorSuppression';
 import './Auth.css';
 
 const Register: React.FC = () => {
@@ -17,6 +18,51 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const processGoogleAuth = async (user: any) => {
+    try {
+      // Extract user info from Firebase
+      const userData = {
+        id: user.uid,
+        username: user.displayName || user.email?.split('@')[0] || 'User',
+        email: user.email || '',
+        avatar: user.photoURL || '',
+      };
+
+      // Save user to localStorage FIRST - this is critical for login state
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Save user to Firestore for search functionality (non-blocking)
+      saveUserToFirestore(userData).catch((err) => {
+        console.warn('Firestore save failed (non-critical):', err);
+      });
+      
+      // Try to sync with backend (non-blocking for Google auth)
+      // For Google auth, we only try to register, not login (since there's no password)
+      apiService.register(
+        userData.username,
+        userData.email,
+        '', // No password for Google auth
+        userData.id // Firebase UID
+      ).catch((err) => {
+        // Backend sync is optional - user is already logged in via Firebase
+        console.log('Backend sync failed (non-critical for Google auth):', err);
+      });
+
+      // Ensure Firebase auth state is maintained
+      // The user is already authenticated via signInWithPopup/Redirect
+      
+      // Dispatch custom event to notify other components of login
+      window.dispatchEvent(new Event('userProfileUpdated'));
+      
+      // Redirect to home
+      navigate('/');
+    } catch (error) {
+      console.error('Error processing Google auth:', error);
+      setError('Тіркелу кезінде қате орын алды. Қайталап көріңіз.');
+      setGoogleLoading(false);
+    }
+  };
+
   // Handle redirect result when page loads (for signInWithRedirect fallback)
   useEffect(() => {
     const handleRedirectResult = async () => {
@@ -24,138 +70,90 @@ const Register: React.FC = () => {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
           setGoogleLoading(true);
-          const user = result.user;
-
-          // Extract user info from Firebase
-          const userData = {
-            id: user.uid,
-            username: user.displayName || user.email?.split('@')[0] || 'User',
-            email: user.email || '',
-            avatar: user.photoURL || '',
-          };
-
-          // Save user to localStorage
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          // Save user to Firestore for search functionality
-          try {
-            await saveUserToFirestore(userData);
-          } catch (firestoreErr) {
-            console.error('Failed to save user to Firestore:', firestoreErr);
-            // Continue even if Firestore save fails
-          }
-          
-          // Optionally sync with your backend
-          try {
-            await apiService.register(
-              userData.username,
-              userData.email,
-              '', // No password for Google auth
-              userData.id // Firebase UID
-            );
-          } catch (err) {
-            // User might already exist, try to login
-            try {
-              await apiService.login(userData.email, '');
-            } catch (loginErr) {
-              // If both fail, continue anyway since Firebase auth succeeded
-              console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
-            }
-          }
-
-          // Redirect to home
-          navigate('/');
+          await processGoogleAuth(result.user);
         }
       } catch (err: any) {
         console.error('Redirect result error:', err);
+        setGoogleLoading(false);
         if (err.code === 'auth/operation-not-allowed') {
           setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
-        } else {
+        } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
           setError('Google тіркелу қатесі');
         }
-      } finally {
-        setGoogleLoading(false);
       }
     };
 
     handleRedirectResult();
   }, [navigate]);
 
-  const processGoogleAuth = async (user: any) => {
-    // Extract user info from Firebase
-    const userData = {
-      id: user.uid,
-      username: user.displayName || user.email?.split('@')[0] || 'User',
-      email: user.email || '',
-      avatar: user.photoURL || '',
-    };
-
-    // Save user to localStorage
-    localStorage.setItem('user', JSON.stringify(userData));
-    
-    // Save user to Firestore for search functionality
-    try {
-      await saveUserToFirestore(userData);
-    } catch (firestoreErr) {
-      console.error('Failed to save user to Firestore:', firestoreErr);
-      // Continue even if Firestore save fails
-    }
-    
-    // Optionally sync with your backend
-    try {
-      // Check if user exists in backend, if not create
-      await apiService.register(
-        userData.username,
-        userData.email,
-        '', // No password for Google auth
-        userData.id // Firebase UID
-      );
-    } catch (err) {
-      // User might already exist, try to login
-      try {
-        await apiService.login(userData.email, '');
-      } catch (loginErr) {
-        // If both fail, continue anyway since Firebase auth succeeded
-        console.log('Backend sync failed, but Firebase auth succeeded:', loginErr);
-      }
-    }
-
-    // Redirect to home
-    navigate('/');
-  };
-
   const handleGoogleSignIn = async () => {
     setError(null);
     setGoogleLoading(true);
 
+    let isRedirecting = false;
+
+    // Timeout to prevent infinite loading (30 seconds)
+    const timeoutId = setTimeout(() => {
+      setGoogleLoading(false);
+      setError('Google тіркелу уақыт асып кетті. Қайталап көріңіз немесе email/password арқылы тіркеліңіз.');
+    }, 30000);
+
     try {
+      // Check if COOP is likely blocking popups - use redirect directly if so
+      const coopBlocking = isCOOPBlockingPopups();
+      
+      if (coopBlocking) {
+        // Use redirect directly if COOP is blocking
+        isRedirecting = true;
+        await signInWithRedirect(auth, googleProvider);
+        // The redirect will be handled by useEffect above
+        return;
+      }
+
       // Try popup first
       const result = await signInWithPopup(auth, googleProvider);
+      clearTimeout(timeoutId);
       await processGoogleAuth(result.user);
     } catch (err: any) {
-      // If popup fails due to COOP or popup blocking, fall back to redirect
-      if (
+      clearTimeout(timeoutId);
+      
+      // Suppress COOP-related console errors (they're expected and handled)
+      const errMessage = err?.message || err?.toString() || '';
+      const isCOOPError = 
         err.code === 'auth/popup-blocked' ||
         err.code === 'auth/popup-closed-by-user' ||
         err.code === 'auth/cancelled-popup-request' ||
-        err.message?.includes('Cross-Origin-Opener-Policy') ||
-        err.message?.includes('window.closed')
-      ) {
+        errMessage.includes('Cross-Origin-Opener-Policy') ||
+        errMessage.includes('window.closed') ||
+        errMessage.includes('window.close');
+      
+      // If popup fails due to COOP or popup blocking, fall back to redirect
+      if (isCOOPError) {
         try {
           // Fall back to redirect method
+          isRedirecting = true;
           await signInWithRedirect(auth, googleProvider);
           // The redirect will be handled by useEffect above
+          // Keep loading state true as redirect will happen
           return;
         } catch (redirectErr: any) {
-          setError('Google тіркелу қатесі. Браузер параметрлерін тексеріңіз.');
+          isRedirecting = false;
+          setGoogleLoading(false);
+          setError('Google тіркелу қатесі. Браузер параметрлерін тексеріңіз немесе email/password арқылы тіркеліңіз.');
         }
       } else if (err.code === 'auth/operation-not-allowed') {
+        setGoogleLoading(false);
         setError('Google аутентификациясы қосылмаған. Firebase консольда қосыңыз.');
       } else {
-        setError(err.message || 'Google тіркелу қатесі');
+        setGoogleLoading(false);
+        setError(err.message || 'Google тіркелу қатесі. Email/password арқылы тіркелуге тырысыңыз.');
       }
     } finally {
-      setGoogleLoading(false);
+      clearTimeout(timeoutId);
+      // Only set loading to false if we're not redirecting
+      if (!isRedirecting) {
+        setGoogleLoading(false);
+      }
     }
   };
 
@@ -274,8 +272,8 @@ const Register: React.FC = () => {
       <div className="landing-hero">
         <div className="hero-content">
           <h1 className="hero-title">
-            <span className="hero-title-main">Kazakh Hub</span>
-            <span className="hero-title-sub">Код бөлісу және ынтымақтастық платформасы</span>
+            <span className="hero-title-main">{t('header.appName')}</span>
+            <span className="hero-title-sub">{t('footer.description')}</span>
           </h1>
           <p className="hero-description">
             Қазақстандық дамытушылар үшін код бөлісу, білім алмасу және бірлесіп жұмыс істеу платформасы
@@ -283,15 +281,15 @@ const Register: React.FC = () => {
           <div className="hero-features">
             <div className="hero-feature">
               <span className="feature-icon">💻</span>
-              <span>Код бөлісу</span>
+              <span>{t('footer.codeSharing')}</span>
             </div>
             <div className="hero-feature">
               <span className="feature-icon">👥</span>
-              <span>Ынтымақтастық</span>
+              <span>{t('footer.collaboration')}</span>
             </div>
             <div className="hero-feature">
               <span className="feature-icon">🚀</span>
-              <span>Жылдам даму</span>
+              <span>{t('footer.fastDevelopment')}</span>
             </div>
           </div>
         </div>

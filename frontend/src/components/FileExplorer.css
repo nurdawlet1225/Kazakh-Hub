@@ -61,6 +61,24 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+.dark-theme .file-explorer-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #22d3ee 100%);
+}
+
+.dark-theme .file-explorer-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #67e8f9 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .file-explorer-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #22d3ee 100%);
+  }
+
+  .file-explorer-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #67e8f9 100%);
+  }
+}
+
 .file-explorer-empty {
   padding: 3rem 1.5rem;
   text-align: center;

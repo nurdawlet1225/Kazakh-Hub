@@ -23,7 +23,10 @@
   "header": {
     "title": "Kazakh Hub",
     "codesList": "Кодтар тізімі",
-    "user": "Пайдаланушы"
+    "user": "Пайдаланушы",
+    "appName": "Kazakh Hub",
+    "switchToDark": "Қараңғы режимге ауысу",
+    "switchToLight": "Ашық режимге ауысу"
   },
   "home": {
     "title": "Басты бет",
@@ -134,7 +137,7 @@
     "myCodeFiles": "Менің код файлдарым",
     "noCodeFiles": "Код файлдары жоқ",
     "noCodeFilesDescription": "Алғашқы файлыңызды жүктеп, кодтарыңызбен бөлісіңіз!",
-    "developer": "Developer"
+    "developer": "Әзірлеуші"
   },
   "sidebar": {
     "home": "Басты бет",
@@ -145,6 +148,10 @@
   },
   "footer": {
     "description": "Код бөлісу және ынтымақтастық платформасы",
+    "codeSharing": "Код бөлісу",
+    "collaboration": "Ынтымақтастық",
+    "learning": "Үйрену",
+    "fastDevelopment": "Жылдам даму",
     "links": "Байланыстар",
     "info": "Ақпарат",
     "about": "Біз туралы",
@@ -152,7 +159,7 @@
     "privacy": "Құпиялылық саясаты",
     "copyright": "Барлық құқықтар қорғалған",
     "kazakhstan": "Қазақстан",
-    "openSource": "Open Source"
+    "openSource": "Ашық код"
   },
   "settings": {
     "title": "Баптаулар",
@@ -165,7 +172,55 @@
     "themeDark": "Қараңғы",
     "notifications": "Хабарландырулар",
     "enableNotifications": "Хабарландыруларды қосу",
-    "emailNotifications": "Электрондық пошта хабарландырулары"
+    "emailNotifications": "Электрондық пошта хабарландырулары",
+    "dangerZone": "Қауіпті аймақ",
+    "dangerZoneDescription": "Аккаунтты жою - бұл қайтару мүмкін емес әрекет. Барлық деректеріңіз мәңгілікке жойылады.",
+    "deleteAccountConfirm": "Аккаунтты толықтай жоюға сенімдісіз бе?",
+    "deleteAccountConfirmDetails": "Бұл әрекет:\n• Барлық код файлдарыңыз жойылады\n• Барлық пікірлеріңіз жойылады\n• Барлық достар деректері жойылады\n• Барлық хабарламалар жойылады\n• Firebase аккаунтыңыз да жойылады\n\nБұл әрекетті қайтару мүмкін емес!",
+    "deleteAccountDoubleConfirm": "ШЫНЫМЕН ДЕ аккаунтты жоюға дайынсыз ба?\n\nБұл әрекетті қайтару мүмкін емес!",
+    "deleteAccountWarning1": "Барлық код файлдарыңыз жойылады",
+    "deleteAccountWarning2": "Барлық пікірлеріңіз жойылады",
+    "deleteAccountWarning3": "Барлық достар деректері жойылады",
+    "deleteAccountWarning4": "Барлық хабарламалар жойылады",
+    "deleteAccountButton": "Аккаунтты толықтай жою",
+    "deletingAccount": "Жойылуда...",
+    "requiresRecentLogin": "Қауіпсіздік үшін қайта кіріңіз, содан кейін аккаунтты жоюға болады.",
+    "deleteAccountError": "Аккаунтты жою қатесі",
+    "languageKazakh": "Қазақша",
+    "languageRussian": "Русский",
+    "languageEnglish": "English",
+    "logoutConfirm": "Шығуға сенімдісіз бе?",
+    "uploadCode": "Код жүктеу",
+    "selectLanguage": "Тілді таңдаңыз",
+    "enterProjectDescription": "Проект сипаттамасын енгізіңіз",
+    "folder": "Папка",
+    "files": "файл(дар)",
+    "dragFolderHere": "Папканы осы жерге тартып тастаңыз немесе таңдау үшін басыңыз",
+    "allFilesProcessed": "Папкадағы барлық файлдар өңделеді (шектеусіз)",
+    "title": "Атауы",
+    "enterCodeTitle": "Кодтың атауын енгізіңіз",
+    "languageRequired": "Тіл",
+    "languagePlaceholder": "Мысалы: JavaScript, Python, TypeScript...",
+    "projectDescription": "Проект сипаттамасы",
+    "projectDescriptionPlaceholder": "Папкадағы проект қандай екенін сипаттаңыз...",
+    "uploadingProgress": "Жүктелуде",
+    "filesProgress": "файл",
+    "elapsed": "Өткен",
+    "remaining": "Қалған",
+    "uploading": "Жүктелуде...",
+    "upload": "Жүктеу",
+    "codesList": "Кодтар тізімі",
+    "codesFound": "код табылды",
+    "codesFoundPlural": "код табылды",
+    "noCodesYet": "Әзірге кодтар жоқ. Алғашқы кодтыңызды жүктеңіз!",
+    "noCodesInCategory": "Бұл категорияда кодтар жоқ",
+    "categoryAI": "ЖИ бөлімі",
+    "categoryWebsites": "Сайттар",
+    "categoryMobile": "Мобильді қосымшалар",
+    "categoryAPI": "API және Backend",
+    "categoryDatabase": "Деректер базасы",
+    "categoryAlgorithms": "Алгоритмдер",
+    "categoryOther": "Басқа"
   }
 }
 

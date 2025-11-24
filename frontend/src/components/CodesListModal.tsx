@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder, faGlobe, faMobileAlt, faCog, faDatabase, faCalculator, faFolderOpen, faList, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
@@ -19,48 +20,51 @@ const getCategory = (code: CodeFile): string => {
   const tags = code.tags?.join(' ').toLowerCase() || '';
   const content = title + ' ' + description + ' ' + tags;
 
-  // ЖИ бөлімі
-  if (content.includes('жи') || content.includes('жоба') || content.includes('проект')) {
-    return 'ЖИ бөлімі';
+  // ЖИ бөлімі / AI Section
+  if (content.includes('жи') || content.includes('жоба') || content.includes('проект') ||
+      content.includes('ai') || content.includes('artificial') || content.includes('machine learning') ||
+      content.includes('ml') || content.includes('neural') || content.includes('deep learning')) {
+    return 'categoryAI';
   }
   
-  // Сайттар
+  // Сайттар / Websites
   if (content.includes('сайт') || content.includes('веб') || content.includes('web') || 
       content.includes('html') || content.includes('css') || content.includes('react') ||
       content.includes('frontend') || content.includes('ui') || content.includes('ux')) {
-    return 'Сайттар';
+    return 'categoryWebsites';
   }
   
-  // Мобильді қосымшалар
+  // Мобильді қосымшалар / Mobile Apps
   if (content.includes('мобиль') || content.includes('mobile') || content.includes('android') ||
       content.includes('ios') || content.includes('app')) {
-    return 'Мобильді қосымшалар';
+    return 'categoryMobile';
   }
   
   // API және Backend
   if (content.includes('api') || content.includes('backend') || content.includes('сервер') ||
       content.includes('server') || content.includes('node') || content.includes('express')) {
-    return 'API және Backend';
+    return 'categoryAPI';
   }
   
-  // Деректер базасы
+  // Деректер базасы / Database
   if (content.includes('база') || content.includes('database') || content.includes('sql') ||
       content.includes('mysql') || content.includes('postgresql') || content.includes('mongodb')) {
-    return 'Деректер базасы';
+    return 'categoryDatabase';
   }
   
-  // Алгоритмдер
+  // Алгоритмдер / Algorithms
   if (content.includes('алгоритм') || content.includes('algorithm') || content.includes('структура') ||
       content.includes('data structure') || content.includes('sort') || content.includes('search')) {
-    return 'Алгоритмдер';
+    return 'categoryAlgorithms';
   }
   
-  // Басқа
-  return 'Басқа';
+  // Басқа / Other
+  return 'categoryOther';
 };
 
 const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
@@ -128,13 +132,13 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
   };
 
   const categoryIcons: Record<string, JSX.Element> = {
-    'ЖИ бөлімі': <FontAwesomeIcon icon={faFolder} />,
-    'Сайттар': <FontAwesomeIcon icon={faGlobe} />,
-    'Мобильді қосымшалар': <FontAwesomeIcon icon={faMobileAlt} />,
-    'API және Backend': <FontAwesomeIcon icon={faCog} />,
-    'Деректер базасы': <FontAwesomeIcon icon={faDatabase} />,
-    'Алгоритмдер': <FontAwesomeIcon icon={faCalculator} />,
-    'Басқа': <FontAwesomeIcon icon={faFolderOpen} />,
+    'categoryAI': <FontAwesomeIcon icon={faFolder} />,
+    'categoryWebsites': <FontAwesomeIcon icon={faGlobe} />,
+    'categoryMobile': <FontAwesomeIcon icon={faMobileAlt} />,
+    'categoryAPI': <FontAwesomeIcon icon={faCog} />,
+    'categoryDatabase': <FontAwesomeIcon icon={faDatabase} />,
+    'categoryAlgorithms': <FontAwesomeIcon icon={faCalculator} />,
+    'categoryOther': <FontAwesomeIcon icon={faFolderOpen} />,
   };
 
   if (!isOpen) return null;
@@ -147,13 +151,13 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
             <div className="codes-modal-title-section">
               <span className="codes-modal-icon"><FontAwesomeIcon icon={faList} /></span>
               <div>
-                <h2>Кодтар тізімі</h2>
+                <h2>{t('settings.codesList')}</h2>
                 <p className="codes-modal-subtitle">
-                  {loading ? 'Жүктелуде...' : `${codes.length} ${codes.length === 1 ? 'код' : 'код'} табылды`}
+                  {loading ? t('common.loading') : `${codes.length} ${codes.length === 1 ? t('settings.codesFound') : t('settings.codesFoundPlural')}`}
                 </p>
               </div>
             </div>
-            <button className="codes-modal-close" onClick={onClose} title="Жабу">
+            <button className="codes-modal-close" onClick={onClose} title={t('common.close')}>
               <span>×</span>
             </button>
           </div>
@@ -162,16 +166,16 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
         {loading ? (
           <div className="codes-modal-loading">
             <div className="spinner"></div>
-            <p>Жүктелуде...</p>
+            <p>{t('common.loading')}</p>
           </div>
         ) : categories.length === 0 ? (
           <div className="codes-modal-empty">
             <div className="empty-icon-wrapper">
               <p className="empty-icon"><FontAwesomeIcon icon={faFileAlt} /></p>
             </div>
-            <p className="empty-title">Кодтар табылмады</p>
+            <p className="empty-title">{t('home.noCodes')}</p>
             <p className="empty-description">
-              Әзірге кодтар жоқ. Алғашқы кодтыңызды жүктеңіз!
+              {t('settings.noCodesYet')}
             </p>
           </div>
         ) : (
@@ -192,9 +196,9 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
                       <span className={`codes-folder-arrow ${isExpanded ? 'expanded' : ''}`}>▶</span>
                     </div>
                     <div className="codes-folder-info">
-                      <h3 className="codes-folder-name">{category}</h3>
+                      <h3 className="codes-folder-name">{t(`settings.${category}`)}</h3>
                       <span className="codes-folder-count">
-                        {categoryCodes.length} {categoryCodes.length === 1 ? 'код' : 'код'}
+                        {categoryCodes.length} {categoryCodes.length === 1 ? t('settings.codesFound') : t('settings.codesFoundPlural')}
                       </span>
                     </div>
                   </div>
@@ -202,7 +206,7 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
                     <div className="codes-folder-content">
                       {categoryCodes.length === 0 ? (
                         <div className="codes-folder-empty">
-                          <p>Бұл категорияда кодтар жоқ</p>
+                          <p>{t('settings.noCodesInCategory')}</p>
                         </div>
                       ) : (
                         <div className="codes-folder-codes">

@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder, faUser, faCalendar, faHeart, faComment } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
+import { formatDate } from '../utils/dateFormatter';
 import './FolderItem.css';
 
 interface FolderItemProps {
@@ -13,14 +15,7 @@ interface FolderItemProps {
 }
 
 const FolderItem: React.FC<FolderItemProps> = ({ folder, viewMode = 'grid', isSelected = false, onToggleSelect }) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('kk-KZ', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const { i18n } = useTranslation();
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,7 +64,7 @@ const FolderItem: React.FC<FolderItemProps> = ({ folder, viewMode = 'grid', isSe
         <div className="folder-item-footer">
           <div className="folder-item-meta">
             <span className="folder-item-author"><FontAwesomeIcon icon={faUser} /> {folder.author}</span>
-            <span className="folder-item-date"><FontAwesomeIcon icon={faCalendar} /> {formatDate(folder.createdAt)}</span>
+            <span className="folder-item-date"><FontAwesomeIcon icon={faCalendar} /> {formatDate(folder.createdAt, i18n.language)}</span>
             {folder.likes && folder.likes.length > 0 && (
               <span className="folder-item-likes"><FontAwesomeIcon icon={faHeart} /> {folder.likes.length}</span>
             )}
