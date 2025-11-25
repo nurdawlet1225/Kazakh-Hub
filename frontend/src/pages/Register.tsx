@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
@@ -8,6 +9,7 @@ import './Auth.css';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -250,7 +252,7 @@ const Register: React.FC = () => {
       } else if (err.code === 'auth/weak-password') {
         errorMessage = 'Құпия сөз тым әлсіз (кемінде 6 таңба)';
       } else if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз. FIREBASE_SETUP.md файлын қараңыз.';
+        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз: https://console.firebase.google.com/project/kazakh-hub/authentication/providers. FIREBASE_SETUP.md файлын қараңыз.';
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = 'Интернет байланысы жоқ. Интернетті тексеріңіз.';
       } else if (err.code === 'auth/too-many-requests') {
@@ -382,8 +384,50 @@ const Register: React.FC = () => {
             </div>
 
             {error && (
-              <div className="form-error">
-                {error}
+              <div className={`form-error ${error.includes('Email/Password аутентификациясы қосылмаған') ? 'form-error-critical' : ''}`}>
+                {error.includes('Email/Password аутентификациясы қосылмаған') ? (
+                  <div>
+                    <div style={{ marginBottom: '0.75rem', fontWeight: '600' }}>
+                      ⚠️ Email/Password аутентификациясы қосылмаған
+                    </div>
+                    <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', opacity: 0.9 }}>
+                      Firebase консольда Email/Password әдісін қосу керек. Төмендегі батырманы басып, Firebase консольға өтіңіз.
+                    </div>
+                    <a
+                      href="https://console.firebase.google.com/project/kazakh-hub/authentication/providers"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        padding: '0.75rem 1.5rem',
+                        borderRadius: '10px',
+                        textDecoration: 'none',
+                        fontWeight: '600',
+                        fontSize: '0.9rem',
+                        marginTop: '0.5rem',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                      }}
+                    >
+                      Firebase Console-ға ашу →
+                    </a>
+                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                      Немесе FIREBASE_SETUP.md файлын қараңыз
+                    </div>
+                  </div>
+                ) : (
+                  error
+                )}
               </div>
             )}
 

@@ -81,13 +81,21 @@ class ApiService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
         console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
-        const errorMessage = errorData.error || `API Error: ${response.statusText}`;
-        // Қазақшаға аудару
-        if (errorMessage.includes('Something went wrong')) {
-          throw new Error('Қате орын алды! Сервер қатесі.');
+        let errorMessage = errorData.detail || errorData.error || `API Error: ${response.statusText}`;
+        
+        // Translate common error messages to Kazakh
+        if (errorMessage.includes('Invalid credentials') || errorMessage.includes('User not found')) {
+          errorMessage = 'Пайдаланушы табылмады немесе құпия сөз дұрыс емес';
+        } else if (errorMessage.includes('Something went wrong')) {
+          errorMessage = 'Қате орын алды! Сервер қатесі.';
+        } else if (response.status === 401) {
+          errorMessage = 'Кіру рұқсаты жоқ. Электрондық пошта немесе құпия сөзді тексеріңіз.';
+        } else if (response.status === 404) {
+          errorMessage = 'Пайдаланушы табылмады.';
         }
+        
         throw new Error(errorMessage);
       }
 
@@ -179,10 +187,21 @@ class ApiService {
       ? { email: emailOrUsername, password }
       : { username: emailOrUsername, password };
     
-    return this.request<{ user: User; message: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
+    try {
+      return await this.request<{ user: User; message: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+    } catch (error: any) {
+      // For email logins, backend errors are expected - Firebase will be tried
+      // Only log if it's a username (can't try Firebase) or if it's a non-401 error
+      if (!isEmail || (error.message && !error.message.includes('Пайдаланушы табылмады') && !error.message.includes('құпия сөз'))) {
+        // Re-throw to let Login.tsx handle it
+        throw error;
+      }
+      // For email 401 errors, silently re-throw - Firebase will be tried
+      throw error;
+    }
   }
 
   async changePassword(userId: string, currentPassword: string | null, newPassword: string): Promise<{ message: string }> {

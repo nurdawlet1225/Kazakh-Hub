@@ -104,6 +104,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
+  z-index: 10;
 }
 
 .meta-item {
@@ -712,20 +714,34 @@
 }
 
 .like-button.liked {
-  background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%);
-  border-color: rgba(8, 145, 178, 0.3);
-  color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.like-button.liked svg {
+  color: #ef4444;
 }
 
 .dark-theme .like-button.liked {
-  background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-  border-color: rgba(8, 145, 178, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.dark-theme .like-button.liked svg {
+  color: #f87171;
 }
 
 @media (prefers-color-scheme: dark) {
   .like-button.liked {
-    background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-    border-color: rgba(8, 145, 178, 0.3);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #f87171;
+  }
+  
+  .like-button.liked svg {
+    color: #f87171;
   }
 }
 
@@ -789,6 +805,9 @@
   gap: 0.5rem;
   font-size: 0.9rem;
   margin-right: 0.5rem;
+  position: relative;
+  z-index: 10;
+  pointer-events: auto;
 }
 
 .like-button-header:hover:not(:disabled) {
@@ -804,20 +823,34 @@
 }
 
 .like-button-header.liked {
-  background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(251, 191, 36, 0.1) 100%);
-  border-color: rgba(8, 145, 178, 0.3);
-  color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.like-button-header.liked svg {
+  color: #ef4444;
 }
 
 .dark-theme .like-button-header.liked {
-  background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-  border-color: rgba(8, 145, 178, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.dark-theme .like-button-header.liked svg {
+  color: #f87171;
 }
 
 @media (prefers-color-scheme: dark) {
   .like-button-header.liked {
-    background: linear-gradient(135deg, rgba(8, 145, 178, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
-    border-color: rgba(8, 145, 178, 0.3);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.15) 100%);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #f87171;
+  }
+  
+  .like-button-header.liked svg {
+    color: #f87171;
   }
 }
 

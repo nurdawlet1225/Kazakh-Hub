@@ -105,16 +105,43 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
           </div>
         </div>
 
-      {code.description && (
-        <p className="code-card-description">{code.description}</p>
-      )}
-
-      {!code.isFolder && !isJsonStructure(code.content) && (
+      {viewMode === 'list' ? (
         <div className="code-card-content">
-          <pre className="code-preview">
-            <code>{truncateContent(code.content)}</code>
-          </pre>
+          {code.description ? (
+            <p className="code-card-description">{code.description}</p>
+          ) : (
+            <p className="code-card-description" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              {code.isFolder ? 'Папка ақпараты' : 'Сипаттама жоқ'}
+            </p>
+          )}
+          {code.isFolder && code.folderStructure && (
+            <div className="code-card-folder-info">
+              <span className="folder-stats">
+                {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'file').length} файл
+                {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length > 0 && 
+                  `, ${Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length} папка`}
+              </span>
+            </div>
+          )}
+          {!code.isFolder && !isJsonStructure(code.content) && (
+            <pre className="code-preview">
+              <code>{truncateContent(code.content, 100)}</code>
+            </pre>
+          )}
         </div>
+      ) : (
+        <>
+          {code.description && (
+            <p className="code-card-description">{code.description}</p>
+          )}
+          {!code.isFolder && !isJsonStructure(code.content) && (
+            <div className="code-card-content">
+              <pre className="code-preview">
+                <code>{truncateContent(code.content)}</code>
+              </pre>
+            </div>
+          )}
+        </>
       )}
 
       <div className="code-card-footer">

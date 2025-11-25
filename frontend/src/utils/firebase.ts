@@ -24,7 +24,14 @@ export const db = getFirestore(app);
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 
-// Helper function to save/update user in Firestore
+/**
+ * Helper function to save/update user in Firestore
+ * 
+ * Note: This function may fail silently if Firestore is blocked by ad blockers
+ * (ERR_BLOCKED_BY_CLIENT errors). This is non-critical - the app will continue
+ * to work using the backend API. User authentication and core functionality
+ * do not depend on Firestore.
+ */
 export const saveUserToFirestore = async (userData: { id: string; username: string; email: string; avatar?: string }) => {
   try {
     const userRef = doc(db, 'users', userData.id);
@@ -38,19 +45,24 @@ export const saveUserToFirestore = async (userData: { id: string; username: stri
     // Silently handle Firestore errors (may be blocked by ad blockers)
     // This is not critical for authentication to work
     const errorMessage = error?.message || error?.toString() || '';
+    const errorCode = error?.code || '';
     const isBlocked = 
-      error?.code === 'unavailable' || 
-      error?.code === 'permission-denied' ||
+      errorCode === 'unavailable' || 
+      errorCode === 'permission-denied' ||
+      errorCode === 'cancelled' ||
       errorMessage.includes('BLOCKED_BY_CLIENT') ||
       errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
       errorMessage.includes('network') ||
-      errorMessage.includes('Failed to fetch');
+      errorMessage.includes('Failed to fetch') ||
+      errorMessage.includes('firestore.googleapis.com');
     
     // Only log non-blocked errors (error suppression utility will handle console output)
+    // Blocked errors are expected and non-critical
     if (!isBlocked) {
       // Error suppression will handle this if it's a known pattern
       console.warn('Firestore save failed (non-critical):', errorMessage);
     }
+    // Silently ignore blocked errors - they don't affect app functionality
   }
 };
 

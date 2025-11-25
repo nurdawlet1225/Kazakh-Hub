@@ -180,42 +180,79 @@ const Login: React.FC = () => {
 
     setLoading(true);
 
+    // Declare variables outside try block so they're accessible in catch
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmail = emailPattern.test(formData.emailOrUsername.trim()) || formData.emailOrUsername.includes('@');
+    let email = formData.emailOrUsername.trim();
+    let triedBackend = false;
+
     try {
       // Determine if input is email or username
-      const isEmail = formData.emailOrUsername.includes('@');
-      let email = formData.emailOrUsername;
+      // More strict email detection: must contain @ and have at least one character before and after @
+      
+      console.log('[LOGIN] Input type detection:', {
+        input: email.substring(0, 3) + '***',
+        isEmail,
+        hasAt: formData.emailOrUsername.includes('@')
+      });
 
-      // If username, try to find email from backend (for backward compatibility)
-      if (!isEmail) {
+      // Try backend login first (for backward compatibility with old users)
+      // This works for both email and username
+      try {
+        const response = await apiService.login(formData.emailOrUsername, formData.password);
+        // If backend login succeeds, use that
+        const userData = response.user;
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Save user to Firestore for search functionality
         try {
-          // Try to login with backend first to get email
-          const response = await apiService.login(formData.emailOrUsername, formData.password);
-          // If backend login succeeds, use that
-          const userData = response.user;
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          // Save user to Firestore for search functionality
-          try {
-            await saveUserToFirestore(userData);
-          } catch (firestoreErr) {
-            console.error('Failed to save user to Firestore:', firestoreErr);
-            // Continue even if Firestore save fails
-          }
-          
-          navigate('/');
-          return;
-        } catch (backendErr) {
-          // If backend fails, try Firebase with username as email (might work if user registered with Firebase)
-          email = formData.emailOrUsername;
+          await saveUserToFirestore(userData);
+        } catch (firestoreErr) {
+          console.error('Failed to save user to Firestore:', firestoreErr);
+          // Continue even if Firestore save fails
         }
+        
+        navigate('/');
+        return;
+      } catch (backendErr: any) {
+        // Backend login failed
+        triedBackend = true;
+        
+        // If it's a username, we can't try Firebase (Firebase requires email)
+        if (!isEmail) {
+          // Username login failed in backend, can't try Firebase with username
+          console.log('[LOGIN] Backend login failed for username, cannot try Firebase');
+          // Provide helpful error message
+          const helpfulError = new Error('Пайдаланушы табылмады немесе құпия сөз дұрыс емес. Егер сіз email арқылы тіркелген болсаңыз, email енгізіңіз (мысалы: user@example.com).');
+          throw helpfulError;
+        }
+        
+        // For email: try Firebase even if backend failed
+        // Firebase will determine if user exists and if password is correct
+        // If user exists in backend but password is wrong, Firebase will also fail
+        // If user exists only in Firebase, Firebase will succeed
+        email = formData.emailOrUsername.trim();
+        // Don't throw error here - continue to Firebase authentication below
+        // The error will only be shown if Firebase also fails
+        console.log('[LOGIN] ⚠️ Backend login failed for email, trying Firebase...', {
+          email: email.substring(0, 3) + '***',
+          error: backendErr.message
+        });
       }
 
       // Sign in with Firebase Authentication
+      // This will only execute if backend failed (for email) or if it's an email login
+      console.log('[LOGIN] 🔥 Attempting Firebase authentication...', {
+        email: email.substring(0, 3) + '***',
+        triedBackend
+      });
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
         formData.password
       );
+      
+      console.log('[LOGIN] ✅ Firebase authentication successful!');
 
       const user = userCredential.user;
 
@@ -249,9 +286,16 @@ const Login: React.FC = () => {
       // Redirect to home
       navigate('/');
     } catch (err: any) {
-      console.error('Login error:', err);
+      // Only log if it's not a backend error that we're going to try Firebase for
+      const isBackendErrorForEmail = !err.code && isEmail && triedBackend;
+      
+      if (!isBackendErrorForEmail) {
+        console.error('Login error:', err);
+      }
+      
       let errorMessage = 'Кіру қатесі';
       
+      // Handle Firebase auth errors
       if (err.code === 'auth/user-not-found') {
         errorMessage = 'Пайдаланушы табылмады. Тіркелгіңіз бар ма?';
       } else if (err.code === 'auth/wrong-password') {
@@ -259,14 +303,31 @@ const Login: React.FC = () => {
       } else if (err.code === 'auth/invalid-email') {
         errorMessage = 'Электрондық пошта дұрыс емес';
       } else if (err.code === 'auth/invalid-credential') {
-        errorMessage = 'Электрондық пошта немесе құпия сөз дұрыс емес';
+        // If we tried backend first and it failed, this means both backend and Firebase failed
+        if (triedBackend && isEmail) {
+          errorMessage = 'Электрондық пошта немесе құпия сөз дұрыс емес. Төмендегілерді тексеріңіз: 1) Email дұрыс енгізілгенін тексеріңіз, 2) Құпия сөздің дұрыс енгізілгенін тексеріңіз (үлкен/кіші әріптер маңызды), 3) Егер тіркелгіңіз жоқ болса, "Тіркелу" батырмасын басып жаңа тіркелгі құрыңыз.';
+        } else {
+          errorMessage = 'Электрондық пошта немесе құпия сөз дұрыс емес. Тіркелгіңіздің бар екеніне және құпия сөзіңіздің дұрыс екеніне көз жеткізіңіз.';
+        }
       } else if (err.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз. FIREBASE_SETUP.md файлын қараңыз.';
+        errorMessage = 'Email/Password аутентификациясы қосылмаған. Firebase консольда қосыңыз: https://console.firebase.google.com/project/kazakh-hub/authentication/providers. FIREBASE_SETUP.md файлын қараңыз.';
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = 'Интернет байланысы жоқ. Интернетті тексеріңіз.';
       } else if (err.code === 'auth/too-many-requests') {
         errorMessage = 'Тым көп сұраулар. Кейінірек қайталаңыз.';
-      } else if (err.message) {
+      } 
+      // Handle backend API errors (only show if we didn't try Firebase or if it's a username)
+      else if (err.message && (err.message.includes('Пайдаланушы табылмады') || err.message.includes('құпия сөз дұрыс емес'))) {
+        // If it's a username or we already tried Firebase, show the error
+        if (!isEmail || !triedBackend) {
+          errorMessage = err.message;
+        } else {
+          // This shouldn't happen if logic is correct, but just in case
+          errorMessage = err.message;
+        }
+      }
+      // Handle generic errors
+      else if (err.message) {
         errorMessage = err.message;
       } else if (err.toString) {
         errorMessage = err.toString();
@@ -364,8 +425,50 @@ const Login: React.FC = () => {
             </div>
 
             {error && (
-              <div className="form-error">
-                {error}
+              <div className={`form-error ${error.includes('Email/Password аутентификациясы қосылмаған') ? 'form-error-critical' : ''}`}>
+                {error.includes('Email/Password аутентификациясы қосылмаған') ? (
+                  <div>
+                    <div style={{ marginBottom: '0.75rem', fontWeight: '600' }}>
+                      ⚠️ Email/Password аутентификациясы қосылмаған
+                    </div>
+                    <div style={{ marginBottom: '0.75rem', fontSize: '0.85rem', opacity: 0.9 }}>
+                      Firebase консольда Email/Password әдісін қосу керек. Төмендегі батырманы басып, Firebase консольға өтіңіз.
+                    </div>
+                    <a
+                      href="https://console.firebase.google.com/project/kazakh-hub/authentication/providers"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        padding: '0.75rem 1.5rem',
+                        borderRadius: '10px',
+                        textDecoration: 'none',
+                        fontWeight: '600',
+                        fontSize: '0.9rem',
+                        marginTop: '0.5rem',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                      }}
+                    >
+                      Firebase Console-ға ашу →
+                    </a>
+                    <div style={{ marginTop: '0.75rem', fontSize: '0.8rem', opacity: 0.8 }}>
+                      Немесе FIREBASE_SETUP.md файлын қараңыз
+                    </div>
+                  </div>
+                ) : (
+                  error
+                )}
               </div>
             )}
 

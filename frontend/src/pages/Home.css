@@ -195,10 +195,9 @@
 /* Controls */
 .home-controls {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-bottom: 2rem;
-  flex-wrap: wrap;
   padding: 1.5rem;
   background: var(--bg-secondary);
   border-radius: var(--radius-xl);
@@ -206,6 +205,14 @@
   backdrop-filter: blur(16px) saturate(180%);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
+}
+
+.home-controls-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .home-filters {
@@ -733,6 +740,10 @@
   display: none;
 }
 
+.home-controls .language-filter label {
+  display: none;
+}
+
 .home-controls .language-filter {
   display: flex;
   align-items: center;
@@ -755,6 +766,9 @@
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 3rem;
+  pointer-events: auto;
+  z-index: 1;
+  position: relative;
 }
 
 .home-controls .language-filter .filter-select:hover {
@@ -762,6 +776,16 @@
   border-color: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.home-controls .language-filter .filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+
+.home-controls .language-filter .filter-select:active {
+  transform: translateY(0);
 }
 
 .home-controls .sort-filter .filter-select {
@@ -781,6 +805,9 @@
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 3rem;
+  pointer-events: auto;
+  z-index: 1;
+  position: relative;
 }
 
 .home-controls .sort-filter .filter-select:hover {
@@ -788,6 +815,16 @@
   border-color: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.home-controls .sort-filter .filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+
+.home-controls .sort-filter .filter-select:active {
+  transform: translateY(0);
 }
 
 
@@ -1087,6 +1124,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.home-controls .codes-container {
+  margin-bottom: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Бөлім бас тақырыптары */

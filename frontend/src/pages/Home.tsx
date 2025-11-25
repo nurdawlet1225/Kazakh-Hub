@@ -175,8 +175,14 @@ const Home: React.FC = () => {
         code.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
         code.description?.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Папкалар үшін тіл фильтрін елемеу (олардың language 'folder' болуы мүмкін)
-      const matchesLanguage = filterLanguage === 'all' || code.language === filterLanguage || code.isFolder;
+      // Тіл фильтрін тексеру
+      let matchesLanguage = true;
+      if (filterLanguage !== 'all') {
+        // Папкалар мен файлдар үшін тілді case-insensitive салыстыру
+        const codeLang = (code.language || '').toLowerCase().trim();
+        const filterLang = filterLanguage.toLowerCase().trim();
+        matchesLanguage = codeLang === filterLang;
+      }
       
       return matchesSearch && matchesLanguage;
     });
@@ -221,9 +227,14 @@ const Home: React.FC = () => {
     return [...folders, ...files];
   }, [codes, searchQuery, filterLanguage, sortBy]);
 
-  const languages = Array.from(new Set(codes.map((code) => code.language)));
-
-
+  // Барлық кодтардың тілдерін алу (папкалар мен файлдар)
+  const languages = Array.from(
+    new Set(
+      codes
+        .filter((code) => code.language && code.language.trim()) // language жоқ кодтарды елемеу
+        .map((code) => code.language.trim()) // Бастапқы түрінде сақтау
+    )
+  ).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())); // Алфавит бойынша сұрыптау (case-insensitive)
 
   if (loading) {
     return (
@@ -279,90 +290,91 @@ const Home: React.FC = () => {
 
       {/* Сүзгілер және басқару элементтері */}
       <div className="home-controls">
-        <button 
-          className="btn-header-list"
-          onClick={() => setIsCodesModalOpen(true)}
-        >
-          <FontAwesomeIcon icon={faList} /> {t('header.codesList')}
-        </button>
-        <div className="language-filter">
-          <label htmlFor="language-filter">{t('home.language')}</label>
-          <select
-            id="language-filter"
-            value={filterLanguage}
-            onChange={(e) => setFilterLanguage(e.target.value)}
-            className="filter-select"
+        <div className="home-controls-header">
+          <button 
+            className="btn-header-list"
+            onClick={() => setIsCodesModalOpen(true)}
           >
-            <option value="all">{t('home.allLanguages')}</option>
-            {languages.map((lang) => (
-              <option key={lang} value={lang}>
-                {lang.charAt(0).toUpperCase() + lang.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="sort-filter">
-          <label htmlFor="sort-filter">{t('home.sortBy')}:</label>
-          <select
-            id="sort-filter"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="filter-select"
-          >
-            <option value="newest">{t('home.newest')}</option>
-            <option value="oldest">{t('home.oldest')}</option>
-            <option value="title">{t('home.byTitle')}</option>
-            <option value="author">{t('home.byAuthor')}</option>
-          </select>
-        </div>
-        <div className="view-toggle">
-          <button
-            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-            onClick={() => {
-              setViewMode('grid');
-              localStorage.setItem('homeViewMode', 'grid');
-            }}
-            title={t('home.gridView')}
-            aria-label={t('home.gridView')}
-          >
-            ⊞
+            <FontAwesomeIcon icon={faList} /> {t('header.codesList')}
           </button>
-          <button
-            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => {
-              setViewMode('list');
-              localStorage.setItem('homeViewMode', 'list');
-            }}
-            title={t('home.listView')}
-            aria-label={t('home.listView')}
-          >
-            ☰
-          </button>
+          <div className="language-filter">
+            <label htmlFor="language-filter">{t('home.language')}</label>
+            <select
+              id="language-filter"
+              value={filterLanguage}
+              onChange={(e) => setFilterLanguage(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">{t('home.allLanguages')}</option>
+              {languages.map((lang) => (
+                <option key={lang} value={lang}>
+                  {lang.charAt(0).toUpperCase() + lang.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="sort-filter">
+            <label htmlFor="sort-filter">{t('home.sortBy')}:</label>
+            <select
+              id="sort-filter"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="filter-select"
+            >
+              <option value="newest">{t('home.newest')}</option>
+              <option value="oldest">{t('home.oldest')}</option>
+              <option value="title">{t('home.byTitle')}</option>
+              <option value="author">{t('home.byAuthor')}</option>
+            </select>
+          </div>
+          <div className="view-toggle">
+            <button
+              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => {
+                setViewMode('grid');
+                localStorage.setItem('homeViewMode', 'grid');
+              }}
+              title={t('home.gridView')}
+              aria-label={t('home.gridView')}
+            >
+              ⊞
+            </button>
+            <button
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => {
+                setViewMode('list');
+                localStorage.setItem('homeViewMode', 'list');
+              }}
+              title={t('home.listView')}
+              aria-label={t('home.listView')}
+            >
+              ☰
+            </button>
+          </div>
         </div>
-      </div>
 
-      {error && (
-        <div className="error-message">
-          <span>{error}</span>
-          <button onClick={loadCodes} className="retry-button">
-            {t('home.retry')}
-          </button>
-        </div>
-      )}
+        {error && (
+          <div className="error-message">
+            <span>{error}</span>
+            <button onClick={loadCodes} className="retry-button">
+              {t('home.retry')}
+            </button>
+          </div>
+        )}
 
-      {filteredAndSortedCodes.length === 0 && !loading && (
-        <div className="empty-state">
-          <p className="empty-icon"><FontAwesomeIcon icon={faFileAlt} /></p>
-          <p className="empty-title">{t('home.noCodes')}</p>
-          <p className="empty-description">
-            {searchQuery || filterLanguage !== 'all'
-              ? t('home.searchParams')
-              : t('home.firstCode')}
-          </p>
-        </div>
-      )}
+        {filteredAndSortedCodes.length === 0 && !loading && (
+          <div className="empty-state">
+            <p className="empty-icon"><FontAwesomeIcon icon={faFileAlt} /></p>
+            <p className="empty-title">{t('home.noCodes')}</p>
+            <p className="empty-description">
+              {searchQuery || filterLanguage !== 'all'
+                ? t('home.searchParams')
+                : t('home.firstCode')}
+            </p>
+          </div>
+        )}
 
-      {/* Бірге көрсету */}
+        {/* Бірге көрсету */}
         <div className={`codes-container ${viewMode === 'list' ? 'list-view' : 'grid-view'}`}>
           {filteredAndSortedCodes.map((code) => (
             <CodeCard 
@@ -372,6 +384,7 @@ const Home: React.FC = () => {
             />
           ))}
         </div>
+      </div>
       <CodesListModal 
         isOpen={isCodesModalOpen} 
         onClose={() => setIsCodesModalOpen(false)} 
