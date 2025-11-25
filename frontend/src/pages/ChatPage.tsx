@@ -1,22 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faSearch, faTimes, faUserMinus, faUserPlus, faClock, faCheck } from '@fortawesome/free-solid-svg-icons';
-import { User, Message, FriendRequest } from '../utils/api';
+import { 
+  faComment, faSearch, faTimes, faUserMinus, faUserPlus, 
+  faClock, faCheck, faCheckDouble, faCheckCircle 
+} from '@fortawesome/free-solid-svg-icons';
+import { User, Message, FriendRequest, Chat } from '../utils/api';
 import { apiService } from '../utils/api';
+import { websocketService, WebSocketMessage } from '../utils/websocket';
 import { formatDateTime } from '../utils/dateFormatter';
-import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';
 import '../components/Chat.css';
 
-interface FriendWithLastMessage extends User {
-  lastMessage?: Message;
-  unreadCount?: number;
-}
-
 const ChatPage: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [friends, setFriends] = useState<FriendWithLastMessage[]>([]);
+  const [chats, setChats] = useState<Chat[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -25,107 +23,166 @@ const ChatPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
+  const [incomingRequestCount, setIncomingRequestCount] = useState(0);
   const [searching, setSearching] = useState(false);
   const [friendsSearchQuery, setFriendsSearchQuery] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load current user
   useEffect(() => {
     loadCurrentUser();
   }, []);
 
+  // Connect WebSocket when user is loaded
   useEffect(() => {
     if (currentUser) {
-      loadFriends();
+      connectWebSocket();
+      loadChats();
       loadFriendRequests();
+      loadIncomingRequestCount();
+      
+      return () => {
+        websocketService.disconnect();
+      };
     }
   }, [currentUser]);
 
+  // Setup WebSocket listeners
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleNewMessage = (data: WebSocketMessage) => {
+      if (data.message) {
+        const message = data.message as Message;
+        // Add message if it's for current conversation
+        if (selectedFriend && 
+            ((message.fromUserId === selectedFriend.id && message.toUserId === currentUser.id) ||
+             (message.fromUserId === currentUser.id && message.toUserId === selectedFriend.id))) {
+          setMessages(prev => {
+            // Check if message already exists
+            if (prev.some(m => m.id === message.id)) {
+              return prev;
+            }
+            return [...prev, message];
+          });
+          scrollToBottom();
+        }
+        
+        // Update chats list
+        loadChats();
+      }
+    };
+
+    const handleMessageRead = (data: WebSocketMessage) => {
+      if (data.messageId && selectedFriend) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === data.messageId 
+            ? { ...msg, read: true, status: 'read', readAt: data.readAt }
+            : msg
+        ));
+      }
+    };
+
+    const handleMessagesRead = (data: WebSocketMessage) => {
+      if (data.userId === selectedFriend?.id) {
+        setMessages(prev => prev.map(msg => 
+          msg.fromUserId === currentUser.id && msg.toUserId === selectedFriend.id
+            ? { ...msg, read: true, status: 'read' }
+            : msg
+        ));
+      }
+    };
+
+    const handleTyping = (data: WebSocketMessage) => {
+      if (data.userId && data.userId === selectedFriend?.id) {
+        if (data.isTyping) {
+          setTypingUsers(prev => new Set(prev).add(data.userId!));
+        } else {
+          setTypingUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(data.userId!);
+            return newSet;
+          });
+        }
+      }
+    };
+
+    websocketService.on('new_message', handleNewMessage);
+    websocketService.on('message_read', handleMessageRead);
+    websocketService.on('messages_read', handleMessagesRead);
+    websocketService.on('typing', handleTyping);
+
+    return () => {
+      websocketService.off('new_message', handleNewMessage);
+      websocketService.off('message_read', handleMessageRead);
+      websocketService.off('messages_read', handleMessagesRead);
+      websocketService.off('typing', handleTyping);
+    };
+  }, [currentUser, selectedFriend]);
+
+  // Load chats periodically
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    if (activeTab === 'friends') {
+      const interval = setInterval(loadChats, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser, activeTab]);
+
+  // Load friend requests periodically
   useEffect(() => {
     if (!currentUser) return;
     
     if (activeTab === 'requests') {
-      // Load immediately
       loadFriendRequests();
-      // Then set up interval
-      const interval = setInterval(loadFriendRequests, 5000);
+      loadIncomingRequestCount();
+      const interval = setInterval(() => {
+        loadFriendRequests();
+        loadIncomingRequestCount();
+      }, 5000);
       return () => clearInterval(interval);
-    } else if (activeTab === 'add') {
-      // Load outgoing and incoming requests for status checking
-      loadOutgoingRequests();
-      loadFriendRequests();
     }
   }, [currentUser, activeTab]);
 
+  // Load messages when friend is selected
   useEffect(() => {
     if (currentUser && selectedFriend) {
-      // Алдымен бір рет жүктеу
       loadMessages();
-      
-      // Real-time listener қосу
-      const unsubscribeListener = subscribeToMessages(
-        currentUser.id,
-        selectedFriend.id,
-        (updatedMessages) => {
-          setMessages(updatedMessages);
-          
-          // Mark unread messages as read
-          const unreadMessages = updatedMessages.filter(
-            msg => msg.toUserId === currentUser.id && !msg.read
-          );
-          
-          if (unreadMessages.length > 0) {
-            Promise.all(
-              unreadMessages.map(msg => 
-                apiService.markMessageAsRead(msg.id).catch(err => 
-                  console.error('Failed to mark message as read:', err)
-                )
-              )
-            );
-            
-            // Reload friends to update unread counts
-            loadFriends();
-          }
-        },
-        (error) => {
-          console.error('Real-time messages listener error:', error);
-          // Егер real-time жұмыс істемесе, қалыпты жолмен жүктеу
-          loadMessages();
-        }
-      );
-      
-      return () => {
-        unsubscribeListener();
-        unsubscribe(`messages-${currentUser.id}-${selectedFriend.id}`);
-      };
+      markConversationRead();
     }
   }, [currentUser, selectedFriend]);
 
-  useEffect(() => {
-    if (!currentUser) return;
-    
-    // Auto-refresh friends list every 5 seconds to update last messages
-    // Only if we're on the friends tab to avoid unnecessary requests
-    if (activeTab === 'friends') {
-      const interval = setInterval(loadFriends, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [currentUser, activeTab]);
-
+  // Auto-scroll to bottom
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Cleanup timeout on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, []);
+
+  const connectWebSocket = async () => {
+    if (!currentUser) return;
+    try {
+      await websocketService.connect(currentUser.id);
+    } catch (error) {
+      console.error('Failed to connect WebSocket:', error);
+    }
+  };
 
   const loadCurrentUser = async () => {
     try {
@@ -142,56 +199,13 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const loadFriends = async () => {
+  const loadChats = async () => {
     if (!currentUser) return;
     try {
-      setLoading(true);
-      const friendsList = await apiService.getFriends(currentUser.id);
-      
-      // Load last message and unread count for each friend
-      const friendsWithMessages = await Promise.all(
-        friendsList.map(async (friend) => {
-          try {
-            const conversationMessages = await apiService.getConversation(
-              currentUser.id,
-              friend.id
-            );
-            
-            const lastMessage = conversationMessages.length > 0 
-              ? conversationMessages[conversationMessages.length - 1]
-              : undefined;
-            
-            const unreadCount = conversationMessages.filter(
-              msg => msg.toUserId === currentUser.id && !msg.read
-            ).length;
-            
-            return {
-              ...friend,
-              lastMessage,
-              unreadCount
-            };
-          } catch (err) {
-            console.error(`Failed to load messages for friend ${friend.id}:`, err);
-            return {
-              ...friend,
-              lastMessage: undefined,
-              unreadCount: 0
-            };
-          }
-        })
-      );
-      
-      // Sort by last message time (most recent first)
-      friendsWithMessages.sort((a, b) => {
-        if (!a.lastMessage && !b.lastMessage) return 0;
-        if (!a.lastMessage) return 1;
-        if (!b.lastMessage) return -1;
-        return new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime();
-      });
-      
-      setFriends(friendsWithMessages);
+      const chatsList = await apiService.getChats(currentUser.id);
+      setChats(chatsList);
     } catch (err) {
-      console.error('Failed to load friends:', err);
+      console.error('Failed to load chats:', err);
     } finally {
       setLoading(false);
     }
@@ -205,27 +219,19 @@ const ChatPage: React.FC = () => {
         selectedFriend.id
       );
       setMessages(conversationMessages);
-      
-      // Mark unread messages as read
-      const unreadMessages = conversationMessages.filter(
-        msg => msg.toUserId === currentUser.id && !msg.read
-      );
-      
-      if (unreadMessages.length > 0) {
-        // Mark messages as read (in a real app, you'd batch this)
-        Promise.all(
-          unreadMessages.map(msg => 
-            apiService.markMessageAsRead(msg.id).catch(err => 
-              console.error('Failed to mark message as read:', err)
-            )
-          )
-        );
-        
-        // Reload friends to update unread counts
-        loadFriends();
-      }
+      scrollToBottom();
     } catch (err) {
       console.error('Failed to load messages:', err);
+    }
+  };
+
+  const markConversationRead = async () => {
+    if (!currentUser || !selectedFriend) return;
+    try {
+      await apiService.markConversationRead(currentUser.id, selectedFriend.id);
+      loadChats(); // Refresh chats to update unread count
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err);
     }
   };
 
@@ -233,18 +239,61 @@ const ChatPage: React.FC = () => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser || !selectedFriend) return;
 
+    const messageContent = newMessage.trim();
+    setNewMessage('');
+    setIsTyping(false);
+    
+    // Clear typing indicator
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    websocketService.sendTyping(selectedFriend.id, false);
+
     try {
-      await apiService.sendMessage(
+      const sentMessage = await apiService.sendMessage(
         currentUser.id,
         selectedFriend.id,
-        newMessage
+        messageContent
       );
-      setNewMessage('');
-      await loadMessages();
-    } catch (err) {
+      
+      // Add message to list immediately
+      setMessages(prev => [...prev, sentMessage]);
+      scrollToBottom();
+      
+      // Mark as delivered if recipient is online
+      if (websocketService.isConnected()) {
+        websocketService.markDelivered(sentMessage.id);
+      }
+      
+      // Reload chats to update last message
+      loadChats();
+    } catch (err: any) {
       console.error('Failed to send message:', err);
-      alert('Хабарлама жіберу қатесі');
+      alert(err.message || 'Хабарлама жіберу қатесі');
     }
+  };
+
+  const handleTypingChange = (value: string) => {
+    setNewMessage(value);
+    
+    if (!selectedFriend || !currentUser) return;
+
+    // Send typing indicator
+    if (!isTyping && value.trim()) {
+      setIsTyping(true);
+      websocketService.sendTyping(selectedFriend.id, true);
+    }
+
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Stop typing indicator after 3 seconds of no typing
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      websocketService.sendTyping(selectedFriend.id, false);
+    }, 3000);
   };
 
   const scrollToBottom = () => {
@@ -261,20 +310,13 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const loadOutgoingRequests = async () => {
+  const loadIncomingRequestCount = async () => {
     if (!currentUser) return;
     try {
-      const allRequests = await apiService.getFriendRequests(currentUser.id);
-      // Filter outgoing requests (where fromUserId is current user)
-      const outgoing = allRequests.filter(req => {
-        // Check if this is an outgoing request (not incoming)
-        return req.fromUserId === currentUser.id && req.status === 'pending' && !req.isIncoming;
-      });
-      setOutgoingRequests(outgoing);
+      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(currentUser.id);
+      setIncomingRequestCount(incomingRequestCount);
     } catch (err) {
-      console.error('Failed to load outgoing requests:', err);
-      // If error, set empty array
-      setOutgoingRequests([]);
+      console.error('Failed to load incoming request count:', err);
     }
   };
 
@@ -286,14 +328,12 @@ const ChatPage: React.FC = () => {
     
     const trimmedQuery = query.trim();
     
-    // If query is empty, clear results
     if (!trimmedQuery) {
       setSearchResults([]);
       setSearching(false);
       return;
     }
     
-    // Minimum 1 character to search
     if (trimmedQuery.length < 1) {
       return;
     }
@@ -303,23 +343,20 @@ const ChatPage: React.FC = () => {
       const results = await apiService.searchUsers(trimmedQuery);
       
       // Filter out current user and existing friends
+      const friendIds = new Set(chats.map(chat => chat.partnerId));
       const filtered = results.filter(
-        user => user.id !== currentUser.id && !friends.some(f => f.id === user.id)
+        user => user.id !== currentUser.id && !friendIds.has(user.id)
       );
       
       setSearchResults(filtered);
-      
-      // Reload outgoing and incoming requests to check status
-      await loadOutgoingRequests();
-      await loadFriendRequests();
     } catch (err: any) {
       console.error('Failed to search users:', err);
-      setSearchResults([]);
       // Show error message to user
       const errorMsg = err.message || 'Іздеу қатесі';
       if (!errorMsg.includes('Failed to fetch') && !errorMsg.includes('NetworkError')) {
         console.error('Search error:', errorMsg);
       }
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -329,21 +366,16 @@ const ChatPage: React.FC = () => {
     if (!currentUser) return;
     try {
       await apiService.sendFriendRequest(currentUser.id, toUserId);
-      // Reload outgoing requests to update status
-      await loadOutgoingRequests();
-      // Also reload friends list in case request was accepted immediately
-      await loadFriends();
+      await loadIncomingRequestCount();
+      await loadChats();
       alert('Достық сұрауы жіберілді');
     } catch (err: any) {
       console.error('Failed to send friend request:', err);
       const errorMsg = err.message || 'Достық сұрауы жіберу қатесі';
-      if (errorMsg.includes('already exists') || errorMsg.includes('уже существует') || errorMsg.includes('already')) {
-        // If request already exists, reload to show correct status
-        await loadOutgoingRequests();
+      if (errorMsg.includes('already exists') || errorMsg.includes('уже существует')) {
         alert('Достық сұрауы қазірдің өзінде жіберілген');
       } else if (errorMsg.includes('Already friends')) {
-        // If already friends, reload friends list
-        await loadFriends();
+        await loadChats();
         alert('Сіз бұл пайдаланушымен қазірдің өзінде доссыз');
       } else {
         alert(errorMsg);
@@ -351,23 +383,12 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const getRequestStatus = (userId: string): 'none' | 'pending' | 'sent' => {
-    // Check if we sent a request to this user
-    const outgoing = outgoingRequests.find(req => req.toUserId === userId);
-    if (outgoing) return 'sent';
-    
-    // Check if this user sent a request to us
-    const incoming = friendRequests.find(req => req.fromUserId === userId);
-    if (incoming) return 'pending';
-    
-    return 'none';
-  };
-
   const handleAcceptRequest = async (requestId: string) => {
     try {
       await apiService.acceptFriendRequest(requestId);
       await loadFriendRequests();
-      await loadFriends();
+      await loadIncomingRequestCount();
+      await loadChats();
       alert('Достық сұрауы қабылданды');
     } catch (err) {
       console.error('Failed to accept friend request:', err);
@@ -379,6 +400,7 @@ const ChatPage: React.FC = () => {
     try {
       await apiService.rejectFriendRequest(requestId);
       await loadFriendRequests();
+      await loadIncomingRequestCount();
       alert('Достық сұрауы бас тартылды');
     } catch (err) {
       console.error('Failed to reject friend request:', err);
@@ -387,7 +409,7 @@ const ChatPage: React.FC = () => {
   };
 
   const handleRemoveFriend = async (friendId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent selecting the friend
+    e.stopPropagation();
     if (!currentUser) return;
     
     if (!window.confirm('Бұл досыңызды тізімнен алып тастағыңыз келе ме?')) {
@@ -396,7 +418,7 @@ const ChatPage: React.FC = () => {
     
     try {
       await apiService.removeFriend(currentUser.id, friendId);
-      await loadFriends();
+      await loadChats();
       if (selectedFriend?.id === friendId) {
         setSelectedFriend(null);
         setMessages([]);
@@ -408,10 +430,15 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const filteredFriends = friends.filter(friend =>
-    friend.username.toLowerCase().includes(friendsSearchQuery.toLowerCase()) ||
-    friend.email.toLowerCase().includes(friendsSearchQuery.toLowerCase())
-  );
+  const getMessageStatusIcon = (message: Message) => {
+    if (message.status === 'read') {
+      return <FontAwesomeIcon icon={faCheckCircle} className="message-status read" />;
+    } else if (message.status === 'delivered') {
+      return <FontAwesomeIcon icon={faCheckDouble} className="message-status delivered" />;
+    } else {
+      return <FontAwesomeIcon icon={faCheck} className="message-status sent" />;
+    }
+  };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -426,6 +453,11 @@ const ChatPage: React.FC = () => {
     return formatDateTime(dateString, i18n.language);
   };
 
+  const filteredChats = chats.filter(chat =>
+    chat.partner.username.toLowerCase().includes(friendsSearchQuery.toLowerCase()) ||
+    chat.partner.email.toLowerCase().includes(friendsSearchQuery.toLowerCase())
+  );
+
   return (
     <div className="chat-page-container">
       <div className="chat-header">
@@ -439,7 +471,7 @@ const ChatPage: React.FC = () => {
               className={`chat-tab ${activeTab === 'friends' ? 'active' : ''}`}
               onClick={() => setActiveTab('friends')}
             >
-              Достар ({friends.length})
+              Достар ({chats.length})
             </button>
             <button
               className={`chat-tab ${activeTab === 'add' ? 'active' : ''}`}
@@ -451,9 +483,10 @@ const ChatPage: React.FC = () => {
               className={`chat-tab ${activeTab === 'requests' ? 'active' : ''}`}
               onClick={() => setActiveTab('requests')}
             >
-              Сұраулар {friendRequests.length > 0 && `(${friendRequests.length})`}
+              Сұраулар {incomingRequestCount > 0 && `(${incomingRequestCount})`}
             </button>
           </div>
+
           {activeTab === 'friends' && (
             <>
               <div className="chat-friends-search">
@@ -478,49 +511,51 @@ const ChatPage: React.FC = () => {
               </div>
               {loading ? (
                 <div className="chat-loading">Жүктелуде...</div>
-              ) : filteredFriends.length === 0 ? (
+              ) : filteredChats.length === 0 ? (
                 <div className="chat-empty">
                   {friendsSearchQuery ? 'Дос табылмады' : 'Достар тізімі бос'}
                 </div>
               ) : (
                 <div className="chat-friends-items">
-                  {filteredFriends.map((friend) => (
+                  {filteredChats.map((chat) => (
                     <div
-                      key={friend.id}
-                      className={`chat-friend-item ${selectedFriend?.id === friend.id ? 'active' : ''} ${friend.unreadCount && friend.unreadCount > 0 ? 'has-unread' : ''}`}
-                      onClick={() => setSelectedFriend(friend)}
+                      key={chat.partnerId}
+                      className={`chat-friend-item ${selectedFriend?.id === chat.partnerId ? 'active' : ''} ${chat.unreadCount > 0 ? 'has-unread' : ''}`}
+                      onClick={() => setSelectedFriend(chat.partner)}
                     >
                       <div className="chat-friend-avatar">
-                        {friend.avatar ? (
-                          <img src={friend.avatar} alt={friend.username} />
+                        {chat.partner.avatar ? (
+                          <img src={chat.partner.avatar} alt={chat.partner.username} />
                         ) : (
-                          <span>{friend.username.charAt(0).toUpperCase()}</span>
+                          <span>{chat.partner.username.charAt(0).toUpperCase()}</span>
                         )}
-                        {friend.unreadCount && friend.unreadCount > 0 && (
-                          <span className="chat-unread-badge">{friend.unreadCount > 99 ? '99+' : friend.unreadCount}</span>
+                        {chat.unreadCount > 0 && (
+                          <span className="chat-unread-badge">
+                            {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                          </span>
                         )}
                       </div>
                       <div className="chat-friend-info">
                         <div className="chat-friend-header">
-                          <div className="chat-friend-name">{friend.username}</div>
-                          {friend.lastMessage && (
+                          <div className="chat-friend-name">{chat.partner.username}</div>
+                          {chat.lastMessage && (
                             <div className="chat-friend-time">
-                              {formatTime(friend.lastMessage.createdAt)}
+                              {formatTime(chat.lastMessage.createdAt)}
                             </div>
                           )}
                         </div>
-                        {friend.lastMessage && (
+                        {chat.lastMessage && (
                           <div className="chat-friend-last-message">
-                            {friend.lastMessage.fromUserId === currentUser?.id ? 'Сіз: ' : ''}
-                            {friend.lastMessage.content.length > 40 
-                              ? friend.lastMessage.content.substring(0, 40) + '...'
-                              : friend.lastMessage.content}
+                            {chat.lastMessage.fromUserId === currentUser?.id ? 'Сіз: ' : ''}
+                            {chat.lastMessage.content.length > 40 
+                              ? chat.lastMessage.content.substring(0, 40) + '...'
+                              : chat.lastMessage.content}
                           </div>
                         )}
                       </div>
                       <button
                         className="chat-remove-friend-btn"
-                        onClick={(e) => handleRemoveFriend(friend.id, e)}
+                        onClick={(e) => handleRemoveFriend(chat.partnerId, e)}
                         title="Дос алып тастау"
                       >
                         <FontAwesomeIcon icon={faUserMinus} />
@@ -546,25 +581,21 @@ const ChatPage: React.FC = () => {
                       const value = e.target.value;
                       setSearchQuery(value);
                       
-                      // Clear previous timeout
                       if (searchTimeoutRef.current) {
                         clearTimeout(searchTimeoutRef.current);
                       }
                       
-                      // If empty, clear immediately
                       if (!value.trim()) {
                         setSearchResults([]);
                         setSearching(false);
                         return;
                       }
                       
-                      // Debounce search - wait 500ms after user stops typing
                       searchTimeoutRef.current = setTimeout(() => {
                         handleSearchUsers(value);
                       }, 500);
                     }}
                     onKeyDown={(e) => {
-                      // If Enter is pressed, search immediately
                       if (e.key === 'Enter') {
                         if (searchTimeoutRef.current) {
                           clearTimeout(searchTimeoutRef.current);
@@ -604,7 +635,9 @@ const ChatPage: React.FC = () => {
               ) : (
                 <div className="chat-search-results">
                   {searchResults.map((user) => {
-                    const requestStatus = getRequestStatus(user.id);
+                    const isFriend = chats.some(chat => chat.partnerId === user.id);
+                    const hasRequest = friendRequests.some(req => req.fromUserId === user.id);
+                    
                     return (
                       <div key={user.id} className="chat-search-item">
                         <div className="chat-friend-avatar">
@@ -618,21 +651,13 @@ const ChatPage: React.FC = () => {
                           <div className="chat-friend-name">{user.username}</div>
                           <div className="chat-friend-email">{user.email}</div>
                         </div>
-                        {requestStatus === 'sent' ? (
-                          <button
-                            className="chat-add-btn chat-add-btn-pending"
-                            disabled
-                            title="Сұрау жіберілген"
-                          >
+                        {isFriend ? (
+                          <button className="chat-add-btn chat-add-btn-pending" disabled>
                             <FontAwesomeIcon icon={faCheck} className="chat-btn-icon" />
-                            Жіберілді
+                            Дос
                           </button>
-                        ) : requestStatus === 'pending' ? (
-                          <button
-                            className="chat-add-btn chat-add-btn-pending"
-                            disabled
-                            title="Сізге сұрау жіберілген - Сұраулар табында қараңыз"
-                          >
+                        ) : hasRequest ? (
+                          <button className="chat-add-btn chat-add-btn-pending" disabled>
                             <FontAwesomeIcon icon={faClock} className="chat-btn-icon" />
                             Күтуде
                           </button>
@@ -643,7 +668,6 @@ const ChatPage: React.FC = () => {
                             title="Достық сұрауы жіберу"
                           >
                             <FontAwesomeIcon icon={faUserPlus} className="chat-btn-icon" />
-                            Қосу
                           </button>
                         )}
                       </div>
@@ -708,6 +732,9 @@ const ChatPage: React.FC = () => {
                     )}
                   </div>
                   <span>{selectedFriend.username}</span>
+                  {typingUsers.has(selectedFriend.id) && (
+                    <span className="typing-indicator">жазуда...</span>
+                  )}
                 </div>
               </div>
               <div className="chat-messages-list" ref={messagesContainerRef}>
@@ -721,8 +748,15 @@ const ChatPage: React.FC = () => {
                       <div className="chat-message-content">
                         {message.content}
                       </div>
-                      <div className="chat-message-time">
-                        {formatTime(message.createdAt)}
+                      <div className="chat-message-footer">
+                        <div className="chat-message-time">
+                          {formatTime(message.createdAt)}
+                        </div>
+                        {isOwn && (
+                          <div className="chat-message-status">
+                            {getMessageStatusIcon(message)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -735,7 +769,7 @@ const ChatPage: React.FC = () => {
                   className="chat-input"
                   placeholder="Хабарлама жазыңыз..."
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => handleTypingChange(e.target.value)}
                 />
                 <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
                   Жіберу
@@ -755,5 +789,3 @@ const ChatPage: React.FC = () => {
 };
 
 export default ChatPage;
-
-

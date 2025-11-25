@@ -226,7 +226,7 @@ const Register: React.FC = () => {
         // Continue even if Firestore save fails
       }
       
-      // Optionally sync with your backend
+      // Sync with backend - this is important for user to be searchable
       try {
         await apiService.register(
           userData.username,
@@ -234,9 +234,21 @@ const Register: React.FC = () => {
           '', // No password for Firebase auth
           userData.id // Firebase UID
         );
-      } catch (err) {
-        // Backend sync failed, but Firebase auth succeeded
-        console.log('Backend sync failed, but Firebase auth succeeded:', err);
+        console.log('User successfully registered in backend');
+      } catch (err: any) {
+        // Backend sync failed - show error but don't block registration
+        console.error('Backend sync failed:', err);
+        const errorMsg = err?.message || 'Backend синхрондау қатесі';
+        
+        // If user already exists in backend, that's okay - continue
+        if (errorMsg.includes('already exists') || errorMsg.includes('User already exists') || errorMsg.includes('Пайдаланушы бар')) {
+          console.log('User already exists in backend, continuing...');
+        } else {
+          // Show warning but don't block - user is registered in Firebase
+          console.warn('Backend registration failed, but Firebase registration succeeded:', errorMsg);
+          // Still continue - user can use the app, backend sync can be retried later
+          // The error is logged but we don't block the user from using the app
+        }
       }
       
       // Redirect to home

@@ -32,11 +32,16 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /apis\.google\.com.*Failed to load resource/i,
   /firestore\.googleapis\.com.*Write\/channel.*ERR_BLOCKED_BY_CLIENT/i,
   /firestore\.googleapis\.com.*Write\/channel.*TYPE=terminate/i,
+  /firestore\.googleapis\.com.*Listen\/channel.*TYPE=terminate/i,
+  /firestore\.googleapis\.com.*Listen\/channel.*ERR_BLOCKED_BY_CLIENT/i,
+  /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
   /firebase_auth\.js.*Cross-Origin-Opener-Policy/i,
   /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
   /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
   /google\.firestore\.v1\.Firestore.*ERR_BLOCKED_BY_CLIENT/i,
   /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
+  /Request URL.*firestore\.googleapis\.com.*Listen.*channel/i,
+  /Request URL.*firestore\.googleapis\.com.*TYPE=terminate/i,
 ];
 
 // Patterns to suppress warnings
@@ -98,6 +103,22 @@ export const initErrorSuppression = () => {
       return false;
     }
   }, true);
+
+  // Suppress network request errors from fetch/XHR
+  const originalFetch = window.fetch;
+  window.fetch = async (...args) => {
+    try {
+      return await originalFetch(...args);
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || '';
+      const url = args[0]?.toString() || '';
+      if (shouldSuppressError(errorMessage) || shouldSuppressError(url)) {
+        // Return a rejected promise that won't be logged
+        return Promise.reject(new Error('Network request blocked (non-critical)'));
+      }
+      throw error;
+    }
+  };
   
   // Suppress network errors from Performance API
   if ('PerformanceObserver' in window) {

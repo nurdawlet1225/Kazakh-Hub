@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
 import { formatDateTime } from '../utils/dateFormatter';
@@ -318,8 +318,9 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                       <button
                         className="chat-add-btn"
                         onClick={() => handleSendFriendRequest(user.id)}
+                        title="Достық сұрауы жіберу"
                       >
-                        Қосу
+                        <FontAwesomeIcon icon={faUserPlus} className="chat-btn-icon" />
                       </button>
                     </div>
                   ))}

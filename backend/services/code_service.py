@@ -1,0 +1,361 @@
+"""Code service for business logic"""
+from typing import List, Dict, Any, Optional
+import uuid
+from datetime import datetime
+from database import codes, save_codes, FIRESTORE_SYNC_AVAILABLE, FIRESTORE_SYNC_CODE, FIRESTORE_DELETE_CODE
+from utils.validators import validate_file_on_server
+
+
+class CodeService:
+    """Service for code-related operations"""
+    
+    @staticmethod
+    def find_code_by_id(code_id: str) -> Optional[Dict[str, Any]]:
+        """Find code by ID"""
+        return next((code for code in codes if code['id'] == code_id), None)
+    
+    @staticmethod
+    def get_codes(folder_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get codes, optionally filtered by folder"""
+        if folder_id:
+            return [code for code in codes if code.get('folderId') == folder_id]
+        else:
+            return [code for code in codes if not code.get('folderId')]
+    
+    @staticmethod
+    def create_code(code_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new code"""
+        validation = validate_file_on_server(code_data['title'], code_data['content'])
+        if not validation['valid']:
+            raise ValueError(validation['error'])
+        
+        new_code = {
+            'id': str(uuid.uuid4()),
+            'title': code_data['title'],
+            'content': code_data['content'],
+            'language': code_data['language'],
+            'author': code_data['author'],
+            'description': code_data.get('description'),
+            'tags': code_data.get('tags', []),
+            'likes': [],
+            'comments': [],
+            'folderId': code_data.get('folderId'),
+            'folderPath': code_data.get('folderPath'),
+            'isFolder': code_data.get('isFolder', False),
+            'folderStructure': code_data.get('folderStructure'),
+            'views': 0,
+            'viewedBy': [],
+            'createdAt': datetime.now().isoformat(),
+            'updatedAt': datetime.now().isoformat()
+        }
+        
+        codes.append(new_code)
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(new_code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for new code: {e}')
+        
+        return new_code
+    
+    @staticmethod
+    def update_code(code_id: str, code_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update a code"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if code_data.get('title') is not None:
+            code['title'] = code_data['title']
+        if code_data.get('content') is not None:
+            code['content'] = code_data['content']
+        if code_data.get('language') is not None:
+            code['language'] = code_data['language']
+        if code_data.get('description') is not None:
+            code['description'] = code_data['description']
+        if code_data.get('tags') is not None:
+            code['tags'] = code_data['tags']
+        code['updatedAt'] = datetime.now().isoformat()
+        
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for update: {e}')
+        
+        return code
+    
+    @staticmethod
+    def delete_code(code_id: str) -> List[str]:
+        """Delete a code and return list of deleted IDs"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        deleted_ids = [code_id]
+        
+        # If it's a folder, delete all files in the folder first
+        folder_files = []
+        if code.get('isFolder'):
+            folder_files = [c for c in codes if c.get('folderId') == code_id]
+            for file in folder_files:
+                codes.remove(file)
+                deleted_ids.append(file['id'])
+        
+        # Delete the code itself
+        codes.remove(code)
+        save_codes()
+        
+        # Firestore delete
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_DELETE_CODE:
+            try:
+                FIRESTORE_DELETE_CODE(code_id)
+                for file in folder_files:
+                    FIRESTORE_DELETE_CODE(file['id'])
+            except Exception as e:
+                print(f'Warning: Firestore delete failed: {e}')
+        
+        return deleted_ids
+    
+    @staticmethod
+    def delete_multiple_codes(code_ids: List[str]) -> int:
+        """Delete multiple codes"""
+        deleted_count = 0
+        codes_to_delete = [c for c in codes if c['id'] in code_ids]
+        
+        # First, delete all files in folders that are being deleted
+        for code in codes_to_delete:
+            if code.get('isFolder'):
+                folder_files = [c for c in codes if c.get('folderId') == code['id']]
+                for file in folder_files:
+                    codes.remove(file)
+                    deleted_count += 1
+        
+        # Then delete the codes themselves
+        for code_id in code_ids:
+            code = CodeService.find_code_by_id(code_id)
+            if code:
+                codes.remove(code)
+                deleted_count += 1
+                
+                # Firestore delete
+                if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_DELETE_CODE:
+                    try:
+                        FIRESTORE_DELETE_CODE(code_id)
+                    except Exception as e:
+                        print(f'Warning: Firestore delete failed for {code_id}: {e}')
+        
+        save_codes()
+        return deleted_count
+    
+    @staticmethod
+    def like_code(code_id: str, user_id: str) -> Dict[str, Any]:
+        """Like a code"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if 'likes' not in code:
+            code['likes'] = []
+        
+        if user_id not in code['likes']:
+            code['likes'].append(user_id)
+            code['updatedAt'] = datetime.now().isoformat()
+            save_codes()
+            
+            # Firestore sync
+            if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+                try:
+                    FIRESTORE_SYNC_CODE(code)
+                except Exception as e:
+                    print(f'Warning: Firestore sync failed for like: {e}')
+        
+        return code
+    
+    @staticmethod
+    def unlike_code(code_id: str, user_id: str) -> Dict[str, Any]:
+        """Unlike a code"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if 'likes' not in code:
+            code['likes'] = []
+        
+        code['likes'] = [id for id in code['likes'] if id != user_id]
+        code['updatedAt'] = datetime.now().isoformat()
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for unlike: {e}')
+        
+        return code
+    
+    @staticmethod
+    def view_code(code_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """Increment view count for a code"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if 'views' not in code:
+            code['views'] = 0
+        if 'viewedBy' not in code:
+            code['viewedBy'] = []
+        
+        if user_id:
+            if user_id not in code['viewedBy']:
+                code['viewedBy'].append(user_id)
+                code['views'] = (code.get('views', 0) or 0) + 1
+                code['updatedAt'] = datetime.now().isoformat()
+                save_codes()
+                
+                # Firestore sync
+                if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+                    try:
+                        FIRESTORE_SYNC_CODE(code)
+                    except Exception as e:
+                        print(f'Warning: Firestore sync failed for view: {e}')
+        else:
+            code['views'] = (code.get('views', 0) or 0) + 1
+            code['updatedAt'] = datetime.now().isoformat()
+            save_codes()
+            
+            # Firestore sync
+            if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+                try:
+                    FIRESTORE_SYNC_CODE(code)
+                except Exception as e:
+                    print(f'Warning: Firestore sync failed for view: {e}')
+        
+        return code
+    
+    @staticmethod
+    def add_comment(code_id: str, author: str, content: str, parent_id: Optional[str] = None) -> Dict[str, Any]:
+        """Add a comment to a code"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if 'comments' not in code:
+            code['comments'] = []
+        
+        new_comment = {
+            'id': str(uuid.uuid4()),
+            'author': author,
+            'content': content,
+            'createdAt': datetime.now().isoformat(),
+            'replies': [],
+            'likes': [],
+            'parentId': parent_id
+        }
+        
+        code['comments'].append(new_comment)
+        code['updatedAt'] = datetime.now().isoformat()
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for comment: {e}')
+        
+        return code
+    
+    @staticmethod
+    def update_comment(code_id: str, comment_id: str, content: str) -> Dict[str, Any]:
+        """Update a comment"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if 'comments' not in code:
+            raise ValueError("Comment not found")
+        
+        comment = next((c for c in code['comments'] if c['id'] == comment_id), None)
+        if not comment:
+            raise ValueError("Comment not found")
+        
+        comment['content'] = content
+        code['updatedAt'] = datetime.now().isoformat()
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for comment update: {e}')
+        
+        return code
+    
+    @staticmethod
+    def delete_comment(code_id: str, comment_id: str) -> Dict[str, Any]:
+        """Delete a comment"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise ValueError("Code file not found")
+        
+        if 'comments' not in code:
+            raise ValueError("Comment not found")
+        
+        comment_index = next((i for i, c in enumerate(code['comments']) if c['id'] == comment_id), None)
+        if comment_index is None:
+            raise ValueError("Comment not found")
+        
+        code['comments'].pop(comment_index)
+        code['updatedAt'] = datetime.now().isoformat()
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for comment delete: {e}')
+        
+        return code
+    
+    @staticmethod
+    def like_comment(code_id: str, comment_id: str, user_id: str) -> Dict[str, Any]:
+        """Like/unlike a comment"""
+        code = CodeService.find_code_by_id(code_id)
+        if not code or 'comments' not in code:
+            raise ValueError("Code file or comment not found")
+        
+        comment = next((c for c in code['comments'] if c['id'] == comment_id), None)
+        if not comment:
+            raise ValueError("Comment not found")
+        
+        if 'likes' not in comment:
+            comment['likes'] = []
+        
+        # Toggle like
+        if user_id in comment['likes']:
+            comment['likes'] = [id for id in comment['likes'] if id != user_id]
+        else:
+            comment['likes'].append(user_id)
+        
+        code['updatedAt'] = datetime.now().isoformat()
+        save_codes()
+        
+        # Firestore sync
+        if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
+            try:
+                FIRESTORE_SYNC_CODE(code)
+            except Exception as e:
+                print(f'Warning: Firestore sync failed for comment like: {e}')
+        
+        return code
+

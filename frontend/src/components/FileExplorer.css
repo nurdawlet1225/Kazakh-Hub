@@ -1,7 +1,7 @@
 .file-explorer {
   background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 0.51px solid var(--border-color);
+  border-radius: 4.1px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -12,53 +12,53 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  padding: 0.80rem 1.20rem;
+  border-bottom: 0.51px solid var(--border-color);
   background: var(--bg-primary);
 }
 
 .file-explorer-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.88rem;
   color: var(--text-primary);
 }
 
 .file-count {
-  font-size: 0.85rem;
+  font-size: 0.68rem;
   color: var(--text-secondary);
   background: var(--bg-hover);
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
+  padding: 0.20rem 0.60rem;
+  border-radius: 6.2px;
 }
 
 .file-explorer-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.5rem;
-  max-height: calc(100vh - 280px);
+  padding: 0.40rem;
+  max-height: calc(100vh - 224.00px);
 }
 
 /* Custom scrollbar for file-explorer-content */
 .file-explorer-content::-webkit-scrollbar {
-  width: 12px;
+  width: 7.7px;
 }
 
 .file-explorer-content::-webkit-scrollbar-track {
   background: var(--bg-secondary);
-  border-radius: 6px;
+  border-radius: 3.8px;
 }
 
 .file-explorer-content::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #fbbf24 100%);
-  border-radius: 6px;
-  border: 2px solid var(--bg-secondary);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 3.8px;
+  border: 1.3px solid var(--bg-secondary);
+  box-shadow: 0 1.3px 2.6px rgba(0, 0, 0, 0.1);
 }
 
 .file-explorer-content::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #f59e0b 100%);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2.6px 5.1px rgba(0, 0, 0, 0.15);
 }
 
 .dark-theme .file-explorer-content::-webkit-scrollbar-thumb {
@@ -104,7 +104,7 @@
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 3.8px;
   transition: background 0.2s;
   user-select: none;
 }
@@ -129,13 +129,13 @@
   color: var(--text-secondary);
   background: var(--bg-code);
   padding: 0.15rem 0.5rem;
-  border-radius: 10px;
+  border-radius: 6.4px;
 }
 
 .file-folder-content {
   margin-left: 1.5rem;
   padding-left: 1rem;
-  border-left: 2px solid var(--border-color);
+  border-left: 1.3px solid var(--border-color);
 }
 
 .file-item {
@@ -144,7 +144,7 @@
   gap: 0.75rem;
   padding: 0.5rem 1rem;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 3.8px;
   transition: all 0.2s;
   margin-bottom: 0.25rem;
 }
@@ -164,7 +164,7 @@
 
 .file-icon {
   font-size: 1rem;
-  width: 20px;
+  width: 12.8px;
   text-align: center;
 }
 

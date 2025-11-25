@@ -26,7 +26,8 @@
     "user": "Пайдаланушы",
     "appName": "Kazakh Hub",
     "switchToDark": "Қараңғы режимге ауысу",
-    "switchToLight": "Ашық режимге ауысу"
+    "switchToLight": "Ашық режимге ауысу",
+    "chat": "Чат"
   },
   "home": {
     "title": "Басты бет",
@@ -144,7 +145,8 @@
     "profile": "Профиль",
     "settings": "Параметр",
     "chat": "Чат",
-    "logout": "Шығу"
+    "logout": "Шығу",
+    "navigation": "Навигация"
   },
   "footer": {
     "description": "Код бөлісу және ынтымақтастық платформасы",

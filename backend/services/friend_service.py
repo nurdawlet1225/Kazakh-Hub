@@ -1,0 +1,189 @@
+"""Friend service for business logic"""
+from typing import List, Dict, Any, Optional
+import uuid
+from datetime import datetime
+from database import friends, friend_requests, users, save_friends, save_friend_requests
+
+
+class FriendService:
+    """Service for friend-related operations"""
+    
+    @staticmethod
+    def get_friends(user_id: str) -> List[Dict[str, Any]]:
+        """Get all friends for a user"""
+        user_friends = friends.get(user_id, [])
+        friends_list = []
+        for friend_id in user_friends:
+            friend = next((u for u in users if u['id'] == friend_id), None)
+            if friend:
+                friends_list.append({
+                    'id': friend['id'],
+                    'username': friend['username'],
+                    'email': friend['email'],
+                    'avatar': friend.get('avatar')
+                })
+        return friends_list
+    
+    @staticmethod
+    def add_friend(user_id: str, friend_id: str) -> None:
+        """Add a friend (bidirectional)"""
+        if user_id == friend_id:
+            raise ValueError("Cannot add yourself as a friend")
+        
+        if user_id not in friends:
+            friends[user_id] = []
+        
+        if friend_id not in friends[user_id]:
+            friends[user_id].append(friend_id)
+            save_friends()
+        
+        # Add reverse friendship (bidirectional)
+        if friend_id not in friends:
+            friends[friend_id] = []
+        
+        if user_id not in friends[friend_id]:
+            friends[friend_id].append(user_id)
+            save_friends()
+    
+    @staticmethod
+    def remove_friend(user_id: str, friend_id: str) -> None:
+        """Remove a friend (bidirectional)"""
+        if user_id in friends:
+            friends[user_id] = [id for id in friends[user_id] if id != friend_id]
+            save_friends()
+        
+        if friend_id in friends:
+            friends[friend_id] = [id for id in friends[friend_id] if id != user_id]
+            save_friends()
+    
+    @staticmethod
+    def are_friends(user_id: str, friend_id: str) -> bool:
+        """Check if two users are friends"""
+        user_friends = friends.get(user_id, [])
+        return friend_id in user_friends
+    
+    @staticmethod
+    def create_friend_request(from_user_id: str, to_user_id: str) -> Dict[str, Any]:
+        """Create a friend request"""
+        if from_user_id == to_user_id:
+            raise ValueError("Cannot send friend request to yourself")
+        
+        # Check if already friends
+        if FriendService.are_friends(from_user_id, to_user_id):
+            raise ValueError("Already friends")
+        
+        # Check if request already exists
+        existing_request = next((
+            req for req in friend_requests
+            if ((req.get('fromUserId') == from_user_id and req.get('toUserId') == to_user_id) or
+                (req.get('fromUserId') == to_user_id and req.get('toUserId') == from_user_id)) and
+               req.get('status') == 'pending'
+        ), None)
+        
+        if existing_request:
+            raise ValueError("Friend request already exists")
+        
+        new_request = {
+            'id': str(uuid.uuid4()),
+            'fromUserId': from_user_id,
+            'toUserId': to_user_id,
+            'status': 'pending',
+            'createdAt': datetime.now().isoformat()
+        }
+        
+        friend_requests.append(new_request)
+        save_friend_requests()
+        return new_request
+    
+    @staticmethod
+    def get_friend_requests(user_id: str) -> List[Dict[str, Any]]:
+        """Get all friend requests for a user"""
+        requests = [
+            req for req in friend_requests
+            if (req.get('toUserId') == user_id and req.get('status') == 'pending') or
+               (req.get('fromUserId') == user_id and req.get('status') == 'pending')
+        ]
+        
+        requests_with_users = []
+        for req in requests:
+            other_user_id = req['fromUserId'] if req['fromUserId'] != user_id else req['toUserId']
+            other_user = next((u for u in users if u['id'] == other_user_id), None)
+            if other_user:
+                requests_with_users.append({
+                    **req,
+                    'otherUser': {
+                        'id': other_user['id'],
+                        'username': other_user['username'],
+                        'email': other_user['email'],
+                        'avatar': other_user.get('avatar')
+                    },
+                    'isIncoming': req.get('toUserId') == user_id
+                })
+        
+        return requests_with_users
+    
+    @staticmethod
+    def get_incoming_friend_requests(user_id: str) -> List[Dict[str, Any]]:
+        """Get incoming friend requests for a user"""
+        incoming_requests = [
+            req for req in friend_requests
+            if req.get('toUserId') == user_id and req.get('status') == 'pending'
+        ]
+        
+        requests_with_users = []
+        for req in incoming_requests:
+            from_user = next((u for u in users if u['id'] == req['fromUserId']), None)
+            if from_user:
+                requests_with_users.append({
+                    **req,
+                    'fromUser': {
+                        'id': from_user['id'],
+                        'username': from_user['username'],
+                        'email': from_user['email'],
+                        'avatar': from_user.get('avatar')
+                    }
+                })
+        
+        return requests_with_users
+    
+    @staticmethod
+    def get_incoming_friend_request_count(user_id: str) -> int:
+        """Get count of incoming friend requests"""
+        incoming_count = sum(
+            1 for req in friend_requests
+            if req.get('toUserId') == user_id and req.get('status') == 'pending'
+        )
+        return incoming_count
+    
+    @staticmethod
+    def accept_friend_request(request_id: str) -> Dict[str, Any]:
+        """Accept a friend request"""
+        request = next((req for req in friend_requests if req['id'] == request_id), None)
+        if not request:
+            raise ValueError("Friend request not found")
+        
+        if request.get('status') != 'pending':
+            raise ValueError("Request already processed")
+        
+        request['status'] = 'accepted'
+        
+        # Add to friends list
+        FriendService.add_friend(request['fromUserId'], request['toUserId'])
+        
+        save_friend_requests()
+        return request
+    
+    @staticmethod
+    def reject_friend_request(request_id: str) -> Dict[str, Any]:
+        """Reject a friend request"""
+        request = next((req for req in friend_requests if req['id'] == request_id), None)
+        if not request:
+            raise ValueError("Friend request not found")
+        
+        if request.get('status') != 'pending':
+            raise ValueError("Request already processed")
+        
+        request['status'] = 'rejected'
+        save_friend_requests()
+        return request
+
