@@ -21,13 +21,13 @@
   --accent-hover: #f59e0b;
   --accent-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 25%, #eab308 50%, #facc15 75%, #fde047 100%);
   
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.4), 0 0 80px rgba(245, 158, 11, 0.2);
-  --shadow-glow-hover: 0 0 60px rgba(251, 191, 36, 0.6), 0 0 120px rgba(245, 158, 11, 0.3);
+  --shadow-sm: 0 0.64px 1.9px 0 rgba(0, 0, 0, 0.05), 0 0.64px 1.3px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 2.6px 3.8px -0.64px rgba(0, 0, 0, 0.1), 0 1.3px 2.6px -0.64px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 6.4px 9.6px -1.9px rgba(0, 0, 0, 0.1), 0 2.6px 3.8px -1.3px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 12.8px 16px -3.2px rgba(0, 0, 0, 0.1), 0 6.4px 6.4px -3.2px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 16px 32px -7.7px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 0 25.6px rgba(251, 191, 36, 0.4), 0 0 51.2px rgba(245, 158, 11, 0.2);
+  --shadow-glow-hover: 0 0 38.4px rgba(251, 191, 36, 0.6), 0 0 76.8px rgba(245, 158, 11, 0.3);
   
   --success-color: #10b981;
   --success-light: #d1fae5;
@@ -43,7 +43,7 @@
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
   --radius-2xl: 1.5rem;
-  --radius-full: 9999px;
+  --radius-full: 6399.4px;
   
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -78,13 +78,13 @@
     --accent-hover: #22d3ee;
     --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 25%, #22d3ee 50%, #0e7490 75%, #67e8f9 100%);
     
-    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
-    --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
-    --shadow-glow: 0 0 50px rgba(6, 182, 212, 0.6), 0 0 100px rgba(34, 211, 238, 0.3);
-    --shadow-glow-hover: 0 0 80px rgba(6, 182, 212, 0.8), 0 0 150px rgba(34, 211, 238, 0.5);
+    --shadow-sm: 0 0.64px 1.9px 0 rgba(0, 0, 0, 0.4), 0 0.64px 1.3px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2.6px 3.8px -0.64px rgba(0, 0, 0, 0.5), 0 1.3px 2.6px -0.64px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 6.4px 9.6px -1.9px rgba(0, 0, 0, 0.6), 0 2.6px 3.8px -1.3px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 12.8px 16px -3.2px rgba(0, 0, 0, 0.7), 0 6.4px 6.4px -3.2px rgba(0, 0, 0, 0.5);
+    --shadow-2xl: 0 16px 32px -7.7px rgba(0, 0, 0, 0.9);
+    --shadow-glow: 0 0 32px rgba(6, 182, 212, 0.6), 0 0 64px rgba(34, 211, 238, 0.3);
+    --shadow-glow-hover: 0 0 51.2px rgba(6, 182, 212, 0.8), 0 0 96px rgba(34, 211, 238, 0.5);
     
     --success-color: #10b981;
     --success-light: #065f46;
@@ -120,13 +120,13 @@
   --accent-hover: #22d3ee;
   --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #0891b2 25%, #22d3ee 50%, #0e7490 75%, #67e8f9 100%);
   
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.9);
-  --shadow-glow: 0 0 50px rgba(6, 182, 212, 0.6), 0 0 100px rgba(34, 211, 238, 0.3);
-  --shadow-glow-hover: 0 0 80px rgba(6, 182, 212, 0.8), 0 0 150px rgba(34, 211, 238, 0.5);
+  --shadow-sm: 0 0.64px 1.9px 0 rgba(0, 0, 0, 0.4), 0 0.64px 1.3px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2.6px 3.8px -0.64px rgba(0, 0, 0, 0.5), 0 1.3px 2.6px -0.64px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 6.4px 9.6px -1.9px rgba(0, 0, 0, 0.6), 0 2.6px 3.8px -1.3px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 12.8px 16px -3.2px rgba(0, 0, 0, 0.7), 0 6.4px 6.4px -3.2px rgba(0, 0, 0, 0.5);
+  --shadow-2xl: 0 16px 32px -7.7px rgba(0, 0, 0, 0.9);
+  --shadow-glow: 0 0 32px rgba(6, 182, 212, 0.6), 0 0 64px rgba(34, 211, 238, 0.3);
+  --shadow-glow-hover: 0 0 51.2px rgba(6, 182, 212, 0.8), 0 0 96px rgba(34, 211, 238, 0.5);
   
   --success-color: #10b981;
   --success-light: #065f46;
@@ -160,13 +160,13 @@
   --accent-hover: #f59e0b;
   --accent-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 25%, #eab308 50%, #facc15 75%, #fde047 100%);
   
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.4), 0 0 80px rgba(245, 158, 11, 0.2);
-  --shadow-glow-hover: 0 0 60px rgba(251, 191, 36, 0.6), 0 0 120px rgba(245, 158, 11, 0.3);
+  --shadow-sm: 0 0.64px 1.9px 0 rgba(0, 0, 0, 0.05), 0 0.64px 1.3px 0 rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 2.6px 3.8px -0.64px rgba(0, 0, 0, 0.1), 0 1.3px 2.6px -0.64px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 6.4px 9.6px -1.9px rgba(0, 0, 0, 0.1), 0 2.6px 3.8px -1.3px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 12.8px 16px -3.2px rgba(0, 0, 0, 0.1), 0 6.4px 6.4px -3.2px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 16px 32px -7.7px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 0 25.6px rgba(251, 191, 36, 0.4), 0 0 51.2px rgba(245, 158, 11, 0.2);
+  --shadow-glow-hover: 0 0 38.4px rgba(251, 191, 36, 0.6), 0 0 76.8px rgba(245, 158, 11, 0.3);
   
   --success-color: #10b981;
   --success-light: #d1fae5;

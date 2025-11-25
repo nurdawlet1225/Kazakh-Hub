@@ -44,6 +44,8 @@ export interface Message {
   content: string;
   createdAt: string;
   read: boolean;
+  status?: 'sent' | 'delivered' | 'read';
+  readAt?: string;
 }
 
 export interface FriendRequest {
@@ -55,6 +57,14 @@ export interface FriendRequest {
   otherUser?: User;
   fromUser?: User;
   isIncoming?: boolean;
+}
+
+export interface Chat {
+  partnerId: string;
+  partner: User;
+  lastMessage: Message;
+  unreadCount: number;
+  lastMessageTime: string;
 }
 
 class ApiService {
@@ -310,6 +320,28 @@ class ApiService {
     });
   }
 
+  async markConversationRead(userId: string, friendId: string): Promise<{ message: string; count: number }> {
+    return this.request<{ message: string; count: number }>(`/messages/${userId}/${friendId}/mark-read`, {
+      method: 'PUT',
+    });
+  }
+
+  async getUnreadCountForChat(userId: string, friendId: string): Promise<{ unreadCount: number; chatId: string }> {
+    return this.request<{ unreadCount: number; chatId: string }>(`/messages/${userId}/${friendId}/unread-count`);
+  }
+
+  async getTotalUnreadCount(userId: string): Promise<{ totalUnreadCount: number }> {
+    return this.request<{ totalUnreadCount: number }>(`/messages/${userId}/unread-count`);
+  }
+
+  async getChats(userId: string): Promise<Chat[]> {
+    return this.request<Chat[]>(`/chats/${userId}`);
+  }
+
+  async getIncomingFriendRequestCount(userId: string): Promise<{ incomingRequestCount: number }> {
+    return this.request<{ incomingRequestCount: number }>(`/friend-requests/${userId}/incoming-count`);
+  }
+
   // Friend Requests
   async getFriendRequests(userId: string): Promise<FriendRequest[]> {
     return this.request<FriendRequest[]>(`/friend-requests/${userId}`);
@@ -338,73 +370,20 @@ class ApiService {
     });
   }
 
-  // User Search - Using Firebase Firestore
+  // User Search - Using Backend API (Firebase fallback removed for reliability)
   async searchUsers(searchQuery: string): Promise<User[]> {
+    const searchTerm = searchQuery.trim();
+    if (!searchTerm || searchTerm.length < 1) {
+      return [];
+    }
+    
     try {
-      // Import Firebase functions dynamically to avoid issues
-      const { db } = await import('./firebase');
-      const { collection, query, where, getDocs, limit } = await import('firebase/firestore');
-      
-      const searchTerm = searchQuery.toLowerCase().trim();
-      if (!searchTerm || searchTerm.length < 1) {
-        return [];
-      }
-
-      const usersRef = collection(db, 'users');
-      const users: User[] = [];
-
-      // Search by username
-      const usernameQuery = query(
-        usersRef,
-        where('username', '>=', searchTerm),
-        where('username', '<=', searchTerm + '\uf8ff'),
-        limit(20)
-      );
-      
-      const usernameSnapshot = await getDocs(usernameQuery);
-      usernameSnapshot.forEach((doc) => {
-        const data = doc.data();
-        users.push({
-          id: doc.id,
-          username: data.username || '',
-          email: data.email || '',
-          avatar: data.avatar || undefined
-        });
-      });
-
-      // Search by email (if username search didn't find enough results)
-      if (users.length < 20 && searchTerm.includes('@')) {
-        const emailQuery = query(
-          usersRef,
-          where('email', '>=', searchTerm),
-          where('email', '<=', searchTerm + '\uf8ff'),
-          limit(20 - users.length)
-        );
-        
-        const emailSnapshot = await getDocs(emailQuery);
-        emailSnapshot.forEach((doc) => {
-          const data = doc.data();
-          // Avoid duplicates
-          if (!users.some(u => u.id === doc.id)) {
-            users.push({
-              id: doc.id,
-              username: data.username || '',
-              email: data.email || '',
-              avatar: data.avatar || undefined
-            });
-          }
-        });
-      }
-
-      // Filter results to match search term (case-insensitive)
-      return users.filter(user => 
-        user.username.toLowerCase().includes(searchTerm) || 
-        user.email.toLowerCase().includes(searchTerm)
-      );
+      // Use backend API directly for reliable search
+      return await this.request<User[]>(`/users/search?query=${encodeURIComponent(searchTerm)}`);
     } catch (error) {
-      console.error('Firebase search error:', error);
-      // Fallback to backend API if Firebase fails
-      return this.request<User[]>(`/users/search?query=${encodeURIComponent(searchQuery)}`);
+      console.error('User search error:', error);
+      // Return empty array on error
+      return [];
     }
   }
 }

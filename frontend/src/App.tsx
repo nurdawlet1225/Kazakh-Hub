@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Header from './components/Header';
-import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
@@ -28,25 +27,22 @@ const AppContent: React.FC = () => {
     <div className="app">
       {!isAuthPage && <Header />}
       {!isAuthPage ? (
-        <div className="app-body">
-          <Sidebar />
-          <main className="app-main">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/view/:id" element={<ViewCode />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/chat" element={<ChatPage />} />
-              <Route path="*" element={
-                <div style={{ padding: '2rem', textAlign: 'center' }}>
-                  <h1>{t('viewCode.404')}</h1>
-                  <p>{t('viewCode.pageNotFound')}</p>
-                </div>
-              } />
-            </Routes>
-          </main>
-        </div>
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/view/:id" element={<ViewCode />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/chat" element={<ChatPage />} />
+            <Route path="*" element={
+              <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <h1>{t('viewCode.404')}</h1>
+                <p>{t('viewCode.pageNotFound')}</p>
+              </div>
+            } />
+          </Routes>
+        </main>
       ) : (
         <main className="app-main-auth">
           <Routes>

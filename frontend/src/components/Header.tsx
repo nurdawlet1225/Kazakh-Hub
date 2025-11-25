@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faUpload, faLock, faUser, faMoon, faCloudSun } from '@fortawesome/free-solid-svg-icons';
-import { useTheme } from '../contexts/ThemeContext';
+import { faSearch, faUpload, faLock, faUser, faComment } from '@fortawesome/free-solid-svg-icons';
 import UploadModal from './UploadModal';
+import ProfileModal from './ProfileModal';
+import { apiService } from '../utils/api';
 import './Header.css';
 
 // Логотипті импорттау - бірнеше нұсқаны тексеру
@@ -20,7 +21,6 @@ const getLogoPath = () => {
 
 const Header: React.FC = () => {
   const { t } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,6 +28,9 @@ const Header: React.FC = () => {
   const [user, setUser] = useState<{ username: string; email: string; avatar?: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [incomingRequestCount, setIncomingRequestCount] = useState(0);
+  const profileButtonRef = useRef<HTMLButtonElement>(null);
 
   const loadUser = () => {
     const storedUser = localStorage.getItem('user');
@@ -50,6 +53,25 @@ const Header: React.FC = () => {
     // Check if user is logged in
     loadUser();
   }, [location]);
+
+  useEffect(() => {
+    // Load incoming friend request count
+    if (isLoggedIn && user) {
+      loadIncomingRequestCount();
+      const interval = setInterval(loadIncomingRequestCount, 10000); // Update every 10 seconds
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn, user]);
+
+  const loadIncomingRequestCount = async () => {
+    if (!user?.id) return;
+    try {
+      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(user.id);
+      setIncomingRequestCount(incomingRequestCount);
+    } catch (err) {
+      console.error('Failed to load incoming request count:', err);
+    }
+  };
 
   useEffect(() => {
     // Listen for storage changes (when user profile is updated in another tab/component)
@@ -142,14 +164,6 @@ const Header: React.FC = () => {
 
         <div className="header-actions">
           <button 
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            title={theme === 'light' ? t('header.switchToDark') : t('header.switchToLight')}
-            aria-label={theme === 'light' ? t('header.switchToDark') : t('header.switchToLight')}
-          >
-            <FontAwesomeIcon icon={theme === 'light' ? faCloudSun : faMoon} />
-          </button>
-          <button 
             className="btn-primary"
             onClick={() => {
               navigate('/');
@@ -160,7 +174,22 @@ const Header: React.FC = () => {
             <span className="btn-text">{t('common.upload')}</span>
           </button>
           {isLoggedIn && (
-            <Link to="/profile" className="header-user">
+            <Link to="/chat" className="btn-secondary header-chat-btn" title={t('header.chat')}>
+              <span className="btn-icon">
+                <FontAwesomeIcon icon={faComment} />
+                {incomingRequestCount > 0 && (
+                  <span className="header-badge">{incomingRequestCount > 99 ? '99+' : incomingRequestCount}</span>
+                )}
+              </span>
+              <span className="btn-text">{t('header.chat')}</span>
+            </Link>
+          )}
+          {isLoggedIn && (
+            <button 
+              ref={profileButtonRef}
+              onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
+              className="header-user"
+            >
               <div className="user-avatar">
                 {user?.avatar ? (
                   <img src={user.avatar} alt={user.username || 'User'} />
@@ -168,8 +197,7 @@ const Header: React.FC = () => {
                   <span>{user?.username?.[0]?.toUpperCase() || <FontAwesomeIcon icon={faUser} />}</span>
                 )}
               </div>
-              <span className="user-name">{user?.username || t('header.user')}</span>
-            </Link>
+            </button>
           )}
           {!isLoggedIn && (
             <div className="login-btn-wrapper">
@@ -187,6 +215,11 @@ const Header: React.FC = () => {
         onSuccess={() => {
           setIsUploadModalOpen(false);
         }}
+      />
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        buttonRef={profileButtonRef}
       />
     </header>
   );

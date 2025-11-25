@@ -26,7 +26,8 @@
     "user": "User",
     "appName": "Kazakh Hub",
     "switchToDark": "Switch to dark mode",
-    "switchToLight": "Switch to light mode"
+    "switchToLight": "Switch to light mode",
+    "chat": "Chat"
   },
   "home": {
     "title": "Home",
@@ -144,7 +145,8 @@
     "profile": "Profile",
     "settings": "Settings",
     "chat": "Chat",
-    "logout": "Logout"
+    "logout": "Logout",
+    "navigation": "Navigation"
   },
   "footer": {
     "description": "Code sharing and collaboration platform",
