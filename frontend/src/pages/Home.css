@@ -211,8 +211,50 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--bg-secondary);
+}
+
+.home-controls-header::-webkit-scrollbar {
+  height: 8px;
+}
+
+.home-controls-header::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.home-controls-header::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #fbbf24 100%);
+  border-radius: 4px;
+  border: 1px solid var(--bg-secondary);
+}
+
+.home-controls-header::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #f59e0b 100%);
+}
+
+.dark-theme .home-controls-header::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #22d3ee 100%);
+}
+
+.dark-theme .home-controls-header::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #67e8f9 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .home-controls-header::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #22d3ee 100%);
+  }
+
+  .home-controls-header::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #67e8f9 100%);
+  }
 }
 
 .home-filters {
@@ -265,6 +307,7 @@
   align-items: center;
   gap: 0.5rem;
   transition: all var(--transition-base);
+  flex-shrink: 0;
 }
 
 .home-controls .btn-header-list:hover {
@@ -329,6 +372,7 @@
 .home-controls .sort-filter {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .home-controls .sort-filter .filter-select {
@@ -376,6 +420,7 @@
   border-radius: 16px;
   border: 2px solid var(--border-color);
   transition: all var(--transition-base);
+  flex-shrink: 0;
 }
 
 .home-controls .view-toggle:hover {
@@ -747,6 +792,7 @@
 .home-controls .language-filter {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .home-controls .language-filter .filter-select {
