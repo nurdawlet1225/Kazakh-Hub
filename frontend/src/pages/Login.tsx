@@ -186,6 +186,14 @@ const Login: React.FC = () => {
     let email = formData.emailOrUsername.trim();
     let triedBackend = false;
 
+    // Timeout to prevent infinite loading (30 seconds)
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError('Кіру уақыт асып кетті. Интернет байланысын тексеріңіз немесе қайталап көріңіз.');
+      }
+    }, 30000);
+
     try {
       // Determine if input is email or username
       // More strict email detection: must contain @ and have at least one character before and after @
@@ -199,7 +207,16 @@ const Login: React.FC = () => {
       // Try backend login first (for backward compatibility with old users)
       // This works for both email and username
       try {
-        const response = await apiService.login(formData.emailOrUsername, formData.password);
+        // Add timeout to prevent infinite waiting on backend
+        const backendLoginPromise = apiService.login(formData.emailOrUsername, formData.password);
+        const backendTimeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Backend login timeout'));
+          }, 10000); // 10 seconds timeout for backend login
+        });
+        
+        const response = await Promise.race([backendLoginPromise, backendTimeoutPromise]) as any;
+        clearTimeout(timeoutId);
         // If backend login succeeds, use that
         const userData = response.user;
         localStorage.setItem('user', JSON.stringify(userData));
@@ -220,8 +237,8 @@ const Login: React.FC = () => {
         
         // If it's a username, we can't try Firebase (Firebase requires email)
         if (!isEmail) {
+          clearTimeout(timeoutId);
           // Username login failed in backend, can't try Firebase with username
-          console.log('[LOGIN] Backend login failed for username, cannot try Firebase');
           // Provide helpful error message
           const helpfulError = new Error('Пайдаланушы табылмады немесе құпия сөз дұрыс емес. Егер сіз email арқылы тіркелген болсаңыз, email енгізіңіз (мысалы: user@example.com).');
           throw helpfulError;
@@ -234,25 +251,27 @@ const Login: React.FC = () => {
         email = formData.emailOrUsername.trim();
         // Don't throw error here - continue to Firebase authentication below
         // The error will only be shown if Firebase also fails
-        console.log('[LOGIN] ⚠️ Backend login failed for email, trying Firebase...', {
-          email: email.substring(0, 3) + '***',
-          error: backendErr.message
-        });
+        // Suppress console log for expected backend failures
       }
 
       // Sign in with Firebase Authentication
       // This will only execute if backend failed (for email) or if it's an email login
-      console.log('[LOGIN] 🔥 Attempting Firebase authentication...', {
-        email: email.substring(0, 3) + '***',
-        triedBackend
-      });
-      const userCredential = await signInWithEmailAndPassword(
+      // Add timeout to prevent infinite waiting
+      const firebaseAuthPromise = signInWithEmailAndPassword(
         auth,
         email,
         formData.password
       );
       
-      console.log('[LOGIN] ✅ Firebase authentication successful!');
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Кіру уақыт асып кетті. Интернет байланысын тексеріңіз немесе қайталап көріңіз.'));
+        }, 20000); // 20 seconds timeout for Firebase auth
+      });
+      
+      const userCredential = await Promise.race([firebaseAuthPromise, timeoutPromise]) as any;
+      
+      clearTimeout(timeoutId);
 
       const user = userCredential.user;
 
@@ -335,6 +354,7 @@ const Login: React.FC = () => {
       
       setError(errorMessage);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

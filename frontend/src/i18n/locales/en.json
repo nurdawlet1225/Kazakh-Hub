@@ -25,8 +25,10 @@
     "codesList": "Codes List",
     "user": "User",
     "appName": "Kazakh Hub",
-    "switchToDark": "Switch to dark mode",
-    "switchToLight": "Switch to light mode",
+    "switchToDark": "Day/Night",
+    "switchToLight": "Day/Night",
+    "currentThemeLight": "Day",
+    "currentThemeDark": "Night",
     "chat": "Chat"
   },
   "home": {
@@ -170,8 +172,8 @@
     "selectLanguage": "Select Language",
     "theme": "Theme",
     "themeAuto": "Auto",
-    "themeLight": "Light",
-    "themeDark": "Dark",
+    "themeLight": "Day",
+    "themeDark": "Night",
     "notifications": "Notifications",
     "enableNotifications": "Enable Notifications",
     "emailNotifications": "Email Notifications",

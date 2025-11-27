@@ -47,6 +47,7 @@
   justify-content: space-between;
   align-items: center;
   background: var(--bg-primary);
+  margin-top: 20px;
 }
 
 .chat-header {
@@ -241,17 +242,22 @@
 }
 
 .chat-friend-item.active {
-  background: var(--accent-color);
-  color: white;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: none;
 }
 
 .dark-theme .chat-friend-item.active {
-  background: var(--accent-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  box-shadow: none;
 }
 
 @media (prefers-color-scheme: dark) {
   .chat-friend-item.active {
-    background: var(--accent-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    box-shadow: none;
   }
 }
 
@@ -342,7 +348,7 @@
 }
 
 .chat-friend-item.active .chat-friend-name {
-  color: white;
+  color: var(--text-primary);
 }
 
 .chat-friend-time {
@@ -353,7 +359,7 @@
 }
 
 .chat-friend-item.active .chat-friend-time {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
 }
 
 .chat-friend-last-message {
@@ -365,7 +371,7 @@
 }
 
 .chat-friend-item.active .chat-friend-last-message {
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
 }
 
 .chat-friend-item.has-unread .chat-friend-last-message {
@@ -376,17 +382,19 @@
 .chat-remove-friend-btn {
   background: none;
   border: none;
-  color: var(--text-secondary);
+  color: var(--error-color, #ff4444);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 2.6px;
   transition: all 0.2s;
-  opacity: 0;
+  opacity: 0.7;
   flex-shrink: 0;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .chat-remove-friend-btn:hover {
@@ -396,12 +404,12 @@
 }
 
 .chat-friend-item.active .chat-remove-friend-btn {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--error-color, #ff4444);
 }
 
 .chat-friend-item.active .chat-remove-friend-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: var(--error-color, rgba(255, 68, 68, 0.1));
+  color: var(--error-color, #ff4444);
 }
 
 .chat-messages-area {
@@ -518,8 +526,51 @@
   border-top: 0.96px solid var(--border-color);
   background: var(--bg-primary);
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
 }
+
+.chat-input-form > div:first-of-type {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chat-image-preview {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+.chat-image-preview img {
+  max-width: 100px;
+  max-height: 100px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.chat-remove-image-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--error-color, #ff4444);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.chat-remove-image-btn:hover {
+  opacity: 0.9;
+}
+
 
 .chat-input {
   flex: 1;
@@ -538,7 +589,7 @@
 }
 
 .chat-send-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem;
   background: var(--accent-gradient);
   color: white;
   border: none;
@@ -546,6 +597,13 @@
   cursor: pointer;
   font-weight: 500;
   transition: opacity 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
 }
 
 .chat-send-btn:hover:not(:disabled) {
@@ -556,6 +614,285 @@
 .chat-send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.chat-image-btn {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 0.64px solid var(--border-color);
+  border-radius: 5.1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.chat-image-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.chat-audio-btn,
+.chat-audio-file-btn {
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 0.64px solid var(--border-color);
+  border-radius: 5.1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.chat-audio-btn:hover,
+.chat-audio-file-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.chat-audio-btn.recording {
+  background: var(--error-color, #ff4444);
+  color: white;
+  border-color: var(--error-color, #ff4444);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.chat-audio-preview {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.chat-audio-preview audio {
+  max-width: 300px;
+}
+
+.chat-remove-audio-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--error-color, #ff4444);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.chat-remove-audio-btn:hover {
+  opacity: 0.9;
+}
+
+.chat-message-audio {
+  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.chat-message-audio audio {
+  width: 100%;
+  max-width: 300px;
+  display: block;
+  outline: none;
+}
+
+.chat-message-content.has-audio {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.chat-message-content.has-audio .chat-message-audio {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.chat-message-content.has-audio > div:not(.chat-message-audio):not(.chat-audio-player) {
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.chat-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: transparent;
+  border-radius: 8px;
+  min-width: 200px;
+  max-width: 300px;
+}
+
+.chat-message.own .chat-audio-player {
+  background: transparent;
+}
+
+.chat-message.other .chat-audio-player {
+  background: transparent;
+}
+
+.chat-audio-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.chat-audio-play-btn:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.chat-audio-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.chat-audio-waveform {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-message.other .chat-audio-waveform {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.chat-audio-progress {
+  height: 100%;
+  background: var(--accent-color);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+.chat-audio-time {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+
+.chat-message.other .chat-audio-time {
+  color: var(--text-secondary);
+}
+
+.chat-message-image {
+  margin-bottom: 0.5rem;
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  margin-top: -0.75rem;
+  position: relative;
+}
+
+.chat-message-image:first-child {
+  margin-top: -0.75rem;
+  margin-left: -1rem;
+  margin-right: -1rem;
+}
+
+.chat-message-image img {
+  max-width: 300px;
+  max-height: 300px;
+  border-radius: 8px;
+  border: none;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chat-image-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.chat-message-image:hover .chat-image-actions {
+  opacity: 1;
+}
+
+.chat-image-action-btn {
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: background 0.2s;
+  backdrop-filter: blur(4px);
+}
+
+.chat-image-action-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.chat-message-content.has-image {
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.chat-message-content.has-image .chat-message-image {
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 0;
+}
+
+.chat-message-content.has-image > div:not(.chat-message-image) {
+  padding: 0.75rem 1rem;
+  margin-top: 0.5rem;
 }
 
 .chat-no-selection {
@@ -764,6 +1101,35 @@
   background: var(--bg-secondary);
 }
 
+.chat-request-item-outgoing {
+  opacity: 0.8;
+}
+
+.chat-requests-section-title {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.chat-request-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.chat-request-status-icon {
+  font-size: 0.9rem;
+  color: var(--primary-color);
+}
+
 .chat-request-time {
   font-size: 0.7rem;
   color: var(--text-secondary);
@@ -807,6 +1173,27 @@
 }
 
 .chat-reject-btn:hover {
+  background: var(--error-color);
+  opacity: 0.9;
+  transform: scale(1.1);
+}
+
+.chat-cancel-btn {
+  width: 20.5px;
+  height: 20.5px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: var(--error-color);
+  color: white;
+}
+
+.chat-cancel-btn:hover {
   background: var(--error-color);
   opacity: 0.9;
   transform: scale(1.1);

@@ -1,7 +1,11 @@
 .settings-container {
-  max-width: 409.6px;
-  margin: 0 auto;
+  max-width: 614.4px;
+  margin: 20px auto 0;
   padding: 1.60rem;
+  width: 70%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .settings-title {

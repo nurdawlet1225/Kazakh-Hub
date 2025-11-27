@@ -27,6 +27,18 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /ERR_CONNECTION_CLOSED/i,
   /Failed to load resource.*apis\.google\.com/i,
   /Failed to load resource.*firestore\.googleapis\.com/i,
+  /Failed to load resource.*401.*Unauthorized/i,
+  /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /Failed to load resource.*Write\/channel/i,
+  /Failed to load resource.*TYPE=terminate/i,
+  /Failed to load resource.*gsessionid/i,
+  /Failed to load resource.*SID=/i,
+  /Failed to load resource.*RID=/i,
+  /Failed to load resource.*127\.0\.0\.1.*401/i,
+  /Failed to load resource.*localhost.*401/i,
+  /Failed to load resource.*auth\/login/i,
+  /127\.0\.0\.1.*auth\/login.*401/i,
+  /localhost.*auth\/login.*401/i,
   /firestore\.googleapis\.com.*ERR_BLOCKED_BY_CLIENT/i,
   /apis\.google\.com.*ERR_CONNECTION_CLOSED/i,
   /apis\.google\.com.*Failed to load resource/i,
@@ -42,6 +54,63 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
   /Request URL.*firestore\.googleapis\.com.*Listen.*channel/i,
   /Request URL.*firestore\.googleapis\.com.*TYPE=terminate/i,
+  // Suppress expected API errors that are handled gracefully
+  /Failed to load resource.*401.*Unauthorized/i,
+  /API Error: 401 Unauthorized/i,
+  /\[LOGIN\].*Backend login failed.*trying Firebase/i,
+  /\[LOGIN\].*Attempting Firebase authentication/i,
+  // Suppress Firestore channel errors (ad blocker related)
+  /firebase_firestore\.js.*POST.*firestore\.googleapis\.com/i,
+  /firebase_firestore\.js.*Write\/channel/i,
+  /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
+  /Y2\.close|Y2\.m|cc @ firebase_firestore/i,
+  /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
+  /TYPE=terminate.*ERR_BLOCKED_BY_CLIENT/i,
+  /Write\/channel.*TYPE=terminate/i,
+  /Listen\/channel.*TYPE=terminate/i,
+  // Suppress Firestore stack traces
+  /firebase_firestore\.js.*Y2\.close/i,
+  /firebase_firestore\.js.*Y2\.m/i,
+  /firebase_firestore\.js.*cc @/i,
+  /firebase_firestore\.js.*Va @/i,
+  /firebase_firestore\.js.*D @/i,
+  /firebase_firestore\.js.*Qc @/i,
+  /firebase_firestore\.js.*h\.Xa/i,
+  /firebase_firestore\.js.*h\.Ca/i,
+  /firebase_firestore\.js.*Gc @/i,
+  /firebase_firestore\.js.*h\.Ma/i,
+  /firebase_firestore\.js.*Ic @/i,
+  /firebase_firestore\.js.*h\.Pa/i,
+  /firebase_firestore\.js.*h\.send/i,
+  /firebase_firestore\.js.*h\.ea/i,
+  /firebase_firestore\.js.*Eb @/i,
+  /firebase_firestore\.js.*\$c @/i,
+  /firebase_firestore\.js.*h\.Da/i,
+  /firebase_firestore\.js.*sa @/i,
+  /firebase_firestore\.js.*u @/i,
+  /firebase_firestore\.js.*ac @/i,
+  /firebase_firestore\.js.*Lb @/i,
+  /firebase_firestore\.js.*N2\.Y/i,
+  /firebase_firestore\.js.*N2\.ba/i,
+  /firebase_firestore\.js.*Yo @/i,
+  /firebase_firestore\.js.*send @/i,
+  /firebase_firestore\.js.*q_ @/i,
+  /firebase_firestore\.js.*ra @/i,
+  /firebase_firestore\.js.*__PRIVATE_onWriteStreamOpen/i,
+  /firebase_firestore\.js.*enqueue/i,
+  /firebase_firestore\.js.*enqueueAndForget/i,
+  /firebase_firestore\.js.*handleDelayElapsed/i,
+  /firebase_firestore\.js.*setTimeout/i,
+  /firebase_firestore\.js.*T_ @/i,
+  /firebase_firestore\.js.*j_ @/i,
+  /firebase_firestore\.js.*G_ @/i,
+  /firebase_firestore\.js.*auth @/i,
+  /firebase_firestore\.js.*start @/i,
+  /firebase_firestore\.js.*Promise\.then/i,
+  /firebase_firestore\.js.*Cb @/i,
+  /firebase_firestore\.js.*h\.Ea/i,
+  /firebase_firestore\.js.*bc @/i,
+  /firebase_firestore\.js.*h\.connect/i,
 ];
 
 // Patterns to suppress warnings
@@ -71,8 +140,24 @@ export const shouldSuppressWarning = (message: string): boolean => {
 export const initErrorSuppression = () => {
   // Override console.error
   console.error = (...args: any[]) => {
+    // Check all arguments for Firestore errors (including stack traces)
+    const allArgs = args.map(arg => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return `${arg.message} ${arg.stack || ''}`;
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
+    
     const message = args.join(' ');
-    if (shouldSuppressError(message)) {
+    const fullMessage = `${message} ${allArgs}`;
+    
+    if (shouldSuppressError(message) || shouldSuppressError(allArgs) || shouldSuppressError(fullMessage)) {
       // Suppress known errors silently
       return;
     }
@@ -97,7 +182,20 @@ export const initErrorSuppression = () => {
     const errorSource = (event.target as HTMLElement)?.src || (event.target as HTMLElement)?.href || '';
     const fullMessage = `${errorMessage} ${errorSource}`;
     
-    if (shouldSuppressError(fullMessage) || shouldSuppressError(errorMessage) || shouldSuppressError(errorSource)) {
+    // Check stack trace for Firestore errors
+    const stackTrace = (event.error as Error)?.stack || '';
+    const fullErrorText = `${fullMessage} ${stackTrace}`;
+    
+    // Also check the error filename/path
+    const errorFilename = event.filename || '';
+    const errorColno = event.colno || 0;
+    const errorLineno = event.lineno || 0;
+    const errorPath = `${errorFilename}:${errorLineno}:${errorColno}`;
+    
+    // Combine all error information
+    const allErrorInfo = `${fullMessage} ${fullErrorText} ${errorPath}`;
+    
+    if (shouldSuppressError(fullMessage) || shouldSuppressError(errorMessage) || shouldSuppressError(errorSource) || shouldSuppressError(fullErrorText) || shouldSuppressError(errorPath) || shouldSuppressError(allErrorInfo)) {
       event.preventDefault();
       event.stopPropagation();
       return false;
@@ -140,7 +238,10 @@ export const initErrorSuppression = () => {
   // Add global handler for unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
     const errorMessage = event.reason?.message || event.reason?.toString() || '';
-    if (shouldSuppressError(errorMessage)) {
+    const stackTrace = event.reason?.stack || '';
+    const fullErrorText = `${errorMessage} ${stackTrace}`;
+    
+    if (shouldSuppressError(errorMessage) || shouldSuppressError(fullErrorText)) {
       event.preventDefault();
       return false;
     }

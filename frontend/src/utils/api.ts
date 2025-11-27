@@ -56,6 +56,7 @@ export interface FriendRequest {
   createdAt: string;
   otherUser?: User;
   fromUser?: User;
+  toUser?: User;
   isIncoming?: boolean;
 }
 
@@ -92,7 +93,16 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
+        
+        // Only log non-401 errors or if it's not a login endpoint
+        // 401 errors during login are expected (will try Firebase)
+        const isLoginEndpoint = endpoint.includes('/auth/login');
+        const isExpected401 = response.status === 401 && isLoginEndpoint;
+        
+        if (!isExpected401) {
+          console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
+        }
+        
         let errorMessage = errorData.detail || errorData.error || `API Error: ${response.statusText}`;
         
         // Translate common error messages to Kazakh
@@ -179,6 +189,12 @@ class ApiService {
     return this.request<{ message: string }>('/user', {
       method: 'DELETE',
       body: JSON.stringify({ userId, email }),
+    });
+  }
+
+  async deleteAllAccounts(): Promise<{ message: string; deletedAccounts: number; warning: string }> {
+    return this.request<{ message: string; deletedAccounts: number; warning: string }>('/users/delete-all', {
+      method: 'DELETE',
     });
   }
 
@@ -351,6 +367,10 @@ class ApiService {
     return this.request<FriendRequest[]>(`/friend-requests/incoming/${userId}`);
   }
 
+  async getOutgoingFriendRequests(userId: string): Promise<FriendRequest[]> {
+    return this.request<FriendRequest[]>(`/friend-requests/outgoing/${userId}`);
+  }
+
   async sendFriendRequest(fromUserId: string, toUserId: string): Promise<FriendRequest> {
     return this.request<FriendRequest>('/friend-requests', {
       method: 'POST',
@@ -367,6 +387,13 @@ class ApiService {
   async rejectFriendRequest(requestId: string): Promise<{ message: string; request: FriendRequest }> {
     return this.request<{ message: string; request: FriendRequest }>(`/friend-requests/${requestId}/reject`, {
       method: 'PUT',
+    });
+  }
+
+  async cancelFriendRequest(requestId: string, userId: string): Promise<{ message: string; request: FriendRequest }> {
+    return this.request<{ message: string; request: FriendRequest }>(`/friend-requests/${requestId}/cancel`, {
+      method: 'PUT',
+      body: JSON.stringify({ userId }),
     });
   }
 

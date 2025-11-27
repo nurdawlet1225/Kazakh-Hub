@@ -237,24 +237,26 @@ const Register: React.FC = () => {
         console.log('User successfully registered in backend');
       } catch (err: any) {
         // Backend sync failed - show error but don't block registration
-        console.error('Backend sync failed:', err);
         const errorMsg = err?.message || 'Backend синхрондау қатесі';
         
-        // If user already exists in backend, that's okay - continue
+        // If user already exists in backend, that's okay - continue silently
         if (errorMsg.includes('already exists') || errorMsg.includes('User already exists') || errorMsg.includes('Пайдаланушы бар')) {
-          console.log('User already exists in backend, continuing...');
+          // User already exists - this is fine, continue silently
         } else {
-          // Show warning but don't block - user is registered in Firebase
-          console.warn('Backend registration failed, but Firebase registration succeeded:', errorMsg);
-          // Still continue - user can use the app, backend sync can be retried later
-          // The error is logged but we don't block the user from using the app
+          // Backend registration failed, but Firebase registration succeeded
+          // This is non-critical - user can use the app, backend sync can be retried later
+          // Suppress this error as it's expected in some cases
         }
       }
       
       // Redirect to home
       navigate('/');
     } catch (err: any) {
-      console.error('Registration error:', err);
+      // Only log if it's not an expected error
+      if (err.code !== 'auth/email-already-in-use') {
+        console.error('Registration error:', err);
+      }
+      
       let errorMessage = 'Тіркелу қатесі';
       
       if (err.code === 'auth/email-already-in-use') {

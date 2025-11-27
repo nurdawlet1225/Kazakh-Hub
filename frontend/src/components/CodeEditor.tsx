@@ -62,7 +62,11 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             padding: '1.5rem',
             fontSize: '0.9rem',
             lineHeight: '1.6',
-              overflow: 'visible',
+            overflowX: 'auto',
+            overflowY: 'visible',
+            width: '100%',
+            maxWidth: '100%',
+            boxSizing: 'border-box',
           }}
         >
           {content}

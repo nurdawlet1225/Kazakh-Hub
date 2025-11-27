@@ -6,7 +6,6 @@ import { faBook, faLaptop, faUsers, faStar, faFileAlt, faList } from '@fortaweso
 import { CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
 import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
-import { useTheme } from '../contexts/ThemeContext';
 import CodeCard from '../components/CodeCard';
 import CodesListModal from '../components/CodesListModal';
 import './Home.css';
@@ -16,7 +15,6 @@ type ViewMode = 'grid' | 'list';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
   const [searchParams] = useSearchParams();
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);

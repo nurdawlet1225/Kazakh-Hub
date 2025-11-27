@@ -55,7 +55,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
       const dropdown = dropdownRef.current;
       dropdown.style.top = `${rect.bottom + 8}px`;
       dropdown.style.right = `${window.innerWidth - rect.right}px`;
-      dropdown.style.width = `${rect.width}px`;
+      // Set minimum width to ensure text is fully visible
+      dropdown.style.width = 'auto';
+      dropdown.style.minWidth = '180px';
     }
   }, [isOpen, buttonRef]);
 
@@ -147,7 +149,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
             <FontAwesomeIcon icon={theme === 'light' ? faCloudSun : faMoon} />
           </span>
           <span className="nav-label">
-            {theme === 'light' ? t('header.switchToDark') : t('header.switchToLight')}
+            {theme === 'light' ? t('header.currentThemeLight') : t('header.currentThemeDark')}
           </span>
         </button>
 

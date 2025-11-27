@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faUserPlus, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
 import { formatDateTime } from '../utils/dateFormatter';
@@ -242,7 +242,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
               className={`chat-tab ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
-              Қосу
+              <FontAwesomeIcon icon={activeTab === 'add' ? faCheckCircle : faUserPlus} /> Қосу
             </button>
             <button
               className={`chat-tab ${activeTab === 'requests' ? 'active' : ''}`}

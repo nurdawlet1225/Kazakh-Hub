@@ -22,6 +22,9 @@ const AppContent: React.FC = () => {
   
   // Hide header and sidebar on login/register pages
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  // Hide footer on chat page and view code page
+  const isChatPage = location.pathname === '/chat';
+  const isViewCodePage = location.pathname.startsWith('/view/');
   
   return (
     <div className="app">
@@ -51,7 +54,7 @@ const AppContent: React.FC = () => {
           </Routes>
         </main>
       )}
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && !isChatPage && !isViewCodePage && <Footer />}
     </div>
   );
 };

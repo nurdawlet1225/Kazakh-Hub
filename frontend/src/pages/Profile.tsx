@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard } from '@fortawesome/free-solid-svg-icons';
 import { User, CodeFile } from '../utils/api';
@@ -10,6 +11,7 @@ import './Profile.css';
 
 const Profile: React.FC = () => {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [userCodes, setUserCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,23 +23,30 @@ const Profile: React.FC = () => {
     totalViews: 0,
   });
 
+  const userId = searchParams.get('userId');
+
   useEffect(() => {
     loadProfile();
-  }, []);
+  }, [userId]);
 
   const loadProfile = async () => {
     try {
       setLoading(true);
       
-      // Try to get user from localStorage first
-      const storedUser = localStorage.getItem('user');
       let userData: User;
       
-      if (storedUser) {
-        userData = JSON.parse(storedUser);
+      // Егер userId параметрі болса, досының профилін жүктеу
+      if (userId) {
+        userData = await apiService.getUserProfile(userId);
       } else {
-        // Fallback to API
-        userData = await apiService.getCurrentUser();
+        // Әйтпесе ағымдағы пайдаланушының профилін жүктеу
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          userData = JSON.parse(storedUser);
+        } else {
+          // Fallback to API
+          userData = await apiService.getCurrentUser();
+        }
       }
       
       const codesData = await apiService.getCodeFiles();
@@ -99,17 +108,19 @@ const Profile: React.FC = () => {
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <button 
-          className="profile-menu-button"
-          onClick={() => setIsEditModalOpen(true)}
-          title={t('profile.editProfile')}
-        >
-          <span className="menu-icon">
-            <span className="menu-line"></span>
-            <span className="menu-line"></span>
-            <span className="menu-line"></span>
-          </span>
-        </button>
+        {!userId && (
+          <button 
+            className="profile-menu-button"
+            onClick={() => setIsEditModalOpen(true)}
+            title={t('profile.editProfile')}
+          >
+            <span className="menu-icon">
+              <span className="menu-line"></span>
+              <span className="menu-line"></span>
+              <span className="menu-line"></span>
+            </span>
+          </button>
+        )}
         <div className="profile-avatar-wrapper">
           <div className="profile-avatar">
             {user.avatar ? (
@@ -203,7 +214,7 @@ const Profile: React.FC = () => {
         )}
       </div>
 
-      {user && (
+      {user && !userId && (
         <EditProfileModal
           isOpen={isEditModalOpen}
           onClose={() => {
