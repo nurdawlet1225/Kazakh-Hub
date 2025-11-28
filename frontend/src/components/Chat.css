@@ -93,7 +93,7 @@
 }
 
 .chat-page-container .chat-friends-list {
-  width: 192px;
+  width: 202px;
   border-right: 0.96px solid var(--border-color);
   display: flex;
   flex-direction: column;

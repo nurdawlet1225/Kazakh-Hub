@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faComment, faSearch, faTimes, faUserMinus, faUserPlus, 
-  faClock, faCheck, faCheckDouble, faCheckCircle, faPaperPlane, faImage,
-  faDownload, faShare, faMicrophone, faFile, faPlay, faPause
+  faClock, faCheck, faCheckDouble, faCheckCircle 
 } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest, Chat } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -13,97 +11,13 @@ import { websocketService, WebSocketMessage } from '../utils/websocket';
 import { formatDateTime } from '../utils/dateFormatter';
 import '../components/Chat.css';
 
-interface AudioPlayerProps {
-  messageId: string;
-  audioData: string;
-  isPlaying: boolean;
-  onTogglePlay: () => void;
-  audioRef: (ref: HTMLAudioElement | null) => void;
-}
-
-const AudioPlayer: React.FC<AudioPlayerProps> = ({ messageId, audioData, isPlaying, onTogglePlay, audioRef }) => {
-  const [duration, setDuration] = useState<number>(0);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    const audio = audioElementRef.current;
-    if (audio) {
-      audioRef(audio);
-      
-      const updateDuration = () => {
-        setDuration(audio.duration || 0);
-      };
-      
-      const updateTime = () => {
-        setCurrentTime(audio.currentTime);
-      };
-      
-      const handleEnded = () => {
-        setCurrentTime(0);
-      };
-      
-      audio.addEventListener('loadedmetadata', updateDuration);
-      audio.addEventListener('timeupdate', updateTime);
-      audio.addEventListener('ended', handleEnded);
-      
-      return () => {
-        audio.removeEventListener('loadedmetadata', updateDuration);
-        audio.removeEventListener('timeupdate', updateTime);
-        audio.removeEventListener('ended', handleEnded);
-      };
-    }
-  }, [audioRef, audioData]);
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  return (
-    <div className="chat-audio-player">
-      <audio ref={audioElementRef} src={audioData} preload="metadata" />
-      <button 
-        className="chat-audio-play-btn"
-        onClick={onTogglePlay}
-      >
-        <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
-      </button>
-      <div className="chat-audio-info">
-        <div className="chat-audio-waveform">
-          <div className="chat-audio-progress" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="chat-audio-time">
-          {formatAudioTime(currentTime)} / {formatAudioTime(duration)}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const formatAudioTime = (seconds: number): string => {
-  if (isNaN(seconds)) return '0:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
-
 const ChatPage: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedAudio, setSelectedAudio] = useState<string | null>(null);
-  const [audioPreview, setAudioPreview] = useState<string | null>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const audioRefs = useRef<{ [key: string]: HTMLAudioElement | null }>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'friends' | 'add' | 'requests'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
@@ -325,159 +239,12 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check if file is an image
-    if (!file.type.startsWith('image/')) {
-      alert('Тек сурет файлдарын жіберуге болады');
-      return;
-    }
-
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Сурет өлшемі 5MB-тан аспауы керек');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setSelectedImage(base64String);
-      setImagePreview(base64String);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleAudioSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check if file is an audio
-    if (!file.type.startsWith('audio/')) {
-      alert('Тек аудио файлдарын жіберуге болады');
-      return;
-    }
-
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Аудио өлшемі 10MB-тан аспауы керек');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setSelectedAudio(base64String);
-      setAudioPreview(base64String);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setSelectedAudio(base64String);
-          setAudioPreview(base64String);
-        };
-        reader.readAsDataURL(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Failed to start recording:', err);
-      alert('Микрофонға қол жеткізу мүмкін емес');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const toggleAudioPlay = (messageId: string, audioData: string) => {
-    const audio = audioRefs.current[messageId];
-    
-    if (!audio) return;
-    
-    if (playingAudioId === messageId) {
-      // Pause current audio
-      audio.pause();
-      setPlayingAudioId(null);
-    } else {
-      // Stop other audio if playing
-      if (playingAudioId) {
-        const otherAudio = audioRefs.current[playingAudioId];
-        if (otherAudio) {
-          otherAudio.pause();
-          otherAudio.currentTime = 0;
-        }
-      }
-      // Play this audio
-      audio.play().catch(err => {
-        console.error('Failed to play audio:', err);
-      });
-      setPlayingAudioId(messageId);
-      
-      // Handle audio ended
-      const handleEnded = () => {
-        setPlayingAudioId(null);
-        audio.removeEventListener('ended', handleEnded);
-      };
-      audio.addEventListener('ended', handleEnded);
-    }
-  };
-
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !selectedImage && !selectedAudio) || !currentUser || !selectedFriend) return;
+    if (!newMessage.trim() || !currentUser || !selectedFriend) return;
 
-    let messageContent = newMessage.trim();
-    
-    // Add image to message content if exists
-    if (selectedImage) {
-      if (messageContent) {
-        messageContent = `${messageContent}\n[IMAGE:${selectedImage}]`;
-      } else {
-        messageContent = `[IMAGE:${selectedImage}]`;
-      }
-    }
-
-    // Add audio to message content if exists
-    if (selectedAudio) {
-      if (messageContent) {
-        messageContent = `${messageContent}\n[AUDIO:${selectedAudio}]`;
-      } else {
-        messageContent = `[AUDIO:${selectedAudio}]`;
-      }
-    }
-
+    const messageContent = newMessage.trim();
     setNewMessage('');
-    setSelectedImage(null);
-    setImagePreview(null);
-    setSelectedAudio(null);
-    setAudioPreview(null);
     setIsTyping(false);
     
     // Clear typing indicator
@@ -485,14 +252,6 @@ const ChatPage: React.FC = () => {
       clearTimeout(typingTimeoutRef.current);
     }
     websocketService.sendTyping(selectedFriend.id, false);
-
-    // Clear file inputs
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    if (audioInputRef.current) {
-      audioInputRef.current.value = '';
-    }
 
     try {
       const sentMessage = await apiService.sendMessage(
@@ -543,30 +302,6 @@ const ChatPage: React.FC = () => {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleSaveImage = (imageData: string) => {
-    try {
-      const link = document.createElement('a');
-      link.href = imageData;
-      link.download = `image-${Date.now()}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error('Failed to save image:', err);
-      alert('Суретті сақтау қатесі');
-    }
-  };
-
-  const handleForwardImage = (imageData: string) => {
-    setSelectedImage(imageData);
-    setImagePreview(imageData);
-    // Scroll to input form
-    setTimeout(() => {
-      const inputForm = document.querySelector('.chat-input-form');
-      inputForm?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
   };
 
   const loadFriendRequests = async () => {
@@ -1057,6 +792,26 @@ const ChatPage: React.FC = () => {
                           </div>
                           <div className="chat-request-actions">
                             <button
+                              className="chat-accept-btn"
+                              onClick={async () => {
+                                // Егер пайдаланушы сұрауды қабылдаса, оны келіп түскен сұрауларға ауыстыру
+                                // Бірақ бұл логикалық тұрғыдан дұрыс емес, өйткені сіз өз сұрауыңызды қабылдай алмайсыз
+                                // Сондықтан, біз сұрауды жойып, пайдаланушыға хабарлама береміз
+                                try {
+                                  await handleCancelRequest(request.id);
+                                  // Егер пайдаланушы сұрауды қабылдау керек болса, оны келіп түскен сұрауларға ауыстыру
+                                  // Бірақ бұл мүмкін емес, өйткені сіз өз сұрауыңызды қабылдай алмайсыз
+                                  // Сондықтан, біз сұрауды жойып, пайдаланушыға хабарлама береміз
+                                  alert('Сіз өз сұрауыңызды қабылдай алмайсыз. Егер пайдаланушы сіздің сұрауыңызды қабылдаса, ол келіп түскен сұраулар тізімінде пайда болады.');
+                                } catch (err) {
+                                  console.error('Failed to handle accept request:', err);
+                                }
+                              }}
+                              title="Қабылдау"
+                            >
+                              ✓
+                            </button>
+                            <button
                               className="chat-cancel-btn"
                               onClick={() => handleCancelRequest(request.id)}
                               title="Сұрауды жою"
@@ -1078,11 +833,7 @@ const ChatPage: React.FC = () => {
           {selectedFriend ? (
             <>
               <div className="chat-messages-header">
-                <div 
-                  className="chat-messages-friend"
-                  onClick={() => navigate(`/profile?userId=${selectedFriend.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
+                <div className="chat-messages-friend">
                   <div className="chat-friend-avatar small">
                     {selectedFriend.avatar ? (
                       <img src={selectedFriend.avatar} alt={selectedFriend.username} />
@@ -1099,52 +850,13 @@ const ChatPage: React.FC = () => {
               <div className="chat-messages-list" ref={messagesContainerRef}>
                 {messages.map((message) => {
                   const isOwn = message.fromUserId === currentUser?.id;
-                  // Parse image and audio from message content
-                  const imageMatch = message.content.match(/\[IMAGE:(.+?)\]/);
-                  const imageData = imageMatch ? imageMatch[1] : null;
-                  const audioMatch = message.content.match(/\[AUDIO:(.+?)\]/);
-                  const audioData = audioMatch ? audioMatch[1] : null;
-                  const textContent = message.content.replace(/\[IMAGE:.+?\]/g, '').replace(/\[AUDIO:.+?\]/g, '').trim();
-                  
                   return (
                     <div
                       key={message.id}
                       className={`chat-message ${isOwn ? 'own' : 'other'}`}
                     >
-                      <div className={`chat-message-content ${imageData ? 'has-image' : ''} ${audioData ? 'has-audio' : ''}`}>
-                        {imageData && (
-                          <div className="chat-message-image">
-                            <img src={imageData} alt="Sent image" />
-                            <div className="chat-image-actions">
-                              <button
-                                className="chat-image-action-btn"
-                                onClick={() => handleSaveImage(imageData)}
-                                title="Сақтау"
-                              >
-                                <FontAwesomeIcon icon={faDownload} />
-                              </button>
-                              <button
-                                className="chat-image-action-btn"
-                                onClick={() => handleForwardImage(imageData)}
-                                title="Басқа досқа жіберу"
-                              >
-                                <FontAwesomeIcon icon={faShare} />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        {audioData && (
-                          <AudioPlayer 
-                            messageId={message.id}
-                            audioData={audioData}
-                            isPlaying={playingAudioId === message.id}
-                            onTogglePlay={() => toggleAudioPlay(message.id, audioData)}
-                            audioRef={(ref) => {
-                              audioRefs.current[message.id] = ref;
-                            }}
-                          />
-                        )}
-                        {textContent && <div>{textContent}</div>}
+                      <div className="chat-message-content">
+                        {message.content}
                       </div>
                       <div className="chat-message-footer">
                         <div className="chat-message-time">
@@ -1162,103 +874,16 @@ const ChatPage: React.FC = () => {
                 <div ref={messagesEndRef} />
               </div>
               <form className="chat-input-form" onSubmit={handleSendMessage}>
-                {imagePreview && (
-                  <div className="chat-image-preview">
-                    <img src={imagePreview} alt="Preview" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImagePreview(null);
-                        setSelectedImage(null);
-                        if (fileInputRef.current) {
-                          fileInputRef.current.value = '';
-                        }
-                      }}
-                      className="chat-remove-image-btn"
-                    >
-                      <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                  </div>
-                )}
-                {audioPreview && (
-                  <div className="chat-audio-preview">
-                    <audio controls src={audioPreview} style={{ maxWidth: '300px' }} />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAudioPreview(null);
-                        setSelectedAudio(null);
-                        if (audioInputRef.current) {
-                          audioInputRef.current.value = '';
-                        }
-                        if (isRecording) {
-                          stopRecording();
-                        }
-                      }}
-                      className="chat-remove-audio-btn"
-                    >
-                      <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    style={{ display: 'none' }}
-                  />
-                  <input
-                    type="file"
-                    ref={audioInputRef}
-                    accept="audio/*"
-                    onChange={handleAudioSelect}
-                    style={{ display: 'none' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="chat-image-btn"
-                    title="Сурет жіберу"
-                  >
-                    <FontAwesomeIcon icon={faImage} />
-                  </button>
-                  <input
-                    type="text"
-                    className="chat-input"
-                    placeholder="Хабарлама жазыңыз..."
-                    value={newMessage}
-                    onChange={(e) => handleTypingChange(e.target.value)}
-                  />
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (isRecording) {
-                          stopRecording();
-                        } else {
-                          await startRecording();
-                        }
-                      }}
-                      className={`chat-audio-btn ${isRecording ? 'recording' : ''}`}
-                      title={isRecording ? 'Жазуды тоқтату' : 'Аудио сөйлеп жіберу'}
-                    >
-                      <FontAwesomeIcon icon={faMicrophone} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => audioInputRef.current?.click()}
-                      className="chat-audio-file-btn"
-                      title="Аудио файл жіберу"
-                    >
-                      <FontAwesomeIcon icon={faFile} />
-                    </button>
-                  </div>
-                  <button type="submit" className="chat-send-btn" disabled={!newMessage.trim() && !selectedImage && !selectedAudio} title="Жіберу">
-                    <FontAwesomeIcon icon={faPaperPlane} />
-                  </button>
-                </div>
+                <input
+                  type="text"
+                  className="chat-input"
+                  placeholder="Хабарлама жазыңыз..."
+                  value={newMessage}
+                  onChange={(e) => handleTypingChange(e.target.value)}
+                />
+                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
+                  Жіберу
+                </button>
               </form>
             </>
           ) : (

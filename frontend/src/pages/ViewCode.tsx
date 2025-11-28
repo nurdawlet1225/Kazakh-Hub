@@ -108,8 +108,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 <button
                   className="btn-comment-edit"
                   onClick={() => onEdit(comment)}
+                  title={t('common.edit')}
                 >
-                  <FontAwesomeIcon icon={faEdit} /> {t('common.edit')}
+                  <span className="menu-icon">
+                    <span className="menu-line"></span>
+                    <span className="menu-line"></span>
+                    <span className="menu-line"></span>
+                  </span>
                 </button>
                 <button
                   className="btn-comment-delete"

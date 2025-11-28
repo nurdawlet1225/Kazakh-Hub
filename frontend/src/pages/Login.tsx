@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
+import { ensureNumericId, isNumericId } from '../utils/idConverter';
 import { isCOOPBlockingPopups } from '../utils/errorSuppression';
 import './Auth.css';
 
@@ -49,8 +50,43 @@ const Login: React.FC = () => {
         userData.email,
         '', // No password for Google auth
         userData.id // Firebase UID
-      ).catch((err) => {
+      ).then((backendResponse) => {
+        // Use numeric ID from backend instead of Firebase UID
+        if (backendResponse?.user?.id && isNumericId(backendResponse.user.id)) {
+          userData.id = backendResponse.user.id;
+          // Update localStorage with numeric ID
+          localStorage.setItem('user', JSON.stringify(userData));
+        } else if (!isNumericId(userData.id)) {
+          // If backend didn't return numeric ID, convert Firebase UID to numeric
+          userData.id = ensureNumericId(userData.id);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+      }).catch((err) => {
         // Backend sync is optional - user is already logged in via Firebase
+        const errorMsg = err?.message || '';
+        // If user already exists, try to get the numeric ID
+        if (errorMsg.includes('already exists') || errorMsg.includes('User already exists')) {
+          apiService.searchUsers(userData.email).then((foundUsers) => {
+            if (foundUsers && foundUsers.length > 0 && isNumericId(foundUsers[0].id)) {
+              userData.id = foundUsers[0].id;
+              localStorage.setItem('user', JSON.stringify(userData));
+            } else if (!isNumericId(userData.id)) {
+              // Convert Firebase UID to numeric ID if search didn't return numeric ID
+              userData.id = ensureNumericId(userData.id);
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          }).catch(() => {
+            // Ignore search errors, but convert ID to numeric
+            if (!isNumericId(userData.id)) {
+              userData.id = ensureNumericId(userData.id);
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          });
+        } else if (!isNumericId(userData.id)) {
+          // Convert Firebase UID to numeric ID if backend sync failed
+          userData.id = ensureNumericId(userData.id);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
         console.log('Backend sync failed (non-critical for Google auth):', err);
       });
 
@@ -217,7 +253,7 @@ const Login: React.FC = () => {
         
         const response = await Promise.race([backendLoginPromise, backendTimeoutPromise]) as any;
         clearTimeout(timeoutId);
-        // If backend login succeeds, use that
+        // If backend login succeeds, use that (numeric ID from backend)
         const userData = response.user;
         localStorage.setItem('user', JSON.stringify(userData));
         
@@ -283,7 +319,43 @@ const Login: React.FC = () => {
         avatar: user.photoURL || '',
       };
 
-      // Save user to localStorage
+      // Try to get numeric ID from backend
+      try {
+        const backendResponse = await apiService.login(userData.email, '');
+        if (backendResponse?.user?.id && isNumericId(backendResponse.user.id)) {
+          // Use numeric ID from backend instead of Firebase UID
+          userData.id = backendResponse.user.id;
+        } else if (!isNumericId(userData.id)) {
+          // Convert Firebase UID to numeric ID if backend didn't return numeric ID
+          userData.id = ensureNumericId(userData.id);
+        }
+      } catch (err) {
+        // Backend sync failed, but Firebase auth succeeded
+        // Try to find user by email to get numeric ID
+        try {
+          const foundUsers = await apiService.searchUsers(userData.email);
+          if (foundUsers && foundUsers.length > 0 && isNumericId(foundUsers[0].id)) {
+            userData.id = foundUsers[0].id;
+          } else if (!isNumericId(userData.id)) {
+            // Convert Firebase UID to numeric ID if search didn't return numeric ID
+            userData.id = ensureNumericId(userData.id);
+          }
+        } catch (searchErr) {
+          console.log('Could not find user in backend:', searchErr);
+          // Convert Firebase UID to numeric ID if search failed
+          if (!isNumericId(userData.id)) {
+            userData.id = ensureNumericId(userData.id);
+          }
+        }
+        console.log('Backend sync failed, but Firebase auth succeeded');
+      }
+
+      // Ensure ID is numeric before saving
+      if (!isNumericId(userData.id)) {
+        userData.id = ensureNumericId(userData.id);
+      }
+
+      // Save user to localStorage (with numeric ID)
       localStorage.setItem('user', JSON.stringify(userData));
       
       // Save user to Firestore for search functionality
@@ -292,14 +364,6 @@ const Login: React.FC = () => {
       } catch (firestoreErr) {
         console.error('Failed to save user to Firestore:', firestoreErr);
         // Continue even if Firestore save fails
-      }
-      
-      // Optionally sync with your backend
-      try {
-        await apiService.login(userData.email, '');
-      } catch (err) {
-        // Backend sync failed, but Firebase auth succeeded
-        console.log('Backend sync failed, but Firebase auth succeeded');
       }
       
       // Redirect to home

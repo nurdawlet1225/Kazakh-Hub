@@ -1,6 +1,7 @@
 """User service for business logic"""
 from typing import Optional, List, Dict, Any
 import uuid
+import random
 from database import users, passwords, save_users, save_passwords
 from utils.validators import validate_email
 
@@ -42,7 +43,22 @@ class UserService:
         if UserService.find_user_by_username(username):
             raise ValueError(f"User with username {username} already exists")
         
-        user_id = firebase_uid if firebase_uid else str(uuid.uuid4())
+        # Generate numeric ID (12 digits)
+        if firebase_uid:
+            # Convert Firebase UID to numeric ID using hash
+            # Take hash of firebase_uid and convert to 12-digit number
+            hash_value = abs(hash(firebase_uid))
+            user_id = str(hash_value % (10 ** 12)).zfill(12)
+            # Ensure ID is unique
+            while UserService.find_user_by_id(user_id):
+                hash_value = abs(hash(firebase_uid + str(random.randint(0, 9999))))
+                user_id = str(hash_value % (10 ** 12)).zfill(12)
+        else:
+            # Generate a 12-digit numeric ID
+            user_id = ''.join([str(random.randint(0, 9)) for _ in range(12)])
+            # Ensure ID is unique
+            while UserService.find_user_by_id(user_id):
+                user_id = ''.join([str(random.randint(0, 9)) for _ in range(12)])
         
         new_user = {
             'id': user_id,
@@ -76,13 +92,20 @@ class UserService:
         """Update user information"""
         user = None
         
+        # Try to find user by user_id first
         if user_id:
             user = UserService.find_user_by_id(user_id)
-        elif current_email:
+        
+        # If not found by user_id, try current_email
+        if not user and current_email:
             user = UserService.find_user_by_email(current_email)
-        elif email:
+        
+        # If still not found, try email
+        if not user and email:
             user = UserService.find_user_by_email(email)
-        elif username:
+        
+        # If still not found, try username
+        if not user and username:
             user = UserService.find_user_by_username(username)
         
         if not user:
@@ -136,7 +159,7 @@ class UserService:
     
     @staticmethod
     def search_users(query: str) -> List[Dict[str, Any]]:
-        """Search users by username or email"""
+        """Search users by username, email, or ID"""
         if not query or len(query.strip()) < 1:
             return []
         
@@ -149,7 +172,9 @@ class UserService:
                 'avatar': user.get('avatar')
             }
             for user in users
-            if search_term in user['username'].lower() or search_term in user['email'].lower()
+            if (search_term in user['username'].lower() or 
+                search_term in user['email'].lower() or
+                search_term in user['id'].lower())
         ]
         return matching_users
 

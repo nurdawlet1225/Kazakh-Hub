@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCog, 
-  faComment, 
   faSignOutAlt, 
   faMoon,
   faCloudSun,
@@ -57,7 +56,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
       dropdown.style.right = `${window.innerWidth - rect.right}px`;
       // Set minimum width to ensure text is fully visible
       dropdown.style.width = 'auto';
-      dropdown.style.minWidth = '180px';
+      dropdown.style.minWidth = '150px';
     }
   }, [isOpen, buttonRef]);
 
@@ -95,7 +94,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
 
   const menuItems = [
     { path: '/settings', label: t('sidebar.settings'), icon: <FontAwesomeIcon icon={faCog} /> },
-    { path: '/chat', label: t('sidebar.chat'), icon: <FontAwesomeIcon icon={faComment} /> },
   ];
 
   const isLoggedIn = !!localStorage.getItem('user');

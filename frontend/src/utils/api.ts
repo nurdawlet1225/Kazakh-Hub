@@ -192,12 +192,6 @@ class ApiService {
     });
   }
 
-  async deleteAllAccounts(): Promise<{ message: string; deletedAccounts: number; warning: string }> {
-    return this.request<{ message: string; deletedAccounts: number; warning: string }>('/users/delete-all', {
-      method: 'DELETE',
-    });
-  }
-
   // Authentication
   async register(username: string, email: string, password: string, firebaseUid?: string): Promise<{ user: User; message: string }> {
     return this.request<{ user: User; message: string }>('/auth/register', {

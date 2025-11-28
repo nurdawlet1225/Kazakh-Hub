@@ -168,6 +168,7 @@
   overflow: visible;
   position: relative;
   min-height: 256px;
+  transition: min-height 0.3s ease-out;
 }
 
 .folder-view-wrapper {
@@ -358,10 +359,11 @@
   border: none;
   border-radius: 0;
   padding: 0;
-  min-height: 256px;
+  min-height: 355px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  transition: min-height 0.3s ease-out;
 }
 
 .file-header {
@@ -375,6 +377,7 @@
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+  animation: fadeInCode 0.3s ease-out;
 }
 
 .file-header-left {
@@ -684,6 +687,15 @@
   justify-content: center;
   min-height: 256px;
   gap: 1rem;
+  transition: min-height 0.3s ease-out;
+}
+
+/* Folder content loading spinner should match file-code-container height */
+.folder-content .loading-spinner {
+  min-height: 355px;
+  width: 810px;
+  max-width: 810px;
+  box-sizing: border-box;
 }
 
 .spinner {
@@ -918,21 +930,35 @@
   padding: 1.5rem;
   margin-bottom: 0rem;
   width: 810px;
-  height: 355px;
+  min-height: 355px;
+  height: auto;
   max-width: 810px;
-  max-height: 355px;
   margin-left: 0;
   margin-right: 0;
   overflow-x: visible;
   overflow-y: visible;
   position: relative;
   box-sizing: border-box;
+  transition: height 0.3s ease-out, min-height 0.3s ease-out;
 }
 
 /* file-code-container скроллы алып тасталды - тек ішіндегі код редакторының скроллы қалды */
 
 .code-wrapper {
   position: relative;
+  animation: fadeInCode 0.4s ease-out;
+  will-change: opacity;
+}
+
+@keyframes fadeInCode {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .image-preview-wrapper {
@@ -944,6 +970,7 @@
   align-items: center;
   justify-content: center;
   min-height: 256px;
+  animation: fadeInCode 0.4s ease-out;
 }
 
 .image-preview-container {
@@ -1392,10 +1419,39 @@
 .btn-comment-edit {
   background: rgba(8, 145, 178, 0.1);
   color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  min-width: 32px;
 }
 
 .btn-comment-edit:hover {
   background: rgba(8, 145, 178, 0.2);
+}
+
+.btn-comment-edit .menu-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 16px;
+  height: 12px;
+  justify-content: center;
+  align-items: center;
+}
+
+.btn-comment-edit .menu-line {
+  width: 100%;
+  height: 2px;
+  background: var(--primary-color);
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: block;
+  flex-shrink: 0;
+}
+
+.btn-comment-edit:hover .menu-line {
+  background: var(--primary-color);
 }
 
 .btn-comment-delete {
@@ -1446,11 +1502,6 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-}
-
-.comment-reaction-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--primary-color);
 }
 
 .comment-reaction-btn:disabled {

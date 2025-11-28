@@ -242,7 +242,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
               className={`chat-tab ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
-              <FontAwesomeIcon icon={activeTab === 'add' ? faCheckCircle : faUserPlus} /> Қосу
+              Қосу
             </button>
             <button
               className={`chat-tab ${activeTab === 'requests' ? 'active' : ''}`}
