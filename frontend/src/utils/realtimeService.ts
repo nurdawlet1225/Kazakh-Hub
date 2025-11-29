@@ -55,15 +55,24 @@ export const subscribeToCode = (
       (error: any) => {
         // ERR_BLOCKED_BY_CLIENT қатесін (ad blocker) елемеу
         const errorMessage = error?.message || error?.toString() || '';
+        const errorStack = error?.stack || '';
+        const errorString = JSON.stringify(error) || '';
         const isBlocked = 
           error?.code === 'unavailable' || 
           error?.code === 'permission-denied' ||
           errorMessage.includes('BLOCKED_BY_CLIENT') ||
           errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
           errorMessage.includes('network') ||
-          errorMessage.includes('Failed to fetch');
+          errorMessage.includes('Failed to fetch') ||
+          errorStack.includes('BLOCKED_BY_CLIENT') ||
+          errorStack.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('BLOCKED_BY_CLIENT') ||
+          errorString.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('Listen/channel') ||
+          errorString.includes('TYPE=terminate');
         
         if (isBlocked) {
+          // Тыныштықпен елемеу - API деректері пайдаланылады
           // Error suppression utility will handle console output
           return;
         }
@@ -135,15 +144,24 @@ export const subscribeToMessages = (
       (error: any) => {
         // ERR_BLOCKED_BY_CLIENT қатесін (ad blocker) елемеу
         const errorMessage = error?.message || error?.toString() || '';
+        const errorStack = error?.stack || '';
+        const errorString = JSON.stringify(error) || '';
         const isBlocked = 
           error?.code === 'unavailable' || 
           error?.code === 'permission-denied' ||
           errorMessage.includes('BLOCKED_BY_CLIENT') ||
           errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
           errorMessage.includes('network') ||
-          errorMessage.includes('Failed to fetch');
+          errorMessage.includes('Failed to fetch') ||
+          errorStack.includes('BLOCKED_BY_CLIENT') ||
+          errorStack.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('BLOCKED_BY_CLIENT') ||
+          errorString.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('Listen/channel') ||
+          errorString.includes('TYPE=terminate');
         
         if (isBlocked) {
+          // Тыныштықпен елемеу - API деректері пайдаланылады
           // Error suppression utility will handle console output
           return;
         }

@@ -99,7 +99,11 @@ class ApiService {
         const isLoginEndpoint = endpoint.includes('/auth/login');
         const isExpected401 = response.status === 401 && isLoginEndpoint;
         
-        if (!isExpected401) {
+        // Don't log 404 errors for getUserProfile - this is expected when searching by ID
+        const isUserProfileEndpoint = endpoint.match(/^\/users\/[^\/]+$/);
+        const isExpected404 = response.status === 404 && isUserProfileEndpoint;
+        
+        if (!isExpected401 && !isExpected404) {
           console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
         }
         

@@ -50,8 +50,8 @@
   --transition-slow: 450ms cubic-bezier(0.4, 0, 0.2, 1);
   
   --z-header: 9999;
-  --z-modal: 10000;
-  --z-tooltip: 11000;
+  --z-modal: 11000;
+  --z-tooltip: 12000;
 }
 
 /* Dark Theme - Premium Modern Cyan/Turquoise Design */

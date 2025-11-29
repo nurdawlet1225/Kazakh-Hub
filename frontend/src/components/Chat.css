@@ -1031,6 +1031,14 @@
   margin-top: 0.25rem;
 }
 
+.chat-friend-id {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  font-family: 'Courier New', monospace;
+  opacity: 0.8;
+}
+
 .chat-add-btn {
   margin-left: auto;
   padding: 0.4rem;

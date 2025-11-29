@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -35,6 +35,7 @@ interface CommentItemProps {
   onLike: (commentId: string) => void;
   allComments?: Comment[];
   currentLanguage: string;
+  likingCommentId?: string | null; // Track which comment is being liked
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -57,11 +58,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onLike,
   allComments = [],
   currentLanguage,
+  likingCommentId = null,
 }) => {
   const { t } = useTranslation();
   const isLiked = currentUser ? comment.likes?.includes(currentUser.id) : false;
   const likeCount = comment.likes?.length || 0;
   const isReply = comment.parentId ? true : false;
+  const isLiking = likingCommentId === comment.id;
   
   // Find parent comment
   const parentComment = comment.parentId 
@@ -139,9 +142,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
       )}
       <div className="comment-reactions">
         <button
-          className={`comment-reaction-btn ${isLiked ? 'liked' : ''}`}
+          className={`comment-reaction-btn ${isLiked ? 'liked' : ''} ${isLiking ? 'liking' : ''}`}
           onClick={() => onLike(comment.id)}
-          disabled={!currentUser}
+          disabled={!currentUser || isLiking}
           title="Лайк"
         >
           👍 {likeCount}
@@ -211,6 +214,7 @@ const ViewCode: React.FC = () => {
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [likingCommentId, setLikingCommentId] = useState<string | null>(null); // Track which comment is being liked
   const [folderFiles, setFolderFiles] = useState<CodeFile[]>([]);
   const [filteredFolderFiles, setFilteredFolderFiles] = useState<CodeFile[]>([]);
   const [filterLanguage, setFilterLanguage] = useState<string>('all');
@@ -674,13 +678,58 @@ const ViewCode: React.FC = () => {
   };
 
   const handleLikeComment = async (commentId: string) => {
-    if (!code || !currentUser) return;
+    if (!code || !currentUser || likingCommentId === commentId) return; // Prevent double-clicking
+
+    // Find the comment
+    const comment = code.comments?.find(c => c.id === commentId);
+    if (!comment) return;
+
+    // Set loading state IMMEDIATELY before any async operations
+    // This ensures button is disabled for both like and unlike operations
+    setLikingCommentId(commentId);
+
+    // Store original likes for rollback
+    const originalLikes = comment.likes || [];
+
+    // Optimistic UI update - update UI immediately
+    const isLiked = originalLikes.includes(currentUser.id);
+    const newLikes = isLiked
+      ? originalLikes.filter(id => id !== currentUser.id)
+      : [...originalLikes, currentUser.id];
+
+    // Update comment optimistically using requestAnimationFrame for smooth UI
+    // But keep button disabled during the operation
+    requestAnimationFrame(() => {
+      const updatedComments = (code.comments || []).map(c =>
+        c.id === commentId
+          ? { ...c, likes: newLikes }
+          : c
+      );
+      setCode({ ...code, comments: updatedComments });
+    });
 
     try {
+      // Then update server
       const updatedCode = await apiService.likeComment(code.id, commentId, currentUser.id);
+      // Update with server response
       setCode(updatedCode);
     } catch (err) {
       console.error('Failed to like comment:', err);
+      // Rollback on error - revert to original state
+      requestAnimationFrame(() => {
+        const originalComments = (code.comments || []).map(c =>
+          c.id === commentId
+            ? { ...c, likes: originalLikes }
+            : c
+        );
+        setCode({ ...code, comments: originalComments });
+      });
+    } finally {
+      // Clear loading state after a small delay to prevent rapid clicking
+      // This delay ensures button stays disabled during both like and unlike operations
+      setTimeout(() => {
+        setLikingCommentId(null);
+      }, 400); // Increased delay to ensure button stays disabled
     }
   };
 
@@ -775,11 +824,7 @@ const ViewCode: React.FC = () => {
                   onClick={() => setShowActionsMenu(!showActionsMenu)}
                   title="Әрекеттер"
                 >
-                  <span className="menu-icon">
-                    <span className="menu-line"></span>
-                    <span className="menu-line"></span>
-                    <span className="menu-line"></span>
-                  </span>
+                  <FontAwesomeIcon icon={faEllipsisVertical} />
                 </button>
                 {showActionsMenu && (
                   <div className="actions-menu-dropdown">
@@ -1100,6 +1145,7 @@ const ViewCode: React.FC = () => {
                       onLike={handleLikeComment}
                       allComments={code.comments || []}
                       currentLanguage={currentLanguage}
+                      likingCommentId={likingCommentId}
                         />
                       ))
                     ) : (

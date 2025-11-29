@@ -51,6 +51,12 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
   /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
   /google\.firestore\.v1\.Firestore.*ERR_BLOCKED_BY_CLIENT/i,
+  /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
+  /POST.*firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen/i,
+  /POST.*firestore\.googleapis\.com.*Listen\/channel/i,
+  /POST.*firestore\.googleapis\.com.*TYPE=terminate/i,
+  /POST.*firestore\.googleapis\.com.*SID=/i,
+  /POST.*firestore\.googleapis\.com.*RID=/i,
   /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
   /Request URL.*firestore\.googleapis\.com.*Listen.*channel/i,
   /Request URL.*firestore\.googleapis\.com.*TYPE=terminate/i,
@@ -192,10 +198,19 @@ export const initErrorSuppression = () => {
     const errorLineno = event.lineno || 0;
     const errorPath = `${errorFilename}:${errorLineno}:${errorColno}`;
     
-    // Combine all error information
-    const allErrorInfo = `${fullMessage} ${fullErrorText} ${errorPath}`;
+    // Check URL if available (for network errors)
+    const errorUrl = (event.target as any)?.url || (event.target as any)?.src || '';
     
-    if (shouldSuppressError(fullMessage) || shouldSuppressError(errorMessage) || shouldSuppressError(errorSource) || shouldSuppressError(fullErrorText) || shouldSuppressError(errorPath) || shouldSuppressError(allErrorInfo)) {
+    // Combine all error information
+    const allErrorInfo = `${fullMessage} ${fullErrorText} ${errorPath} ${errorUrl}`;
+    
+    if (shouldSuppressError(fullMessage) || 
+        shouldSuppressError(errorMessage) || 
+        shouldSuppressError(errorSource) || 
+        shouldSuppressError(fullErrorText) || 
+        shouldSuppressError(errorPath) || 
+        shouldSuppressError(errorUrl) ||
+        shouldSuppressError(allErrorInfo)) {
       event.preventDefault();
       event.stopPropagation();
       return false;
@@ -239,13 +254,19 @@ export const initErrorSuppression = () => {
   window.addEventListener('unhandledrejection', (event) => {
     const errorMessage = event.reason?.message || event.reason?.toString() || '';
     const stackTrace = event.reason?.stack || '';
-    const fullErrorText = `${errorMessage} ${stackTrace}`;
+    const errorString = JSON.stringify(event.reason) || '';
+    const fullErrorText = `${errorMessage} ${stackTrace} ${errorString}`;
     
-    if (shouldSuppressError(errorMessage) || shouldSuppressError(fullErrorText)) {
+    // Check all possible error representations
+    if (shouldSuppressError(errorMessage) || 
+        shouldSuppressError(fullErrorText) || 
+        shouldSuppressError(stackTrace) ||
+        shouldSuppressError(errorString)) {
       event.preventDefault();
+      event.stopPropagation();
       return false;
     }
-  });
+  }, true);
 };
 
 /**

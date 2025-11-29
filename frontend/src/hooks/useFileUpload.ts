@@ -223,7 +223,12 @@ export const useFileUpload = (): UseFileUploadReturn => {
       console.log('Папка контейнері жасалды:', folderCode.id);
 
       // Upload files in batches to avoid overwhelming the server
-      const BATCH_SIZE = 10; // Upload 10 files at a time
+      // Optimized for both small and large folders
+      const SMALL_FOLDER_THRESHOLD = 10; // For folders with 10 or fewer files
+      const BATCH_SIZE = 12; // Upload 12 files at a time (reduced for better UI responsiveness)
+      const MAX_CONCURRENT_BATCHES = 2; // Process 2 batches in parallel
+      const FILES_PER_CHUNK = 3; // Process 3 files, then yield to UI (reduced for better responsiveness)
+      const YIELD_DELAY = 5; // 5ms delay to allow UI updates (reduced for faster processing)
       const MAX_RETRIES = 3; // Maximum retry attempts per file
       const RETRY_DELAY = 1000; // Delay between retries (ms)
       let successful = 0;
@@ -231,11 +236,56 @@ export const useFileUpload = (): UseFileUploadReturn => {
       const totalFiles = folderInfo.files.length;
       const failedFiles: Array<{ fileInfo: FileInfo; filePath: string; retries: number }> = [];
       
+      // Helper function to yield to UI thread using requestIdleCallback if available
+      const yieldToUI = (): Promise<void> => {
+        return new Promise(resolve => {
+          // Use requestIdleCallback if available for better performance
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+              setTimeout(resolve, YIELD_DELAY);
+            }, { timeout: 10 });
+          } else {
+            // Fallback to setTimeout
+            setTimeout(resolve, YIELD_DELAY);
+          }
+        });
+      };
+      
+      // Track progress atomically with throttling to prevent UI blocking
+      let completedCount = 0;
+      let lastProgressUpdate = 0;
+      let pendingProgressUpdate = false;
+      const PROGRESS_UPDATE_INTERVAL = 50; // Update progress max every 50ms
+      
+      const updateProgress = () => {
+        completedCount++;
+        const now = Date.now();
+        
+        // Throttle progress updates to prevent UI blocking
+        if (now - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL || completedCount === totalFiles) {
+          // For final update, update immediately
+          if (completedCount === totalFiles) {
+            setUploadProgress({ current: completedCount, total: totalFiles, startTime });
+            lastProgressUpdate = now;
+            return;
+          }
+          
+          // Use requestAnimationFrame for smoother UI updates
+          if (!pendingProgressUpdate) {
+            pendingProgressUpdate = true;
+            requestAnimationFrame(() => {
+              setUploadProgress({ current: completedCount, total: totalFiles, startTime });
+              lastProgressUpdate = Date.now();
+              pendingProgressUpdate = false;
+            });
+          }
+        }
+      };
+      
       // Retry function with exponential backoff
       const retryUpload = async (
         fileInfo: FileInfo,
         filePath: string,
-        fileIndex: number,
         retryCount: number = 0
       ): Promise<any> => {
         try {
@@ -250,9 +300,8 @@ export const useFileUpload = (): UseFileUploadReturn => {
             folderPath: filePath,
           });
           
-          // Update progress
-          setUploadProgress({ current: fileIndex + 1, total: totalFiles, startTime });
           successful++;
+          updateProgress();
           
           return result;
         } catch (err) {
@@ -261,43 +310,110 @@ export const useFileUpload = (): UseFileUploadReturn => {
             const delay = RETRY_DELAY * Math.pow(2, retryCount);
             console.warn(`Файл ${fileInfo.name} жүктелуден өтпеді. ${delay}ms күтуден кейін қайталау (${retryCount + 1}/${MAX_RETRIES})...`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            return retryUpload(fileInfo, filePath, fileIndex, retryCount + 1);
+            return retryUpload(fileInfo, filePath, retryCount + 1);
           } else {
             console.error(`Файл ${fileInfo.name} ${MAX_RETRIES} рет қайталаудан кейін де жүктелуден өтпеді:`, err);
             failed++;
             failedFiles.push({ fileInfo, filePath, retries: retryCount });
-            // Still update progress even on error
-            setUploadProgress({ current: fileIndex + 1, total: totalFiles, startTime });
+            updateProgress();
             throw err;
           }
         }
       };
       
-      // Process files in batches
-      for (let i = 0; i < totalFiles; i += BATCH_SIZE) {
-        const batch = folderInfo.files.slice(i, i + BATCH_SIZE);
-        const batchIndex = i;
-        
-        // Upload batch of files with retry logic
-        const batchPromises = batch.map(async (fileInfo, batchFileIndex) => {
-          const fileIndex = batchIndex + batchFileIndex;
-          
-          // Find the file path in the structure
+      // Process files based on folder size
+      if (totalFiles <= SMALL_FOLDER_THRESHOLD) {
+        // For small folders, process files one by one with UI yielding
+        for (let i = 0; i < totalFiles; i++) {
+          const fileInfo = folderInfo.files[i];
           const filePath = Object.keys(folderInfo.structure).find(
             path => folderInfo.structure[path].type === 'file' && 
             folderInfo.structure[path].name === fileInfo.name
           ) || fileInfo.name;
 
-          return retryUpload(fileInfo, filePath, fileIndex);
-        });
-
-        // Wait for current batch to complete before starting next batch
-        const batchResults = await Promise.allSettled(batchPromises);
+          try {
+            await retryUpload(fileInfo, filePath);
+          } catch (err) {
+            // Error already handled in retryUpload
+          }
+          
+          // Yield to UI after each file for small folders
+          if (i < totalFiles - 1) {
+            await yieldToUI();
+          }
+        }
+      } else {
+        // For larger folders, use batch processing with concurrency control
+        const batches: Array<{ batch: FileInfo[]; index: number }> = [];
         
-        // Log batch progress
-        const batchSuccessful = batchResults.filter(r => r.status === 'fulfilled').length;
-        const batchFailed = batchResults.filter(r => r.status === 'rejected').length;
-        console.log(`Батч ${Math.floor(i / BATCH_SIZE) + 1}: ${batchSuccessful}/${batch.length} файл сәтті жүктелді${batchFailed > 0 ? `, ${batchFailed} файл сәтсіз` : ''}`);
+        // Create all batches first
+        for (let i = 0; i < totalFiles; i += BATCH_SIZE) {
+          const batch = folderInfo.files.slice(i, i + BATCH_SIZE);
+          batches.push({ batch, index: Math.floor(i / BATCH_SIZE) });
+        }
+        
+        // Process batches with concurrency limit and UI yielding
+        const processBatch = async (batch: FileInfo[], batchIndex: number) => {
+          let batchSuccessful = 0;
+          let batchFailed = 0;
+          
+          // Process files in smaller chunks with UI yielding
+          for (let i = 0; i < batch.length; i += FILES_PER_CHUNK) {
+            const chunk = batch.slice(i, i + FILES_PER_CHUNK);
+            
+            // Upload chunk of files with retry logic
+            const chunkPromises = chunk.map(async (fileInfo) => {
+              // Find the file path in the structure
+              const filePath = Object.keys(folderInfo.structure).find(
+                path => folderInfo.structure[path].type === 'file' && 
+                folderInfo.structure[path].name === fileInfo.name
+              ) || fileInfo.name;
+
+              return retryUpload(fileInfo, filePath).catch(err => {
+                // Error already handled in retryUpload
+                return null;
+              });
+            });
+
+            // Wait for chunk to complete
+            const chunkResults = await Promise.allSettled(chunkPromises);
+            const chunkSuccessful = chunkResults.filter(r => r.status === 'fulfilled' && r.value !== null).length;
+            const chunkFailed = chunkResults.length - chunkSuccessful;
+            batchSuccessful += chunkSuccessful;
+            batchFailed += chunkFailed;
+            
+            // Yield to UI after each chunk to prevent freezing
+            await yieldToUI();
+          }
+          
+          // Log batch progress
+          console.log(`Батч ${batchIndex + 1}: ${batchSuccessful}/${batch.length} файл сәтті жүктелді${batchFailed > 0 ? `, ${batchFailed} файл сәтсіз` : ''}`);
+        };
+        
+        // Process batches with concurrency control
+        const activePromises: Promise<void>[] = [];
+        let batchIndex = 0;
+        
+        while (batchIndex < batches.length || activePromises.length > 0) {
+          // Start new batches up to the concurrency limit
+          while (activePromises.length < MAX_CONCURRENT_BATCHES && batchIndex < batches.length) {
+            const { batch, index } = batches[batchIndex];
+            const promise = processBatch(batch, index).finally(() => {
+              // Remove this promise from activePromises when done
+              const idx = activePromises.indexOf(promise);
+              if (idx > -1) {
+                activePromises.splice(idx, 1);
+              }
+            });
+            activePromises.push(promise);
+            batchIndex++;
+          }
+          
+          // Wait for at least one batch to complete before starting more
+          if (activePromises.length > 0) {
+            await Promise.race(activePromises);
+          }
+        }
       }
       
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);

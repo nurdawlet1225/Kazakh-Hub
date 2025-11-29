@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faImage, faEdit, faCopy, faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faImage, faEdit, faCopy, faCheck, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { User, CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
+import { ensureNumericId } from '../utils/idConverter';
 import CodeCard from '../components/CodeCard';
 import EditProfileModal from '../components/EditProfileModal';
 import './Profile.css';
@@ -17,6 +18,8 @@ const Profile: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuDropdownRef = useRef<HTMLDivElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
@@ -31,17 +34,29 @@ const Profile: React.FC = () => {
     loadProfile();
   }, []);
 
+  // Close menu when modal opens
+  useEffect(() => {
+    if (isEditModalOpen) {
+      setIsMenuOpen(false);
+    }
+  }, [isEditModalOpen]);
+
   useEffect(() => {
     // Load background image from localStorage
-    if (user?.id) {
+    if (user?.id && !isPreviewModalOpen) {
       const savedBg = localStorage.getItem(`profile-bg-${user.id}`);
       if (savedBg) {
         setBackgroundImage(savedBg);
+        setBackgroundPreview(savedBg);
       } else {
         setBackgroundImage(null);
+        // Preview модалды терезе ашық болса, preview-ді null-ға орнату
+        if (!isPreviewModalOpen) {
+          setBackgroundPreview(null);
+        }
       }
     }
-  }, [user?.id]);
+  }, [user?.id, isPreviewModalOpen]);
 
   useEffect(() => {
     // Listen for background update events
@@ -87,7 +102,8 @@ const Profile: React.FC = () => {
   const copyId = async () => {
     if (user?.id) {
       try {
-        await navigator.clipboard.writeText(user.id);
+        const numericId = ensureNumericId(user.id);
+        await navigator.clipboard.writeText(numericId);
         setIsIdCopied(true);
         setTimeout(() => setIsIdCopied(false), 2000);
       } catch (err) {
@@ -159,6 +175,21 @@ const Profile: React.FC = () => {
       return;
     }
 
+    // Бірден preview көрсету - FileReader арқылы
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const previewUrl = event.target?.result as string;
+      if (previewUrl) {
+        setBackgroundPreview(previewUrl);
+        setIsPreviewModalOpen(true);
+      }
+    };
+    reader.onerror = () => {
+      console.error('FileReader error');
+      alert('Суретті оқу қатесі');
+    };
+    reader.readAsDataURL(file);
+
     try {
       // Compress and convert to base64 (larger size for background)
       const compressedBase64 = await compressImage(file, 1920, 0.85);
@@ -173,20 +204,50 @@ const Profile: React.FC = () => {
         console.log('Background image compressed to:', (compressedBase64.length / 1024).toFixed(2), 'KB');
       }
       
-      // Save background image to localStorage
-      if (user?.id) {
-        localStorage.setItem(`profile-bg-${user.id}`, finalImage);
-        setBackgroundImage(finalImage);
-        
-        // Dispatch custom event to notify Profile component
-        window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
+      // Preview-ді сығылған суретке жаңарту (модалды терезе ашық болса)
+      if (isPreviewModalOpen) {
+        setBackgroundPreview(finalImage);
       }
+      
+      // Save background image to localStorage (тек расталғаннан кейін)
+      // localStorage.setItem(`profile-bg-${user.id}`, finalImage);
+      // setBackgroundImage(finalImage);
+      
+      // Dispatch custom event to notify Profile component
+      // window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
     } catch (err) {
       console.error('Error processing background image:', err);
       alert('Суретті өңдеу қатесі');
+      setBackgroundPreview(null); // Preview-ді тазалау қате болса
+      setIsPreviewModalOpen(false); // Preview модалды терезесін жабу
       if (backgroundInputRef.current) {
         backgroundInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleConfirmBackground = () => {
+    // Preview-ді растау және модалды терезесін жабу
+    if (user?.id && backgroundPreview) {
+      localStorage.setItem(`profile-bg-${user.id}`, backgroundPreview);
+      setBackgroundImage(backgroundPreview);
+      
+      // Dispatch custom event to notify Profile component
+      window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
+    }
+    setIsPreviewModalOpen(false);
+  };
+
+  const handleCancelBackground = () => {
+    // Preview-ді жою және модалды терезесін жабу
+    setBackgroundPreview(null);
+    setBackgroundImage(null);
+    setIsPreviewModalOpen(false);
+    if (user?.id) {
+      localStorage.removeItem(`profile-bg-${user.id}`);
+    }
+    if (backgroundInputRef.current) {
+      backgroundInputRef.current.value = '';
     }
   };
 
@@ -204,6 +265,7 @@ const Profile: React.FC = () => {
     if (user?.id) {
       localStorage.removeItem(`profile-bg-${user.id}`);
       setBackgroundImage(null);
+      setBackgroundPreview(null);
       window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
     }
   };
@@ -283,9 +345,13 @@ const Profile: React.FC = () => {
     <div className="profile-container">
       <div 
         className="profile-header"
-        style={backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+        style={(backgroundPreview || backgroundImage) ? { 
+          backgroundImage: `url(${backgroundPreview || backgroundImage})`, 
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center' 
+        } : {}}
       >
-        {backgroundImage && <div className="profile-header-overlay"></div>}
+        {(backgroundPreview || backgroundImage) && <div className="profile-header-overlay"></div>}
         <input
           ref={backgroundInputRef}
           type="file"
@@ -307,7 +373,7 @@ const Profile: React.FC = () => {
               <span className="menu-line"></span>
             </span>
           </button>
-          {isMenuOpen && (
+          {isMenuOpen && !isEditModalOpen && (
             <div ref={menuDropdownRef} className="profile-menu-dropdown">
               <button
                 className="profile-menu-item"
@@ -327,16 +393,19 @@ const Profile: React.FC = () => {
                 <span>Фон өзгерту</span>
               </button>
               {backgroundImage && (
-                <button
-                  className="profile-menu-item profile-menu-item-danger"
-                  onClick={() => {
-                    handleRemoveBackground();
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                  <span>Фон алып тастау</span>
-                </button>
+                <>
+                  <div className="profile-menu-divider"></div>
+                  <button
+                    className="profile-menu-item"
+                    onClick={() => {
+                      handleRemoveBackground();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                    <span>Фон алып тастау</span>
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -359,7 +428,7 @@ const Profile: React.FC = () => {
           <div className="profile-contact">
             <span className="contact-item"><FontAwesomeIcon icon={faEnvelope} /> {user.email}</span>
             <span className="contact-item contact-item-id">
-              <FontAwesomeIcon icon={faIdCard} /> ID: {user.id}
+              <FontAwesomeIcon icon={faIdCard} /> ID: {ensureNumericId(user.id)}
               <button 
                 className="copy-id-btn" 
                 onClick={copyId}
@@ -457,6 +526,74 @@ const Profile: React.FC = () => {
             loadProfile();
           }}
         />
+      )}
+
+      {/* Background Preview Modal */}
+      {isPreviewModalOpen && backgroundPreview && (
+        <div 
+          className="modal-overlay background-preview-overlay-full" 
+          onClick={handleCancelBackground}
+          style={{
+            backgroundImage: `url(${backgroundPreview})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          <div className="modal-content background-preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Фон суретін алдын ала көру</h2>
+              <button className="modal-close" onClick={handleCancelBackground}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="background-preview-content">
+              <div 
+                className="background-preview-container"
+                style={{
+                  backgroundImage: `url(${backgroundPreview})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
+              >
+                <div className="background-preview-overlay"></div>
+                <div className="background-preview-info">
+                  <div className="profile-avatar-wrapper">
+                    <div className="profile-avatar">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.username} />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="profile-info">
+                    <div className="profile-name-section">
+                      <h1 className="profile-username">{user.username}</h1>
+                    </div>
+                    <div className="profile-contact">
+                      <span className="contact-item"><FontAwesomeIcon icon={faEnvelope} /> {user.email}</span>
+                      <span className="contact-item contact-item-id">
+                        <FontAwesomeIcon icon={faIdCard} /> ID: {ensureNumericId(user.id)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="background-preview-actions">
+                <button className="btn-cancel" onClick={handleCancelBackground}>
+                  Бас тарту
+                </button>
+                <button className="btn-confirm" onClick={handleConfirmBackground}>
+                  Растау
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

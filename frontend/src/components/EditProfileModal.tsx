@@ -51,7 +51,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setPasswordError(null);
       setIsPasswordSectionVisible(false);
     }
-  }, [isOpen, user]);
+  }, [isOpen]); // Only depend on isOpen to prevent resetting avatar when user updates
+
+  // Update username and email when user changes, but preserve avatarPreview state
+  useEffect(() => {
+    if (isOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        username: user.username,
+        email: user.email,
+      }));
+    }
+  }, [isOpen, user.username, user.email]);
 
   const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -146,6 +157,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   };
 
   const handleRemoveAvatar = () => {
+    // Only update local state, don't save until user clicks "Save"
     setFormData((prev) => ({ ...prev, avatar: '' }));
     setAvatarPreview(null);
     if (fileInputRef.current) {

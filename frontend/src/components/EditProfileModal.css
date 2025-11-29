@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: var(--z-modal, 10000);
+  z-index: 11000;
   padding: 1rem;
   backdrop-filter: blur(8px) saturate(180%);
   animation: fadeIn 0.3s ease;
@@ -295,12 +295,20 @@
   align-items: center;
   gap: 1.5rem;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-hover) 100%);
+  background: linear-gradient(135deg, 
+    var(--bg-secondary) 0%, 
+    var(--bg-hover) 50%,
+    var(--bg-secondary) 100%);
   border: 2px dashed var(--border-color);
-  border-radius: 16px;
-  transition: all 0.3s ease;
+  border-radius: 20px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
 .avatar-upload-container::before {
@@ -309,20 +317,52 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
   background: var(--accent-gradient);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.avatar-upload-container::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
 }
 
 .avatar-upload-container:hover {
   border-color: var(--primary-color);
-  background: linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-secondary) 100%);
-  box-shadow: var(--shadow-md);
+  border-style: solid;
+  background: linear-gradient(135deg, 
+    var(--bg-hover) 0%, 
+    var(--bg-secondary) 50%,
+    var(--bg-hover) 100%);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.12),
+    0 6px 16px rgba(6, 182, 212, 0.15),
+    0 0 40px rgba(6, 182, 212, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .avatar-upload-container:hover::before {
   opacity: 1;
+  height: 4px;
+}
+
+.avatar-upload-container:hover::after {
+  width: 300px;
+  height: 300px;
+  opacity: 0.6;
 }
 
 .avatar-preview {
@@ -378,6 +418,7 @@
   font-weight: 700;
   color: white;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
 }
 
 .avatar-actions {
@@ -386,6 +427,78 @@
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.15s both;
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.light-theme .avatar-upload-container {
+  background: linear-gradient(135deg, 
+    #ffffff 0%, 
+    rgba(251, 191, 36, 0.05) 50%,
+    #ffffff 100%);
+  border-color: rgba(251, 191, 36, 0.3);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(251, 191, 36, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(251, 191, 36, 0.1);
+}
+
+.light-theme .avatar-upload-container:hover {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: linear-gradient(135deg, 
+    rgba(251, 191, 36, 0.08) 0%, 
+    #ffffff 50%,
+    rgba(251, 191, 36, 0.08) 100%);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.1),
+    0 6px 16px rgba(251, 191, 36, 0.2),
+    0 0 40px rgba(251, 191, 36, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(251, 191, 36, 0.15);
+}
+
+.light-theme .avatar-upload-container::before {
+  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.dark-theme .avatar-upload-container {
+  background: linear-gradient(135deg, 
+    rgba(15, 23, 42, 0.8) 0%, 
+    rgba(30, 41, 59, 0.6) 50%,
+    rgba(15, 23, 42, 0.8) 100%);
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(6, 182, 212, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme .avatar-upload-container:hover {
+  border-color: rgba(6, 182, 212, 0.6);
+  background: linear-gradient(135deg, 
+    rgba(30, 41, 59, 0.9) 0%, 
+    rgba(15, 23, 42, 0.7) 50%,
+    rgba(30, 41, 59, 0.9) 100%);
+  box-shadow: 
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 6px 16px rgba(6, 182, 212, 0.2),
+    0 0 40px rgba(6, 182, 212, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
 
 .background-group {
@@ -566,32 +679,126 @@
 }
 
 .btn-remove-avatar {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.1) 0%, 
+    rgba(220, 38, 38, 0.08) 100%);
+  color: var(--error-color);
+  border: 1.5px solid rgba(239, 68, 68, 0.3);
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.375rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 2px 8px rgba(239, 68, 68, 0.15),
+    0 1px 3px rgba(239, 68, 68, 0.1);
+}
+
+.btn-remove-avatar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(239, 68, 68, 0.2), 
+    transparent);
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.btn-remove-avatar:hover::before {
+  left: 100%;
 }
 
 .btn-remove-avatar:hover {
-  background: rgba(239, 68, 68, 0.1);
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.2) 0%, 
+    rgba(220, 38, 38, 0.15) 100%);
   border-color: var(--error-color);
-  color: var(--error-color);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  color: #dc2626;
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 
+    0 3px 12px rgba(239, 68, 68, 0.35),
+    0 2px 6px rgba(239, 68, 68, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.btn-remove-avatar:active {
+  transform: translateY(-1px) scale(1);
+  box-shadow: 
+    0 3px 12px rgba(239, 68, 68, 0.3),
+    0 1px 4px rgba(239, 68, 68, 0.2);
+  transition: all 0.1s ease;
+}
+
+.btn-remove-avatar svg {
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.75rem;
+}
+
+.btn-remove-avatar:hover svg {
+  transform: scale(1.15) rotate(-5deg);
+  color: #dc2626;
+}
+
+.btn-remove-avatar span {
+  position: relative;
+  z-index: 1;
+  transition: color 0.3s ease;
+}
+
+.dark-theme .btn-remove-avatar {
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.12) 0%, 
+    rgba(220, 38, 38, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 
+    0 2px 8px rgba(239, 68, 68, 0.2),
+    0 1px 3px rgba(239, 68, 68, 0.15);
 }
 
 .dark-theme .btn-remove-avatar:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: var(--error-color);
-  color: var(--error-color);
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.25) 0%, 
+    rgba(220, 38, 38, 0.2) 100%);
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 
+    0 6px 20px rgba(239, 68, 68, 0.4),
+    0 3px 10px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.light-theme .btn-remove-avatar {
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.08) 0%, 
+    rgba(220, 38, 38, 0.06) 100%);
+  border-color: rgba(239, 68, 68, 0.25);
+  box-shadow: 
+    0 2px 8px rgba(239, 68, 68, 0.12),
+    0 1px 3px rgba(239, 68, 68, 0.08);
+}
+
+.light-theme .btn-remove-avatar:hover {
+  background: linear-gradient(135deg, 
+    rgba(239, 68, 68, 0.18) 0%, 
+    rgba(220, 38, 38, 0.14) 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 
+    0 6px 20px rgba(239, 68, 68, 0.3),
+    0 3px 10px rgba(239, 68, 68, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .form-group.password-change-section {

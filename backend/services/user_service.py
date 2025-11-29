@@ -11,8 +11,28 @@ class UserService:
     
     @staticmethod
     def find_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
-        """Find user by ID"""
-        return next((u for u in users if u['id'] == user_id), None)
+        """Find user by ID (handles IDs with or without leading zeros)"""
+        if not user_id:
+            return None
+        
+        search_id = user_id.strip()
+        # Normalize the search ID to 12 digits with leading zeros if it's numeric
+        normalized_search_id = search_id.zfill(12) if search_id.isdigit() else search_id
+        
+        # Search through users, normalizing each ID for comparison
+        for u in users:
+            stored_id = str(u.get('id', ''))
+            # Normalize stored ID to 12 digits with leading zeros if it's numeric
+            normalized_stored_id = stored_id.zfill(12) if stored_id.isdigit() else stored_id
+            
+            # Match using normalized IDs (handles leading zero differences)
+            if normalized_stored_id == normalized_search_id:
+                return u
+            # Fallback: direct match (for non-numeric IDs or exact matches)
+            if stored_id == search_id:
+                return u
+        
+        return None
     
     @staticmethod
     def find_user_by_username(username: str) -> Optional[Dict[str, Any]]:
@@ -163,18 +183,48 @@ class UserService:
         if not query or len(query.strip()) < 1:
             return []
         
-        search_term = query.lower().strip()
-        matching_users = [
-            {
-                'id': user['id'],
-                'username': user['username'],
-                'email': user['email'],
-                'avatar': user.get('avatar')
-            }
-            for user in users
-            if (search_term in user['username'].lower() or 
-                search_term in user['email'].lower() or
-                search_term in user['id'].lower())
-        ]
+        search_term = query.strip()
+        search_term_lower = search_term.lower()
+        
+        # Check if query is numeric (ID search)
+        is_numeric_query = search_term.isdigit()
+        
+        # Normalize numeric search term to 12 digits
+        normalized_search_id = None
+        if is_numeric_query:
+            normalized_search_id = search_term.zfill(12)
+        
+        matching_users = []
+        for user in users:
+            matched = False
+            stored_id = str(user.get('id', ''))
+            
+            # Exact ID match if query is numeric (with normalization)
+            if is_numeric_query:
+                # Normalize stored ID for comparison
+                normalized_stored_id = stored_id.zfill(12) if stored_id.isdigit() else stored_id
+                if normalized_stored_id == normalized_search_id or stored_id == search_term:
+                    matched = True
+                # Partial ID match
+                elif normalized_search_id in normalized_stored_id or search_term in stored_id:
+                    matched = True
+            # Partial match for username or email
+            elif not is_numeric_query and (
+                search_term_lower in user.get('username', '').lower() or 
+                search_term_lower in user.get('email', '').lower()
+            ):
+                matched = True
+            # Partial ID match (for non-numeric queries that might contain numbers)
+            elif search_term_lower in stored_id.lower():
+                matched = True
+            
+            if matched:
+                matching_users.append({
+                    'id': user['id'],
+                    'username': user['username'],
+                    'email': user['email'],
+                    'avatar': user.get('avatar')
+                })
+        
         return matching_users
 

@@ -1515,6 +1515,22 @@
   color: var(--primary-color);
 }
 
+.comment-reaction-btn.liking {
+  opacity: 0.7;
+  cursor: wait;
+  pointer-events: none;
+  animation: pulse-like 0.6s ease-in-out infinite;
+}
+
+@keyframes pulse-like {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
 .dark-theme .comment-reaction-btn.liked {
   background: rgba(8, 145, 178, 0.1);
 }
