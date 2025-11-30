@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
+import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
 import UploadModal from '../components/UploadModal';
 import { isImageFile } from '../utils/fileHandler';
 import { formatDate as formatDateUtil, formatDateTime } from '../utils/dateFormatter';
-import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import JSZip from 'jszip';
 import './ViewCode.css';
 
@@ -35,6 +35,7 @@ interface CommentItemProps {
   onLike: (commentId: string) => void;
   allComments?: Comment[];
   currentLanguage: string;
+  likingCommentId?: string | null; // Track which comment is being liked
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -57,11 +58,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onLike,
   allComments = [],
   currentLanguage,
+  likingCommentId = null,
 }) => {
   const { t } = useTranslation();
   const isLiked = currentUser ? comment.likes?.includes(currentUser.id) : false;
   const likeCount = comment.likes?.length || 0;
   const isReply = comment.parentId ? true : false;
+  const isLiking = likingCommentId === comment.id;
   
   // Find parent comment
   const parentComment = comment.parentId 
@@ -108,8 +111,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 <button
                   className="btn-comment-edit"
                   onClick={() => onEdit(comment)}
+                  title={t('common.edit')}
                 >
-                  <FontAwesomeIcon icon={faEdit} /> {t('common.edit')}
+                  <span className="menu-icon">
+                    <span className="menu-line"></span>
+                    <span className="menu-line"></span>
+                    <span className="menu-line"></span>
+                  </span>
                 </button>
                 <button
                   className="btn-comment-delete"
@@ -134,9 +142,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
       )}
       <div className="comment-reactions">
         <button
-          className={`comment-reaction-btn ${isLiked ? 'liked' : ''}`}
+          className={`comment-reaction-btn ${isLiked ? 'liked' : ''} ${isLiking ? 'liking' : ''}`}
           onClick={() => onLike(comment.id)}
-          disabled={!currentUser}
+          disabled={!currentUser || isLiking}
           title="Лайк"
         >
           👍 {likeCount}
@@ -206,6 +214,7 @@ const ViewCode: React.FC = () => {
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [likingCommentId, setLikingCommentId] = useState<string | null>(null); // Track which comment is being liked
   const [folderFiles, setFolderFiles] = useState<CodeFile[]>([]);
   const [filteredFolderFiles, setFilteredFolderFiles] = useState<CodeFile[]>([]);
   const [filterLanguage, setFilterLanguage] = useState<string>('all');
@@ -229,6 +238,14 @@ const ViewCode: React.FC = () => {
         id,
         (updatedCode) => {
           setCode(updatedCode);
+          // Егер папка болса, файлдарды жүктеу
+          if (updatedCode.isFolder) {
+            loadFolderFiles(id);
+          } else {
+            // Егер папка емес болса, файлдарды тазалау
+            setFolderFiles([]);
+            setSelectedFile(null);
+          }
         },
         (error) => {
           console.error('Real-time listener error:', error);
@@ -330,8 +347,8 @@ const ViewCode: React.FC = () => {
   const loadFolderFiles = async (folderId: string) => {
     try {
       setLoadingFiles(true);
-      const files = await apiService.getCodeFiles(folderId);
-      setFolderFiles(files);
+      const response = await apiService.getCodeFiles(folderId, 1000, 0, true);
+      setFolderFiles(response.codes);
       applyLanguageFilter(files, filterLanguage);
       if (files.length > 0) {
         setSelectedFile(files[0]);
@@ -485,34 +502,81 @@ const ViewCode: React.FC = () => {
   const handleLike = async () => {
     if (!code || !currentUser) return;
     
+    // Optimistic update - бірден state-ті өзгерту
+    const isLiked = code.likes?.includes(currentUser.id);
+    const currentLikes = code.likes || [];
+    const updatedLikes = isLiked
+      ? currentLikes.filter(id => id !== currentUser.id)
+      : [...currentLikes, currentUser.id];
+    
+    // Бірден state-ті жаңарту
+    setCode({
+      ...code,
+      likes: updatedLikes
+    });
+    
     try {
-      const isLiked = code.likes?.includes(currentUser.id);
+      // API сұрауын жіберу
       const updatedCode = isLiked
         ? await apiService.unlikeCode(code.id, currentUser.id)
         : await apiService.likeCode(code.id, currentUser.id);
       setCode(updatedCode);
     } catch (err) {
       console.error('Failed to toggle like:', err);
+      // Егер API сұрауы сәтсіз болса, state-ті қайтару
+      setCode({
+        ...code,
+        likes: currentLikes
+      });
     }
   };
 
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) {
-    e.preventDefault();
+      e.preventDefault();
     }
     if (!code || !currentUser || !commentText.trim()) return;
 
+    const commentTextToAdd = commentText.trim();
     setIsSubmittingComment(true);
+    
+    // Optimistic UI update - пікірді бірден көрсету
+    const optimisticComment: Comment = {
+      id: `temp-${Date.now()}`,
+      author: currentUser.username,
+      content: commentTextToAdd,
+      createdAt: new Date().toISOString(),
+      likes: [],
+    };
+    
+    setCode(prevCode => {
+      if (!prevCode) return prevCode;
+      return {
+        ...prevCode,
+        comments: [...(prevCode.comments || []), optimisticComment]
+      };
+    });
+    setCommentText('');
+    
     try {
       const updatedCode = await apiService.addComment(
         code.id,
         currentUser.username,
-        commentText.trim()
+        commentTextToAdd
       );
       setCode(updatedCode);
-      setCommentText('');
     } catch (err) {
       console.error('Failed to add comment:', err);
+      // Optimistic update-ті к geri алу
+      setCode(prevCode => {
+        if (!prevCode) return prevCode;
+        return {
+          ...prevCode,
+          comments: (prevCode.comments || []).filter(c => c.id !== optimisticComment.id)
+        };
+      });
+      setCommentText(commentTextToAdd);
+      alert('Пікір қосу қатесі');
     } finally {
       setIsSubmittingComment(false);
     }
@@ -614,13 +678,58 @@ const ViewCode: React.FC = () => {
   };
 
   const handleLikeComment = async (commentId: string) => {
-    if (!code || !currentUser) return;
+    if (!code || !currentUser || likingCommentId === commentId) return; // Prevent double-clicking
+
+    // Find the comment
+    const comment = code.comments?.find(c => c.id === commentId);
+    if (!comment) return;
+
+    // Set loading state IMMEDIATELY before any async operations
+    // This ensures button is disabled for both like and unlike operations
+    setLikingCommentId(commentId);
+
+    // Store original likes for rollback
+    const originalLikes = comment.likes || [];
+
+    // Optimistic UI update - update UI immediately
+    const isLiked = originalLikes.includes(currentUser.id);
+    const newLikes = isLiked
+      ? originalLikes.filter(id => id !== currentUser.id)
+      : [...originalLikes, currentUser.id];
+
+    // Update comment optimistically using requestAnimationFrame for smooth UI
+    // But keep button disabled during the operation
+    requestAnimationFrame(() => {
+      const updatedComments = (code.comments || []).map(c =>
+        c.id === commentId
+          ? { ...c, likes: newLikes }
+          : c
+      );
+      setCode({ ...code, comments: updatedComments });
+    });
 
     try {
+      // Then update server
       const updatedCode = await apiService.likeComment(code.id, commentId, currentUser.id);
+      // Update with server response
       setCode(updatedCode);
     } catch (err) {
       console.error('Failed to like comment:', err);
+      // Rollback on error - revert to original state
+      requestAnimationFrame(() => {
+        const originalComments = (code.comments || []).map(c =>
+          c.id === commentId
+            ? { ...c, likes: originalLikes }
+            : c
+        );
+        setCode({ ...code, comments: originalComments });
+      });
+    } finally {
+      // Clear loading state after a small delay to prevent rapid clicking
+      // This delay ensures button stays disabled during both like and unlike operations
+      setTimeout(() => {
+        setLikingCommentId(null);
+      }, 400); // Increased delay to ensure button stays disabled
     }
   };
 
@@ -715,11 +824,7 @@ const ViewCode: React.FC = () => {
                   onClick={() => setShowActionsMenu(!showActionsMenu)}
                   title="Әрекеттер"
                 >
-                  <span className="menu-icon">
-                    <span className="menu-line"></span>
-                    <span className="menu-line"></span>
-                    <span className="menu-line"></span>
-                  </span>
+                  <FontAwesomeIcon icon={faEllipsisVertical} />
                 </button>
                 {showActionsMenu && (
                   <div className="actions-menu-dropdown">
@@ -784,34 +889,37 @@ const ViewCode: React.FC = () => {
             </div>
           )}
           <div className="meta-item meta-actions">
-            {code.isFolder && folderFiles.length > 0 && (
-              <button
-                className="btn-export-folder"
-                onClick={handleExportFolder}
-                title="Папканың барлығын жаздыру"
-              >
-                <FontAwesomeIcon icon={faDownload} /> Экспорттау
-              </button>
-            )}
-            <button
-              className={`like-button-header ${isLiked ? 'liked' : ''}`}
-              onClick={handleLike}
-              disabled={!currentUser}
-              title={currentUser ? (isLiked ? 'Лайкты алып тастау' : 'Лайк қосу') : 'Лайк қосу үшін кіру керек'}
-            >
-              <FontAwesomeIcon icon={isLiked ? faHeart : faRegHeartRegular} /> {likeCount}
-            </button>
           </div>
         </div>
 
 
         {code.tags && code.tags.length > 0 && (
           <div className="code-tags">
-            {code.tags.map((tag, index) => (
+            {code.tags.filter(tag => tag.toLowerCase() !== 'folder').map((tag, index) => (
               <span key={index} className="tag">{tag}</span>
             ))}
           </div>
         )}
+
+        <div style={{ marginTop: '1rem', display: 'inline-flex', justifyContent: 'flex-start', gap: '0.5rem', alignItems: 'center' }}>
+          <button
+            className={`like-button-header ${isLiked ? 'liked' : ''}`}
+            onClick={handleLike}
+            disabled={!currentUser}
+            title={currentUser ? (isLiked ? 'Лайкты алып тастау' : 'Лайк қосу') : 'Лайк қосу үшін кіру керек'}
+          >
+            <FontAwesomeIcon icon={isLiked ? faHeart : faRegHeartRegular} /> {likeCount}
+          </button>
+          {code.isFolder && folderFiles.length > 0 && (
+            <button
+              className="btn-export-folder"
+              onClick={handleExportFolder}
+              title="Папканың барлығын жаздыру"
+            >
+              <FontAwesomeIcon icon={faDownload} /> Экспорттау
+            </button>
+          )}
+        </div>
       </div>
 
       {code.isFolder && (
@@ -978,31 +1086,39 @@ const ViewCode: React.FC = () => {
                   
                   {currentUser ? (
                 <form onSubmit={handleAddComment} className="comment-form">
-                      <textarea
-                        className="comment-input"
-                    placeholder={t('viewCode.commentPlaceholder')}
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleAddComment();
-                      }
-                    }}
-                        rows={3}
-                      />
-                      <button
-                        type="submit"
-                        className="btn-primary"
-                        disabled={!commentText.trim() || isSubmittingComment}
-                      >
-                    {isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
-                      </button>
+                      <div className="comment-input-wrapper">
+                        <textarea
+                          className="comment-input"
+                          placeholder={t('viewCode.commentPlaceholder')}
+                          value={commentText}
+                          onChange={(e) => setCommentText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleAddComment();
+                            }
+                          }}
+                          rows={3}
+                        />
+                        <button
+                          type="submit"
+                          className="btn-comment-submit-icon"
+                          disabled={!commentText.trim() || isSubmittingComment}
+                          title={isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
+                        >
+                          <FontAwesomeIcon icon={faPaperPlane} />
+                        </button>
+                      </div>
                     </form>
                   ) : (
-                    <p className="comment-login-prompt">
-                  {t('viewCode.loginToComment')} <button onClick={() => navigate('/login')} className="link-button">{t('common.login')}</button>
-                    </p>
+                    <div className="comment-login-prompt">
+                      <div className="comment-login-prompt-left">
+                        {t('viewCode.loginToComment')}
+                      </div>
+                      <div className="comment-login-prompt-right">
+                        <button onClick={() => navigate('/login')} className="link-button">{t('common.login')}</button>
+                      </div>
+                    </div>
                   )}
 
                   <div className="comments-list">
@@ -1029,6 +1145,7 @@ const ViewCode: React.FC = () => {
                       onLike={handleLikeComment}
                       allComments={code.comments || []}
                       currentLanguage={currentLanguage}
+                      likingCommentId={likingCommentId}
                         />
                       ))
                     ) : (

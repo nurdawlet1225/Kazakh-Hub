@@ -8,7 +8,7 @@ import uvicorn
 import os
 
 # Import database and config
-from database import load_data
+from database import load_data, codes
 from config import FIRESTORE_SYNC_AVAILABLE, FIRESTORE_INIT
 
 # Import routes
@@ -18,8 +18,12 @@ from routes import api_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan event handler for startup and shutdown"""
+    import asyncio
+    from database import save_codes, save_users, save_friends, save_messages, save_friend_requests, save_passwords
+    
     # Startup
     load_data()
+    print(f"Loaded {len(codes)} codes from file")
     
     # Initialize Firestore if available
     if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_INIT:
@@ -28,7 +32,44 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             print(f"Warning: Firestore initialization failed: {e}")
     
+    # Auto-save task
+    async def auto_save():
+        while True:
+            await asyncio.sleep(30)  # Save every 30 seconds
+            try:
+                save_codes()
+                save_users()
+                save_friends()
+                save_messages()
+                save_friend_requests()
+                save_passwords()
+                print("Auto-saved all data")
+            except Exception as e:
+                print(f"Error in auto-save: {e}")
+    
+    # Start auto-save task
+    auto_save_task = asyncio.create_task(auto_save())
+    
     yield
+    
+    # Shutdown - save all data before closing
+    try:
+        save_codes()
+        save_users()
+        save_friends()
+        save_messages()
+        save_friend_requests()
+        save_passwords()
+        print("All data saved on shutdown")
+    except Exception as e:
+        print(f"Error saving data on shutdown: {e}")
+    
+    # Cancel auto-save task
+    auto_save_task.cancel()
+    try:
+        await auto_save_task
+    except asyncio.CancelledError:
+        pass
     
     # Shutdown (if needed)
     pass
@@ -55,6 +96,12 @@ app.add_middleware(
 async def log_requests(request, call_next):
     print(f"{datetime.now().isoformat()} - {request.method} {request.url.path}")
     response = await call_next(request)
+    
+    # Add caching headers for GET requests
+    if request.method == "GET" and request.url.path.startswith("/api/codes"):
+        # Cache codes list for 30 seconds
+        response.headers["Cache-Control"] = "public, max-age=30"
+    
     return response
 
 # Root endpoints

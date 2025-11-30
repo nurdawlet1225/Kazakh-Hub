@@ -25,12 +25,14 @@ def load_data():
     try:
         if os.path.exists(CODES_FILE):
             with open(CODES_FILE, 'r', encoding='utf-8') as f:
-                codes = json.load(f)
+                loaded_codes = json.load(f)
+                codes.clear()
+                codes.extend(loaded_codes)
         else:
-            codes = []
+            codes.clear()
     except Exception as e:
         print(f'Error loading codes: {e}')
-        codes = []
+        codes.clear()
     
     # Load users
     try:
@@ -63,45 +65,52 @@ def load_data():
         if os.path.exists(PASSWORDS_FILE):
             with open(PASSWORDS_FILE, 'r', encoding='utf-8') as f:
                 passwords_obj = json.load(f)
-                passwords = passwords_obj
+                passwords.clear()
+                passwords.update(passwords_obj)
         else:
-            passwords = {}
+            passwords.clear()
     except Exception as e:
         print(f'Error loading passwords: {e}')
-        passwords = {}
+        passwords.clear()
     
     # Load friends
     try:
         if os.path.exists(FRIENDS_FILE):
             with open(FRIENDS_FILE, 'r', encoding='utf-8') as f:
-                friends = json.load(f)
+                friends_obj = json.load(f)
+                friends.clear()
+                friends.update(friends_obj)
         else:
-            friends = {}
+            friends.clear()
     except Exception as e:
         print(f'Error loading friends: {e}')
-        friends = {}
+        friends.clear()
     
     # Load messages
     try:
         if os.path.exists(MESSAGES_FILE):
             with open(MESSAGES_FILE, 'r', encoding='utf-8') as f:
-                messages = json.load(f)
+                loaded_messages = json.load(f)
+                messages.clear()
+                messages.extend(loaded_messages)
         else:
-            messages = []
+            messages.clear()
     except Exception as e:
         print(f'Error loading messages: {e}')
-        messages = []
+        messages.clear()
     
     # Load friend requests
     try:
         if os.path.exists(FRIEND_REQUESTS_FILE):
             with open(FRIEND_REQUESTS_FILE, 'r', encoding='utf-8') as f:
-                friend_requests = json.load(f)
+                loaded_friend_requests = json.load(f)
+                friend_requests.clear()
+                friend_requests.extend(loaded_friend_requests)
         else:
-            friend_requests = []
+            friend_requests.clear()
     except Exception as e:
         print(f'Error loading friend requests: {e}')
-        friend_requests = []
+        friend_requests.clear()
 
 
 def save_codes():
@@ -157,15 +166,25 @@ def save_passwords():
 def save_friends():
     """Save friends to file"""
     try:
+        # Ensure directory exists
+        friends_dir = os.path.dirname(FRIENDS_FILE)
+        if friends_dir:
+            os.makedirs(friends_dir, exist_ok=True)
         with open(FRIENDS_FILE, 'w', encoding='utf-8') as f:
             json.dump(friends, f, indent=2, ensure_ascii=False)
+        print(f'Friends saved successfully, count: {len(friends)} users')
     except Exception as e:
         print(f'Error saving friends: {e}')
+        raise
 
 
 def save_messages():
     """Save messages to file and sync to Firestore"""
     try:
+        # Ensure directory exists
+        messages_dir = os.path.dirname(MESSAGES_FILE)
+        if messages_dir:
+            os.makedirs(messages_dir, exist_ok=True)
         with open(MESSAGES_FILE, 'w', encoding='utf-8') as f:
             json.dump(messages, f, indent=2, ensure_ascii=False)
         
@@ -180,13 +199,20 @@ def save_messages():
                 print(f'Warning: Firestore messages sync failed: {e}')
     except Exception as e:
         print(f'Error saving messages: {e}')
+        raise
 
 
 def save_friend_requests():
     """Save friend requests to file"""
     try:
+        # Ensure directory exists
+        friend_requests_dir = os.path.dirname(FRIEND_REQUESTS_FILE)
+        if friend_requests_dir:
+            os.makedirs(friend_requests_dir, exist_ok=True)
         with open(FRIEND_REQUESTS_FILE, 'w', encoding='utf-8') as f:
             json.dump(friend_requests, f, indent=2, ensure_ascii=False)
+        print(f'Friend requests saved successfully, count: {len(friend_requests)}')
     except Exception as e:
         print(f'Error saving friend requests: {e}')
+        raise
 

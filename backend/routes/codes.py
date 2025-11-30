@@ -8,9 +8,14 @@ router = APIRouter()
 
 
 @router.get("/codes")
-async def get_codes(folderId: Optional[str] = Query(None)):
-    """Get codes, optionally filtered by folder"""
-    return CodeService.get_codes(folderId)
+async def get_codes(
+    folderId: Optional[str] = Query(None),
+    limit: Optional[int] = Query(None, ge=1, le=1000),
+    offset: Optional[int] = Query(0, ge=0),
+    includeContent: Optional[bool] = Query(False)
+):
+    """Get codes, optionally filtered by folder with pagination support"""
+    return CodeService.get_codes(folderId, limit=limit, offset=offset, include_content=includeContent)
 
 
 @router.get("/codes/{code_id}")

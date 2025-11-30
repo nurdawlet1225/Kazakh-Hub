@@ -56,6 +56,7 @@ export interface FriendRequest {
   createdAt: string;
   otherUser?: User;
   fromUser?: User;
+  toUser?: User;
   isIncoming?: boolean;
 }
 
@@ -82,17 +83,37 @@ class ApiService {
       const url = `${this.baseUrl}${endpoint}`;
       console.log(`API Request: ${options?.method || 'GET'} ${url}`);
       
+      // Add timeout to prevent hanging (10 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const response = await fetch(url, {
         ...options,
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
         },
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
+        
+        // Only log non-401 errors or if it's not a login endpoint
+        // 401 errors during login are expected (will try Firebase)
+        const isLoginEndpoint = endpoint.includes('/auth/login');
+        const isExpected401 = response.status === 401 && isLoginEndpoint;
+        
+        // Don't log 404 errors for getUserProfile - this is expected when searching by ID
+        const isUserProfileEndpoint = endpoint.match(/^\/users\/[^\/]+$/);
+        const isExpected404 = response.status === 404 && isUserProfileEndpoint;
+        
+        if (!isExpected401 && !isExpected404) {
+          console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
+        }
+        
         let errorMessage = errorData.detail || errorData.error || `API Error: ${response.statusText}`;
         
         // Translate common error messages to Kazakh
@@ -112,6 +133,10 @@ class ApiService {
       return response.json();
     } catch (error) {
       if (error instanceof Error) {
+        // Check if it's an abort error (timeout)
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          throw new Error('Серверге қосылу уақыты асқынып кетті. Интернет байланысын тексеріңіз.');
+        }
         // Network error or other fetch errors
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
           throw new Error('Серверге қосылу мүмкін емес. Backend-тің http://127.0.0.1:3000-де жұмыс істеп тұрғанын тексеріңіз');
@@ -123,9 +148,34 @@ class ApiService {
   }
 
   // Code files
-  async getCodeFiles(folderId?: string): Promise<CodeFile[]> {
-    const endpoint = folderId ? `/codes?folderId=${folderId}` : '/codes';
-    return this.request<CodeFile[]>(endpoint);
+  async getCodeFiles(
+    folderId?: string, 
+    limit?: number, 
+    offset?: number, 
+    includeContent?: boolean
+  ): Promise<{ codes: CodeFile[]; total: number; limit?: number; offset: number; hasMore: boolean }> {
+    const params = new URLSearchParams();
+    if (folderId) params.append('folderId', folderId);
+    if (limit !== undefined) params.append('limit', limit.toString());
+    if (offset !== undefined) params.append('offset', offset.toString());
+    if (includeContent) params.append('includeContent', 'true');
+    
+    const endpoint = `/codes${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await this.request<any>(endpoint);
+    
+    // Кері үйлесімділік: егер жауап массив болса (ескі формат), оны жаңа форматқа түрлендіру
+    if (Array.isArray(response)) {
+      return {
+        codes: response,
+        total: response.length,
+        limit: limit,
+        offset: offset || 0,
+        hasMore: false
+      };
+    }
+    
+    // Жаңа формат (пагинациямен)
+    return response;
   }
 
   async getCodeFile(id: string): Promise<CodeFile> {
@@ -160,8 +210,41 @@ class ApiService {
   }
 
   // User
-  async getCurrentUser(): Promise<User> {
-    return this.request<User>('/user');
+  async getCurrentUser(email?: string, userId?: string): Promise<User> {
+    // Try to get email and userId from localStorage if not provided
+    if (!email || !userId) {
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          email = email || userData.email;
+          userId = userId || userData.id;
+        }
+      } catch (err) {
+        console.error('Failed to get user data from localStorage:', err);
+      }
+    }
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (email) params.append('email', email);
+    if (userId) params.append('user_id', userId);
+    
+    const url = params.toString() ? `/user?${params.toString()}` : '/user';
+    
+    try {
+      return await this.request<User>(url);
+    } catch (error: any) {
+      // If user not found (404), clear localStorage and reload
+      if (error?.message?.includes('404') || error?.message?.includes('not found') || error?.message?.includes('табылмады')) {
+        console.warn('User not found in backend, clearing localStorage');
+        localStorage.removeItem('user');
+        // Only reload if we're not already handling the error elsewhere
+        // Don't reload immediately to avoid infinite loops
+        throw new Error('Пайдаланушы табылмады. Жүйені қайта жүктеңіз немесе қайта кіріңіз.');
+      }
+      throw error;
+    }
   }
 
   async getUserProfile(userId: string): Promise<User> {
@@ -351,6 +434,10 @@ class ApiService {
     return this.request<FriendRequest[]>(`/friend-requests/incoming/${userId}`);
   }
 
+  async getOutgoingFriendRequests(userId: string): Promise<FriendRequest[]> {
+    return this.request<FriendRequest[]>(`/friend-requests/outgoing/${userId}`);
+  }
+
   async sendFriendRequest(fromUserId: string, toUserId: string): Promise<FriendRequest> {
     return this.request<FriendRequest>('/friend-requests', {
       method: 'POST',
@@ -367,6 +454,13 @@ class ApiService {
   async rejectFriendRequest(requestId: string): Promise<{ message: string; request: FriendRequest }> {
     return this.request<{ message: string; request: FriendRequest }>(`/friend-requests/${requestId}/reject`, {
       method: 'PUT',
+    });
+  }
+
+  async cancelFriendRequest(requestId: string, userId: string): Promise<{ message: string; request: FriendRequest }> {
+    return this.request<{ message: string; request: FriendRequest }>(`/friend-requests/${requestId}/cancel`, {
+      method: 'PUT',
+      body: JSON.stringify({ userId }),
     });
   }
 

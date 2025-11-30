@@ -171,7 +171,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
               value={projectDescription}
               onChange={(e) => setProjectDescription(e.target.value)}
               placeholder={t('settings.projectDescriptionPlaceholder')}
-              rows={4}
+              rows={3}
               required
             />
           </div>

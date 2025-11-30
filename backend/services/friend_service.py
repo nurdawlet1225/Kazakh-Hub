@@ -147,6 +147,30 @@ class FriendService:
         return requests_with_users
     
     @staticmethod
+    def get_outgoing_friend_requests(user_id: str) -> List[Dict[str, Any]]:
+        """Get outgoing friend requests for a user"""
+        outgoing_requests = [
+            req for req in friend_requests
+            if req.get('fromUserId') == user_id and req.get('status') == 'pending'
+        ]
+        
+        requests_with_users = []
+        for req in outgoing_requests:
+            to_user = next((u for u in users if u['id'] == req['toUserId']), None)
+            if to_user:
+                requests_with_users.append({
+                    **req,
+                    'toUser': {
+                        'id': to_user['id'],
+                        'username': to_user['username'],
+                        'email': to_user['email'],
+                        'avatar': to_user.get('avatar')
+                    }
+                })
+        
+        return requests_with_users
+    
+    @staticmethod
     def get_incoming_friend_request_count(user_id: str) -> int:
         """Get count of incoming friend requests"""
         incoming_count = sum(
@@ -170,6 +194,17 @@ class FriendService:
         # Add to friends list
         FriendService.add_friend(request['fromUserId'], request['toUserId'])
         
+        # Егер екінші жақтан да сұрау болса, оны да автоматты түрде қабылдау
+        reverse_request = next((
+            req for req in friend_requests
+            if req.get('fromUserId') == request['toUserId'] and
+               req.get('toUserId') == request['fromUserId'] and
+               req.get('status') == 'pending'
+        ), None)
+        
+        if reverse_request:
+            reverse_request['status'] = 'accepted'
+        
         save_friend_requests()
         return request
     
@@ -184,6 +219,24 @@ class FriendService:
             raise ValueError("Request already processed")
         
         request['status'] = 'rejected'
+        save_friend_requests()
+        return request
+    
+    @staticmethod
+    def cancel_friend_request(request_id: str, user_id: str) -> Dict[str, Any]:
+        """Cancel a friend request (for outgoing requests)"""
+        request = next((req for req in friend_requests if req['id'] == request_id), None)
+        if not request:
+            raise ValueError("Friend request not found")
+        
+        # Only allow canceling if user is the sender
+        if request.get('fromUserId') != user_id:
+            raise ValueError("You can only cancel your own friend requests")
+        
+        if request.get('status') != 'pending':
+            raise ValueError("Request already processed")
+        
+        request['status'] = 'cancelled'
         save_friend_requests()
         return request
 

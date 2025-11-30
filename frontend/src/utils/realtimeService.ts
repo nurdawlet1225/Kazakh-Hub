@@ -1,5 +1,5 @@
 // Real-time авто-обновление сервисі - Firestore onSnapshot пайдалана отырып
-import { db } from './firebase';
+import { db, isFirestoreBlocked, markFirestoreBlocked } from './firebase';
 import { doc, onSnapshot, Unsubscribe, collection, query, where, orderBy, onSnapshot as onSnapshotCollection } from 'firebase/firestore';
 import { CodeFile, Message } from './api';
 
@@ -21,6 +21,12 @@ export const subscribeToCode = (
   const existingListener = listeners.get(listenerKey);
   if (existingListener) {
     existingListener();
+  }
+
+  // Check if Firestore is blocked before attempting connection
+  if (isFirestoreBlocked()) {
+    // Return empty unsubscribe function - don't attempt connection
+    return () => {};
   }
 
   try {
@@ -55,15 +61,26 @@ export const subscribeToCode = (
       (error: any) => {
         // ERR_BLOCKED_BY_CLIENT қатесін (ad blocker) елемеу
         const errorMessage = error?.message || error?.toString() || '';
+        const errorStack = error?.stack || '';
+        const errorString = JSON.stringify(error) || '';
         const isBlocked = 
           error?.code === 'unavailable' || 
           error?.code === 'permission-denied' ||
           errorMessage.includes('BLOCKED_BY_CLIENT') ||
           errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
           errorMessage.includes('network') ||
-          errorMessage.includes('Failed to fetch');
+          errorMessage.includes('Failed to fetch') ||
+          errorStack.includes('BLOCKED_BY_CLIENT') ||
+          errorStack.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('BLOCKED_BY_CLIENT') ||
+          errorString.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('Listen/channel') ||
+          errorString.includes('TYPE=terminate');
         
         if (isBlocked) {
+          // Mark Firestore as blocked for future attempts
+          markFirestoreBlocked();
+          // Тыныштықпен елемеу - API деректері пайдаланылады
           // Error suppression utility will handle console output
           return;
         }
@@ -105,6 +122,12 @@ export const subscribeToMessages = (
     existingListener();
   }
 
+  // Check if Firestore is blocked before attempting connection
+  if (isFirestoreBlocked()) {
+    // Return empty unsubscribe function - don't attempt connection
+    return () => {};
+  }
+
   try {
     // Екі пайдаланушы арасындағы хабарламаларды табу
     const messagesRef = collection(db, 'messages');
@@ -135,15 +158,26 @@ export const subscribeToMessages = (
       (error: any) => {
         // ERR_BLOCKED_BY_CLIENT қатесін (ad blocker) елемеу
         const errorMessage = error?.message || error?.toString() || '';
+        const errorStack = error?.stack || '';
+        const errorString = JSON.stringify(error) || '';
         const isBlocked = 
           error?.code === 'unavailable' || 
           error?.code === 'permission-denied' ||
           errorMessage.includes('BLOCKED_BY_CLIENT') ||
           errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
           errorMessage.includes('network') ||
-          errorMessage.includes('Failed to fetch');
+          errorMessage.includes('Failed to fetch') ||
+          errorStack.includes('BLOCKED_BY_CLIENT') ||
+          errorStack.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('BLOCKED_BY_CLIENT') ||
+          errorString.includes('ERR_BLOCKED_BY_CLIENT') ||
+          errorString.includes('Listen/channel') ||
+          errorString.includes('TYPE=terminate');
         
         if (isBlocked) {
+          // Mark Firestore as blocked for future attempts
+          markFirestoreBlocked();
+          // Тыныштықпен елемеу - API деректері пайдаланылады
           // Error suppression utility will handle console output
           return;
         }
@@ -184,6 +218,14 @@ export const subscribeToCodes = (
     existingListener();
   }
 
+  // Check if Firestore is blocked before attempting connection
+  if (isFirestoreBlocked()) {
+    // Return empty unsubscribe function - don't attempt connection
+    // Call onUpdate with empty array so component doesn't wait
+    setTimeout(() => onUpdate([]), 0);
+    return () => {};
+  }
+
   try {
     const codesRef = collection(db, 'codes');
     let q;
@@ -196,8 +238,6 @@ export const subscribeToCodes = (
       );
     } else {
       // Басты бетте: folderId === null болатын барлық кодтар мен папкалар
-      // Firestore-да null мәнін тексеру үшін where('folderId', '==', null) пайдаланамыз
-      // Егер orderBy индекс мәселесі болса, алдымен where сұрауын орындап, содан кейін клиентте сұрыптаймыз
       try {
         q = query(
           codesRef,
@@ -291,6 +331,8 @@ export const subscribeToCodes = (
           errorString.includes('ERR_BLOCKED_BY_CLIENT');
         
         if (isBlocked) {
+          // Mark Firestore as blocked for future attempts
+          markFirestoreBlocked();
           // Тыныштықпен елемеу - API деректері пайдаланылады
           // Бос массив қайтару, сонда API деректері пайдаланылады
           onUpdate([]);
@@ -323,8 +365,12 @@ export const subscribeToCodes = (
       errorString.includes('ERR_BLOCKED_BY_CLIENT');
     
     if (isBlocked) {
+      // Mark Firestore as blocked for future attempts
+      markFirestoreBlocked();
       // Тыныштықпен елемеу - API деректері пайдаланылады
       // Бос unsubscribe функциясы қайтару
+      // Call onUpdate with empty array so component doesn't wait
+      setTimeout(() => onUpdate([]), 0);
       return () => {};
     }
     // Тек нақты қателерді көрсету

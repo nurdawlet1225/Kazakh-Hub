@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
+import { ensureNumericId, isNumericId } from '../utils/idConverter';
 import { isCOOPBlockingPopups } from '../utils/errorSuppression';
 import './Auth.css';
 
@@ -45,8 +46,27 @@ const Register: React.FC = () => {
         userData.email,
         '', // No password for Google auth
         userData.id // Firebase UID
-      ).catch((err) => {
+      ).then((backendResponse) => {
+        // Use numeric ID from backend instead of Firebase UID
+        if (backendResponse?.user?.id) {
+          userData.id = backendResponse.user.id;
+          // Update localStorage with numeric ID
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+      }).catch((err) => {
         // Backend sync is optional - user is already logged in via Firebase
+        const errorMsg = err?.message || '';
+        // If user already exists, try to get the numeric ID
+        if (errorMsg.includes('already exists') || errorMsg.includes('User already exists')) {
+          apiService.searchUsers(userData.email).then((foundUsers) => {
+            if (foundUsers && foundUsers.length > 0) {
+              userData.id = foundUsers[0].id;
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          }).catch(() => {
+            // Ignore search errors
+          });
+        }
         console.log('Backend sync failed (non-critical for Google auth):', err);
       });
 
@@ -228,33 +248,73 @@ const Register: React.FC = () => {
       
       // Sync with backend - this is important for user to be searchable
       try {
-        await apiService.register(
+        const backendResponse = await apiService.register(
           userData.username,
           userData.email,
           '', // No password for Firebase auth
           userData.id // Firebase UID
         );
         console.log('User successfully registered in backend');
+        
+        // Use numeric ID from backend instead of Firebase UID
+        if (backendResponse?.user?.id && isNumericId(backendResponse.user.id)) {
+          userData.id = backendResponse.user.id;
+          // Update localStorage with numeric ID
+          localStorage.setItem('user', JSON.stringify(userData));
+        } else if (!isNumericId(userData.id)) {
+          // Convert Firebase UID to numeric ID if backend didn't return numeric ID
+          userData.id = ensureNumericId(userData.id);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
       } catch (err: any) {
         // Backend sync failed - show error but don't block registration
-        console.error('Backend sync failed:', err);
         const errorMsg = err?.message || 'Backend синхрондау қатесі';
         
-        // If user already exists in backend, that's okay - continue
+        // If user already exists in backend, try to get the user's numeric ID
         if (errorMsg.includes('already exists') || errorMsg.includes('User already exists') || errorMsg.includes('Пайдаланушы бар')) {
-          console.log('User already exists in backend, continuing...');
+          // User already exists - try to get user by email to get numeric ID
+          try {
+            const foundUsers = await apiService.searchUsers(userData.email);
+            if (foundUsers && foundUsers.length > 0 && isNumericId(foundUsers[0].id)) {
+              userData.id = foundUsers[0].id;
+              localStorage.setItem('user', JSON.stringify(userData));
+            } else if (!isNumericId(userData.id)) {
+              // Convert Firebase UID to numeric ID if search didn't return numeric ID
+              userData.id = ensureNumericId(userData.id);
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          } catch (searchErr) {
+            console.log('Could not find existing user:', searchErr);
+            // Convert Firebase UID to numeric ID if search failed
+            if (!isNumericId(userData.id)) {
+              userData.id = ensureNumericId(userData.id);
+              localStorage.setItem('user', JSON.stringify(userData));
+            }
+          }
         } else {
-          // Show warning but don't block - user is registered in Firebase
-          console.warn('Backend registration failed, but Firebase registration succeeded:', errorMsg);
-          // Still continue - user can use the app, backend sync can be retried later
-          // The error is logged but we don't block the user from using the app
+          // Backend registration failed, but Firebase registration succeeded
+          // Convert Firebase UID to numeric ID
+          if (!isNumericId(userData.id)) {
+            userData.id = ensureNumericId(userData.id);
+            localStorage.setItem('user', JSON.stringify(userData));
+          }
         }
+      }
+      
+      // Final check: ensure ID is numeric before redirecting
+      if (!isNumericId(userData.id)) {
+        userData.id = ensureNumericId(userData.id);
+        localStorage.setItem('user', JSON.stringify(userData));
       }
       
       // Redirect to home
       navigate('/');
     } catch (err: any) {
-      console.error('Registration error:', err);
+      // Only log if it's not an expected error
+      if (err.code !== 'auth/email-already-in-use') {
+        console.error('Registration error:', err);
+      }
+      
       let errorMessage = 'Тіркелу қатесі';
       
       if (err.code === 'auth/email-already-in-use') {

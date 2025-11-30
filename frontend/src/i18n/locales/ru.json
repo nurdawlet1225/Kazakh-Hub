@@ -25,8 +25,10 @@
     "codesList": "Список кодов",
     "user": "Пользователь",
     "appName": "Kazakh Hub",
-    "switchToDark": "Переключить на темный режим",
-    "switchToLight": "Переключить на светлый режим",
+    "switchToDark": "День/Ночь",
+    "switchToLight": "День/Ночь",
+    "currentThemeLight": "День",
+    "currentThemeDark": "Ночь",
     "chat": "Чат"
   },
   "home": {
@@ -170,8 +172,8 @@
     "selectLanguage": "Выберите язык",
     "theme": "Тема",
     "themeAuto": "Автоматически",
-    "themeLight": "Светлая",
-    "themeDark": "Темная",
+    "themeLight": "День",
+    "themeDark": "Ночь",
     "notifications": "Уведомления",
     "enableNotifications": "Включить уведомления",
     "emailNotifications": "Уведомления по электронной почте",

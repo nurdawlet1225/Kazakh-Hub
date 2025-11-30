@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCog, 
-  faComment, 
   faSignOutAlt, 
   faMoon,
   faCloudSun,
@@ -55,7 +54,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
       const dropdown = dropdownRef.current;
       dropdown.style.top = `${rect.bottom + 8}px`;
       dropdown.style.right = `${window.innerWidth - rect.right}px`;
-      dropdown.style.width = `${rect.width}px`;
+      // Set minimum width to ensure text is fully visible
+      dropdown.style.width = 'auto';
+      dropdown.style.minWidth = '150px';
     }
   }, [isOpen, buttonRef]);
 
@@ -93,7 +94,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
 
   const menuItems = [
     { path: '/settings', label: t('sidebar.settings'), icon: <FontAwesomeIcon icon={faCog} /> },
-    { path: '/chat', label: t('sidebar.chat'), icon: <FontAwesomeIcon icon={faComment} /> },
   ];
 
   const isLoggedIn = !!localStorage.getItem('user');
@@ -147,7 +147,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
             <FontAwesomeIcon icon={theme === 'light' ? faCloudSun : faMoon} />
           </span>
           <span className="nav-label">
-            {theme === 'light' ? t('header.switchToDark') : t('header.switchToLight')}
+            {theme === 'light' ? t('header.currentThemeLight') : t('header.currentThemeDark')}
           </span>
         </button>
 

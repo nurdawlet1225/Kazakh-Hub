@@ -15,12 +15,43 @@ class CodeService:
         return next((code for code in codes if code['id'] == code_id), None)
     
     @staticmethod
-    def get_codes(folder_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get codes, optionally filtered by folder"""
+    def get_codes(
+        folder_id: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+        include_content: bool = False
+    ) -> Dict[str, Any]:
+        """Get codes, optionally filtered by folder with pagination"""
+        # Filter codes
         if folder_id:
-            return [code for code in codes if code.get('folderId') == folder_id]
+            filtered_codes = [code for code in codes if code.get('folderId') == folder_id]
         else:
-            return [code for code in codes if not code.get('folderId')]
+            filtered_codes = [code for code in codes if not code.get('folderId')]
+        
+        total = len(filtered_codes)
+        
+        # Apply pagination
+        if limit is not None:
+            paginated_codes = filtered_codes[offset:offset + limit]
+        else:
+            paginated_codes = filtered_codes[offset:]
+        
+        # Remove content field if not needed (to reduce payload size)
+        if not include_content:
+            result_codes = []
+            for code in paginated_codes:
+                code_copy = {k: v for k, v in code.items() if k != 'content'}
+                code_copy['hasContent'] = bool(code.get('content'))
+                result_codes.append(code_copy)
+            paginated_codes = result_codes
+        
+        return {
+            'codes': paginated_codes,
+            'total': total,
+            'limit': limit,
+            'offset': offset,
+            'hasMore': limit is not None and (offset + len(paginated_codes)) < total
+        }
     
     @staticmethod
     def create_code(code_data: Dict[str, Any]) -> Dict[str, Any]:

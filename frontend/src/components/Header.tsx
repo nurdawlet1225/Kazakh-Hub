@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -54,16 +54,7 @@ const Header: React.FC = () => {
     loadUser();
   }, [location]);
 
-  useEffect(() => {
-    // Load incoming friend request count
-    if (isLoggedIn && user) {
-      loadIncomingRequestCount();
-      const interval = setInterval(loadIncomingRequestCount, 10000); // Update every 10 seconds
-      return () => clearInterval(interval);
-    }
-  }, [isLoggedIn, user]);
-
-  const loadIncomingRequestCount = async () => {
+  const loadIncomingRequestCount = useCallback(async () => {
     if (!user?.id) return;
     try {
       const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(user.id);
@@ -71,7 +62,53 @@ const Header: React.FC = () => {
     } catch (err) {
       console.error('Failed to load incoming request count:', err);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    // Load incoming friend request count
+    if (isLoggedIn && user?.id) {
+      loadIncomingRequestCount();
+      
+      // Use Page Visibility API to pause polling when tab is hidden
+      let interval: NodeJS.Timeout | null = null;
+      
+      const startPolling = () => {
+        if (document.visibilityState === 'visible') {
+          interval = setInterval(loadIncomingRequestCount, 10000); // Update every 10 seconds
+        }
+      };
+      
+      const stopPolling = () => {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      };
+      
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          // Reload immediately when tab becomes visible
+          loadIncomingRequestCount();
+          startPolling();
+        } else {
+          stopPolling();
+        }
+      };
+      
+      // Start polling if tab is visible
+      if (document.visibilityState === 'visible') {
+        startPolling();
+      }
+      
+      // Listen for visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        stopPolling();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    }
+  }, [isLoggedIn, user?.id, loadIncomingRequestCount]);
 
   useEffect(() => {
     // Listen for storage changes (when user profile is updated in another tab/component)

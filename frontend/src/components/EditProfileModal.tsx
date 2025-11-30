@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faEye, faEyeSlash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { User } from '../utils/api';
 import { apiService } from '../utils/api';
 import './EditProfileModal.css';
@@ -30,6 +30,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isPasswordSectionVisible, setIsPasswordSectionVisible] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -48,8 +49,20 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setAvatarPreview(user.avatar || null);
       setError(null);
       setPasswordError(null);
+      setIsPasswordSectionVisible(false);
     }
-  }, [isOpen, user]);
+  }, [isOpen]); // Only depend on isOpen to prevent resetting avatar when user updates
+
+  // Update username and email when user changes, but preserve avatarPreview state
+  useEffect(() => {
+    if (isOpen) {
+      setFormData((prev) => ({
+        ...prev,
+        username: user.username,
+        email: user.email,
+      }));
+    }
+  }, [isOpen, user.username, user.email]);
 
   const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -144,6 +157,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   };
 
   const handleRemoveAvatar = () => {
+    // Only update local state, don't save until user clicks "Save"
     setFormData((prev) => ({ ...prev, avatar: '' }));
     setAvatarPreview(null);
     if (fileInputRef.current) {
@@ -233,16 +247,33 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
       onUpdate(updatedUser);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating profile:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Профильді жаңарту қатесі';
-      setError(errorMessage);
+      
+      // If user not found, clear localStorage and redirect to login
+      if (err?.message?.includes('User not found') || err?.message?.includes('Пайдаланушы табылмады')) {
+        localStorage.removeItem('user');
+        window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+        alert('Пайдаланушы табылмады. Жүйені қайта жүктеңіз немесе қайта кіріңіз.');
+        window.location.reload();
+        return;
+      }
+      let errorMessage = err instanceof Error ? err.message : 'Профильді жаңарту қатесі';
+      
+      // Remove password-related error message for profile updates (not password changes)
+      if (errorMessage.includes('Пайдаланушы табылмады немесе құпия сөз дұрыс емес')) {
+        errorMessage = 'Пайдаланушы табылмады. Жүйені қайта жүктеңіз.';
+      }
       
       // Show more specific error messages
-      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+      if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('табылмады')) {
         setError('Пайдаланушы табылмады. Жүйені қайта жүктеңіз.');
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
         setError('Серверге қосылу мүмкін емес. Backend-тің жұмыс істеп тұрғанын тексеріңіз.');
+      } else if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+        setError('Деректер дұрыс емес. Барлық өрістерді тексеріңіз.');
+      } else {
+        setError(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -263,7 +294,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <div className="form-group avatar-group">
             <label>Профиль фотосы</label>
             <div className="avatar-upload-container">
-              <div className="avatar-preview">
+              <div 
+                className="avatar-preview"
+                onClick={() => fileInputRef.current?.click()}
+                title="Фото таңдау үшін басыңыз"
+              >
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar preview" />
                 ) : (
@@ -271,8 +306,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     {formData.username.charAt(0).toUpperCase()}
                   </div>
                 )}
-              </div>
-              <div className="avatar-actions">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -281,12 +314,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   style={{ display: 'none' }}
                   id="avatar-upload"
                 />
-                <label 
-                  htmlFor="avatar-upload" 
-                  className="btn-upload-avatar"
-                >
-                  📷 Фото таңдау
-                </label>
+              </div>
+              <div className="avatar-actions">
                 {avatarPreview && (
                   <button
                     type="button"
@@ -325,7 +354,23 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </div>
 
           <div className="form-group password-change-section">
-            <label className="section-label">Құпия сөзді өзгерту</label>
+            <div className="password-section-header">
+              <button
+                type="button"
+                className="btn-toggle-password-section"
+                onClick={() => setIsPasswordSectionVisible(!isPasswordSectionVisible)}
+                title={isPasswordSectionVisible ? 'Жасыру' : 'Көрсету'}
+              >
+                <span>Құпия сөзді өзгерту</span>
+                <span>{isPasswordSectionVisible ? 'Жасыру' : 'Көрсету'}</span>
+                <FontAwesomeIcon 
+                  icon={faChevronDown} 
+                  className={`chevron-icon ${isPasswordSectionVisible ? 'rotated' : ''}`}
+                />
+              </button>
+            </div>
+            {isPasswordSectionVisible && (
+              <div className="password-section-content">
             <div className="form-group">
               <label htmlFor="currentPassword">Ағымдағы құпия сөз (міндетті емес)</label>
               <input
@@ -361,6 +406,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             {passwordError && (
               <div className="form-error">
                 {passwordError}
+              </div>
+            )}
               </div>
             )}
           </div>

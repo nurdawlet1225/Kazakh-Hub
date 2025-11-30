@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faUserPlus, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
-import { formatDateTime } from '../utils/dateFormatter';
 import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';
+import { formatDateTime } from '../utils/dateFormatter';
+import { ensureNumericId, isNumericId } from '../utils/idConverter';
 import './Chat.css';
 
 interface ChatProps {
@@ -152,20 +153,88 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
   };
 
   const handleSearchUsers = async (query: string) => {
-    if (!query.trim() || !currentUser) {
+    if (!currentUser) {
       setSearchResults([]);
       return;
     }
+    
+    const trimmedQuery = query.trim();
+    
+    if (!trimmedQuery) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    
+    if (trimmedQuery.length < 1) {
+      return;
+    }
+    
     try {
       setSearching(true);
-      const results = await apiService.searchUsers(query);
+      
+      // Егер сұрау тек сандардан тұрса (ID), тікелей пайдаланушыны табуға тырысу
+      let results: User[] = [];
+      
+      if (isNumericId(trimmedQuery)) {
+        // ID арқылы тікелей іздеу
+        try {
+          // ID-ны 12 цифрға дейін форматтау (егер қысқа болса)
+          let numericId = trimmedQuery;
+          if (numericId.length < 12) {
+            numericId = numericId.padStart(12, '0');
+          }
+          
+          console.log('Searching user by ID:', numericId);
+          const user = await apiService.getUserProfile(numericId);
+          
+          // Егер пайдаланушы табылса және бұл ағымдағы пайдаланушы емес
+          if (user && user.id !== currentUser.id) {
+            // Дос емес екенін тексеру
+            if (!friends.some(f => f.id === user.id)) {
+              results = [user];
+              console.log('User found by ID:', user);
+            }
+          }
+        } catch (err: any) {
+          // Егер ID арқылы табылмаса (404), тихо өңдеу - бұл қалыпты жағдай
+          // 404 қатесін консольге шығармау, тек нәтижелерді тазалау
+          const is404 = err.message?.includes('404') || 
+                       err.message?.includes('табылмады') || 
+                       err.message?.includes('not found') ||
+                       err.message?.includes('User not found');
+          
+          if (!is404) {
+            // Басқа қателер үшін консольге шығару
+            console.error('Failed to search user by ID:', err);
+          } else {
+            console.log('User not found by ID, trying general search');
+          }
+          
+          // ID арқылы табылмаса, жалпы іздеуге өту
+          // Бұл жерде return қалдырмаймыз, өйткені жалпы іздеуге өту керек
+        }
+      }
+      
+      // Егер ID арқылы табылмаса немесе сұрау ID емес болса, жалпы іздеу
+      if (results.length === 0) {
+        results = await apiService.searchUsers(trimmedQuery);
+      }
+      
       // Filter out current user and existing friends
       const filtered = results.filter(
         user => user.id !== currentUser.id && !friends.some(f => f.id === user.id)
       );
+      
       setSearchResults(filtered);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to search users:', err);
+      // Show error message to user
+      const errorMsg = err.message || 'Іздеу қатесі';
+      if (!errorMsg.includes('Failed to fetch') && !errorMsg.includes('NetworkError')) {
+        console.error('Search error:', errorMsg);
+      }
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -288,7 +357,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   className="chat-search-input"
-                  placeholder="Пайдаланушыны іздеу..."
+                  placeholder="Пайдаланушыны іздеу (аты, email немесе ID)..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -314,6 +383,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                       <div className="chat-friend-info">
                         <div className="chat-friend-name">{user.username}</div>
                         <div className="chat-friend-email">{user.email}</div>
+                        <div className="chat-friend-id">ID: {ensureNumericId(user.id)}</div>
                       </div>
                       <button
                         className="chat-add-btn"

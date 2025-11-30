@@ -154,48 +154,112 @@ export const processFolder = async (files: FileList): Promise<FolderInfo> => {
     };
   }
 
-  // Second pass: Process files in batches to avoid memory issues
-  const BATCH_SIZE = 50; // Process 50 files at a time
-  for (let i = 0; i < fileArray.length; i += BATCH_SIZE) {
-    const batch = fileArray.slice(i, i + BATCH_SIZE);
-    
-    const batchPromises = batch.map(async (file) => {
+  // Second pass: Process files with UI yielding to prevent freezing
+  // Optimized for both small and large folders
+  const SMALL_FOLDER_THRESHOLD = 10; // For folders with 10 or fewer files
+  const FILES_PER_CHUNK = 3; // Process 3 files, then yield to UI (reduced for better responsiveness)
+  const YIELD_DELAY = 5; // 5ms delay to allow UI updates (reduced for faster processing)
+  
+  // Helper function to yield to UI thread using requestIdleCallback if available
+  const yieldToUI = (): Promise<void> => {
+    return new Promise(resolve => {
+      // Use requestIdleCallback if available for better performance
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          setTimeout(resolve, YIELD_DELAY);
+        }, { timeout: 10 });
+      } else {
+        // Fallback to setTimeout
+        setTimeout(resolve, YIELD_DELAY);
+      }
+    });
+  };
+  
+  // For small folders, process files one by one with UI yielding
+  if (fileArray.length <= SMALL_FOLDER_THRESHOLD) {
+    for (let i = 0; i < fileArray.length; i++) {
+      const file = fileArray[i];
       const path = file.webkitRelativePath || file.name;
-    try {
-      const content = await readFileContent(file);
-      const language = detectLanguage(file.name);
-      const fileInfo: FileInfo = {
-        name: file.name,
-        content,
-        language,
-        size: file.size,
-      };
+      
+      try {
+        const content = await readFileContent(file);
+        const language = detectLanguage(file.name);
+        const fileInfo: FileInfo = {
+          name: file.name,
+          content,
+          language,
+          size: file.size,
+        };
         
         // Update structure with language
         if (structure[path]) {
           structure[path].language = language;
         }
         
-      totalSize += file.size;
-        return fileInfo;
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Белгісіз қате';
-      console.warn(`Failed to process file ${file.name}:`, errorMsg);
-        // File already in structure, just mark as failed
-        return null;
+        processedFiles.push(fileInfo);
+        totalSize += file.size;
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Белгісіз қате';
+        console.warn(`Failed to process file ${file.name}:`, errorMsg);
       }
-    });
-
-    const batchResults = await Promise.allSettled(batchPromises);
-    batchResults.forEach((result) => {
-      if (result.status === 'fulfilled' && result.value) {
-        processedFiles.push(result.value);
+      
+      // Yield to UI after each file for small folders
+      if (i < fileArray.length - 1) {
+        await yieldToUI();
       }
-    });
+    }
+  } else {
+    // For larger folders, use chunked processing
+    const BATCH_SIZE = 15; // Smaller batch size for better UI responsiveness
     
-    // Log progress for large folders
-    if (fileArray.length > 100) {
-      console.log(`Өңделуде: ${Math.min(i + BATCH_SIZE, fileArray.length)}/${fileArray.length} файл`);
+    // Process files in chunks with UI yielding
+    for (let i = 0; i < fileArray.length; i += FILES_PER_CHUNK) {
+      const chunk = fileArray.slice(i, i + FILES_PER_CHUNK);
+      
+      // Process chunk files in parallel
+      const chunkPromises = chunk.map(async (file) => {
+        const path = file.webkitRelativePath || file.name;
+        try {
+          const content = await readFileContent(file);
+          const language = detectLanguage(file.name);
+          const fileInfo: FileInfo = {
+            name: file.name,
+            content,
+            language,
+            size: file.size,
+          };
+          
+          // Update structure with language
+          if (structure[path]) {
+            structure[path].language = language;
+          }
+          
+          return fileInfo;
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Белгісіз қате';
+          console.warn(`Failed to process file ${file.name}:`, errorMsg);
+          return null;
+        }
+      });
+
+      const chunkResults = await Promise.allSettled(chunkPromises);
+      chunkResults.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          processedFiles.push(result.value);
+          totalSize += result.value.size;
+        }
+      });
+      
+      // Yield to UI after each chunk to prevent freezing
+      if (i + FILES_PER_CHUNK < fileArray.length) {
+        await yieldToUI();
+      }
+      
+      // Log progress for large folders
+      if (fileArray.length > 50 && (i + FILES_PER_CHUNK) % 30 === 0) {
+        const processedCount = Math.min(i + FILES_PER_CHUNK, fileArray.length);
+        console.log(`Өңделуде: ${processedCount}/${fileArray.length} файл`);
+      }
     }
   }
 

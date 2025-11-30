@@ -1,6 +1,6 @@
 """Chat service for business logic"""
 from typing import List, Dict, Any
-from database import messages, users
+from database import messages, users, friends
 
 
 class ChatService:
@@ -9,7 +9,7 @@ class ChatService:
     @staticmethod
     def get_chats(user_id: str) -> List[Dict[str, Any]]:
         """Get list of all chats (conversations) for a user"""
-        # Get all unique conversation partners
+        # Get all unique conversation partners from messages
         conversation_partners = set()
         for msg in messages:
             if msg.get('fromUserId') == user_id:
@@ -17,22 +17,30 @@ class ChatService:
             elif msg.get('toUserId') == user_id:
                 conversation_partners.add(msg.get('fromUserId'))
         
+        # Get all friends
+        user_friends = friends.get(user_id, [])
+        for friend_id in user_friends:
+            conversation_partners.add(friend_id)
+        
         chats = []
         for partner_id in conversation_partners:
             partner = next((u for u in users if u['id'] == partner_id), None)
             if not partner:
                 continue
             
-            # Get last message
+            # Get conversation messages
             conversation_messages = [
                 msg for msg in messages
                 if (msg.get('fromUserId') == user_id and msg.get('toUserId') == partner_id) or
                    (msg.get('fromUserId') == partner_id and msg.get('toUserId') == user_id)
             ]
-            if not conversation_messages:
-                continue
             
-            last_message = max(conversation_messages, key=lambda x: x.get('createdAt', ''))
+            # Get last message if exists
+            last_message = None
+            last_message_time = ''
+            if conversation_messages:
+                last_message = max(conversation_messages, key=lambda x: x.get('createdAt', ''))
+                last_message_time = last_message.get('createdAt', '')
             
             # Count unread messages
             unread_count = sum(
@@ -50,10 +58,14 @@ class ChatService:
                 },
                 'lastMessage': last_message,
                 'unreadCount': unread_count,
-                'lastMessageTime': last_message.get('createdAt')
+                'lastMessageTime': last_message_time
             })
         
-        # Sort by last message time (most recent first)
-        chats.sort(key=lambda x: x.get('lastMessageTime', ''), reverse=True)
+        # Sort: messages first (by time), then friends without messages (by username)
+        chats.sort(key=lambda x: (
+            bool(x.get('lastMessage')),  # True (has message) comes before False (no message)
+            x.get('lastMessageTime', '') if x.get('lastMessageTime') else '',
+            x.get('partner', {}).get('username', '')
+        ), reverse=True)
         return chats
 

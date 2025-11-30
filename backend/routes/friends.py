@@ -46,6 +46,12 @@ async def get_incoming_friend_requests(user_id: str):
     return FriendService.get_incoming_friend_requests(user_id)
 
 
+@router.get("/friend-requests/outgoing/{user_id}")
+async def get_outgoing_friend_requests(user_id: str):
+    """Get outgoing friend requests for a user"""
+    return FriendService.get_outgoing_friend_requests(user_id)
+
+
 @router.get("/friend-requests/{user_id}/incoming-count")
 async def get_incoming_friend_request_count(user_id: str):
     """Get count of incoming friend requests"""
@@ -83,4 +89,18 @@ async def reject_friend_request(request_id: str):
         return {"message": "Friend request rejected", "request": request}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.put("/friend-requests/{request_id}/cancel")
+async def cancel_friend_request(request_id: str, request: Dict[str, str] = Body(...)):
+    """Cancel a friend request (for outgoing requests)"""
+    user_id = request.get('userId')
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    try:
+        cancelled_request = FriendService.cancel_friend_request(request_id, user_id)
+        return {"message": "Friend request cancelled", "request": cancelled_request}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 

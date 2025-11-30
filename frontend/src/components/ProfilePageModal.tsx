@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faTimes, faCopy, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { User, CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
+import { ensureNumericId } from '../utils/idConverter';
 import CodeCard from './CodeCard';
 import EditProfileModal from './EditProfileModal';
 import './ProfilePageModal.css';
@@ -20,17 +21,44 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalLikes: 0,
     totalComments: 0,
     totalViews: 0,
   });
+  const [isIdCopied, setIsIdCopied] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadProfile();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    // Load background image from localStorage
+    if (user?.id) {
+      const savedBg = localStorage.getItem(`profile-bg-${user.id}`);
+      if (savedBg) {
+        setBackgroundImage(savedBg);
+      } else {
+        setBackgroundImage(null);
+      }
+    }
+  }, [user?.id]);
+
+  const copyId = async () => {
+    if (user?.id) {
+      try {
+        const idToCopy = ensureNumericId(user.id);
+        await navigator.clipboard.writeText(idToCopy);
+        setIsIdCopied(true);
+        setTimeout(() => setIsIdCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy ID:', err);
+      }
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -41,13 +69,22 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
       
       if (storedUser) {
         userData = JSON.parse(storedUser);
+        // Convert to numeric ID if it contains letters
+        if (userData.id && !/^\d+$/.test(userData.id)) {
+          userData.id = ensureNumericId(userData.id);
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
       } else {
         userData = await apiService.getCurrentUser();
+        // Convert to numeric ID if it contains letters
+        if (userData.id && !/^\d+$/.test(userData.id)) {
+          userData.id = ensureNumericId(userData.id);
+        }
       }
       
-      const codesData = await apiService.getCodeFiles();
+      const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);
       setUser(userData);
-      const filteredCodes = codesData.filter((code) => code.author === userData.username);
+      const filteredCodes = codesResponse.codes.filter((code) => code.author === userData.username);
       setUserCodes(filteredCodes);
       
       const totalLikes = filteredCodes.reduce((sum, code) => sum + (code.likes?.length || 0), 0);
@@ -102,7 +139,11 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
             ) : (
               <>
                 {/* Profile Header */}
-                <div className="profile-modal-header">
+                <div 
+                  className="profile-modal-header"
+                  style={backgroundImage ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                >
+                  {backgroundImage && <div className="profile-header-overlay"></div>}
                   <button 
                     className="profile-menu-button"
                     onClick={() => setIsEditModalOpen(true)}
@@ -129,14 +170,20 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
                   <div className="profile-modal-info">
                     <div className="profile-modal-name-section">
                       <h3 className="profile-modal-username">{user.username}</h3>
-                      <div className="profile-badge">{t('profile.developer')}</div>
                     </div>
                     <div className="profile-modal-contact">
                       <span className="contact-item">
                         <FontAwesomeIcon icon={faEnvelope} /> {user.email}
                       </span>
-                      <span className="contact-item">
-                        <FontAwesomeIcon icon={faIdCard} /> ID: {user.id}
+                      <span className="contact-item contact-item-id">
+                        <FontAwesomeIcon icon={faIdCard} /> ID: {ensureNumericId(user.id)}
+                        <button 
+                          className="copy-id-btn" 
+                          onClick={copyId}
+                          title={isIdCopied ? 'Көшірілді' : 'ID көшіру'}
+                        >
+                          <FontAwesomeIcon icon={isIdCopied ? faCheck : faCopy} />
+                        </button>
                       </span>
                     </div>
                   </div>

@@ -20,6 +20,14 @@ const originalWarn = console.warn;
 // Patterns to suppress
 const SUPPRESSED_ERROR_PATTERNS = [
   /Cross-Origin-Opener-Policy.*would block.*window\.(closed|close)/i,
+  /Cross-Origin-Opener-Policy.*policy would block/i,
+  /policy would block.*window\.(closed|close)/i,
+  /window\.closed.*Cross-Origin-Opener-Policy/i,
+  /window\.close.*Cross-Origin-Opener-Policy/i,
+  /firebase_auth\.js.*Cross-Origin-Opener-Policy/i,
+  /firebase_auth\.js.*window\.(closed|close)/i,
+  /poll @ firebase_auth\.js/i,
+  /close @ firebase_auth\.js/i,
   /ERR_BLOCKED_BY_CLIENT/i,
   /BLOCKED_BY_CLIENT/i,
   /net::ERR_BLOCKED_BY_CLIENT/i,
@@ -27,6 +35,18 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /ERR_CONNECTION_CLOSED/i,
   /Failed to load resource.*apis\.google\.com/i,
   /Failed to load resource.*firestore\.googleapis\.com/i,
+  /Failed to load resource.*401.*Unauthorized/i,
+  /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /Failed to load resource.*Write\/channel/i,
+  /Failed to load resource.*TYPE=terminate/i,
+  /Failed to load resource.*gsessionid/i,
+  /Failed to load resource.*SID=/i,
+  /Failed to load resource.*RID=/i,
+  /Failed to load resource.*127\.0\.0\.1.*401/i,
+  /Failed to load resource.*localhost.*401/i,
+  /Failed to load resource.*auth\/login/i,
+  /127\.0\.0\.1.*auth\/login.*401/i,
+  /localhost.*auth\/login.*401/i,
   /firestore\.googleapis\.com.*ERR_BLOCKED_BY_CLIENT/i,
   /apis\.google\.com.*ERR_CONNECTION_CLOSED/i,
   /apis\.google\.com.*Failed to load resource/i,
@@ -35,13 +55,90 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /firestore\.googleapis\.com.*Listen\/channel.*TYPE=terminate/i,
   /firestore\.googleapis\.com.*Listen\/channel.*ERR_BLOCKED_BY_CLIENT/i,
   /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
-  /firebase_auth\.js.*Cross-Origin-Opener-Policy/i,
   /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
   /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
   /google\.firestore\.v1\.Firestore.*ERR_BLOCKED_BY_CLIENT/i,
+  /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
+  /POST.*firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen/i,
+  /POST.*firestore\.googleapis\.com.*Listen\/channel/i,
+  /POST.*firestore\.googleapis\.com.*TYPE=terminate/i,
+  /POST.*firestore\.googleapis\.com.*SID=/i,
+  /POST.*firestore\.googleapis\.com.*RID=/i,
   /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
   /Request URL.*firestore\.googleapis\.com.*Listen.*channel/i,
   /Request URL.*firestore\.googleapis\.com.*TYPE=terminate/i,
+  // Suppress expected API errors that are handled gracefully
+  /Failed to load resource.*401.*Unauthorized/i,
+  /API Error: 401 Unauthorized/i,
+  /\[LOGIN\].*Backend login failed.*trying Firebase/i,
+  /\[LOGIN\].*Attempting Firebase authentication/i,
+  // Suppress Firestore channel errors (ad blocker related)
+  /firebase_firestore\.js.*POST.*firestore\.googleapis\.com/i,
+  /firebase_firestore\.js.*Write\/channel/i,
+  /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
+  /Y2\.close|Y2\.m|cc @ firebase_firestore/i,
+  /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
+  /TYPE=terminate.*ERR_BLOCKED_BY_CLIENT/i,
+  /Write\/channel.*TYPE=terminate/i,
+  /Listen\/channel.*TYPE=terminate/i,
+  // Suppress Firestore stack traces
+  /firebase_firestore\.js.*Y2\.close/i,
+  /firebase_firestore\.js.*Y2\.m/i,
+  /firebase_firestore\.js.*cc @/i,
+  /firebase_firestore\.js.*Va @/i,
+  /firebase_firestore\.js.*D @/i,
+  /firebase_firestore\.js.*Qc @/i,
+  /firebase_firestore\.js.*h\.Xa/i,
+  /firebase_firestore\.js.*h\.Ca/i,
+  /firebase_firestore\.js.*Gc @/i,
+  /firebase_firestore\.js.*h\.Ma/i,
+  /firebase_firestore\.js.*Ic @/i,
+  /firebase_firestore\.js.*h\.Pa/i,
+  /firebase_firestore\.js.*h\.send/i,
+  /firebase_firestore\.js.*h\.ea/i,
+  /firebase_firestore\.js.*Eb @/i,
+  /firebase_firestore\.js.*\$c @/i,
+  /firebase_firestore\.js.*h\.Da/i,
+  /firebase_firestore\.js.*sa @/i,
+  /firebase_firestore\.js.*u @/i,
+  /firebase_firestore\.js.*ac @/i,
+  /firebase_firestore\.js.*Lb @/i,
+  /firebase_firestore\.js.*N2\.Y/i,
+  /firebase_firestore\.js.*N2\.ba/i,
+  /firebase_firestore\.js.*Yo @/i,
+  /firebase_firestore\.js.*send @/i,
+  /firebase_firestore\.js.*q_ @/i,
+  /firebase_firestore\.js.*ra @/i,
+  /firebase_firestore\.js.*__PRIVATE_onWriteStreamOpen/i,
+  /firebase_firestore\.js.*enqueue/i,
+  /firebase_firestore\.js.*enqueueAndForget/i,
+  /firebase_firestore\.js.*handleDelayElapsed/i,
+  /firebase_firestore\.js.*setTimeout/i,
+  /firebase_firestore\.js.*T_ @/i,
+  /firebase_firestore\.js.*j_ @/i,
+  /firebase_firestore\.js.*G_ @/i,
+  /firebase_firestore\.js.*auth @/i,
+  /firebase_firestore\.js.*start @/i,
+  /firebase_firestore\.js.*Promise\.then/i,
+  /firebase_firestore\.js.*Cb @/i,
+  /firebase_firestore\.js.*h\.Ea/i,
+  /firebase_firestore\.js.*bc @/i,
+  /firebase_firestore\.js.*h\.connect/i,
+  // More comprehensive Firestore error patterns
+  /POST.*firestore\.googleapis\.com.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js.*POST.*firestore\.googleapis\.com.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js.*__PRIVATE_sendWatchRequest/i,
+  /firebase_firestore\.js.*__PRIVATE_onWatchStreamOpen/i,
+  /firebase_firestore\.js.*__PRIVATE_onWriteStreamOpen/i,
+  // Catch any error containing firebase_firestore.js with ERR_BLOCKED_BY_CLIENT
+  /firebase_firestore.*ERR_BLOCKED_BY_CLIENT/i,
+  /ERR_BLOCKED_BY_CLIENT.*firebase_firestore/i,
+  // Catch stack trace patterns
+  /\(анонимная\) @ firebase_firestore/i,
+  /анонимная.*firebase_firestore/i,
+  // Catch any line that contains firebase_firestore.js and error indicators
+  /firebase_firestore\.js.*:\d+.*ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js.*:\d+.*net::ERR/i,
 ];
 
 // Patterns to suppress warnings
@@ -64,6 +161,16 @@ export const shouldSuppressWarning = (message: string): boolean => {
   return SUPPRESSED_WARN_PATTERNS.some(pattern => pattern.test(message));
 };
 
+// Import Firestore blocking detection
+let markFirestoreBlockedFn: (() => void) | null = null;
+
+/**
+ * Set the function to mark Firestore as blocked (called from firebase.ts)
+ */
+export const setMarkFirestoreBlockedFn = (fn: () => void) => {
+  markFirestoreBlockedFn = fn;
+};
+
 /**
  * Initialize error suppression for known Firebase issues
  * This should be called early in the app lifecycle
@@ -71,8 +178,57 @@ export const shouldSuppressWarning = (message: string): boolean => {
 export const initErrorSuppression = () => {
   // Override console.error
   console.error = (...args: any[]) => {
+    // Check all arguments for Firestore errors (including stack traces)
+    const allArgs = args.map(arg => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return `${arg.message} ${arg.stack || ''}`;
+      if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
+    
     const message = args.join(' ');
-    if (shouldSuppressError(message)) {
+    const fullMessage = `${message} ${allArgs}`;
+    
+    // Check if any argument contains firebase_firestore.js and ERR_BLOCKED_BY_CLIENT
+    const hasFirestoreBlocked = args.some(arg => {
+      const argStr = typeof arg === 'string' ? arg : String(arg);
+      return argStr.includes('firebase_firestore') && 
+             (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
+              argStr.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+              argStr.includes('BLOCKED_BY_CLIENT'));
+    });
+    
+    // Also check individual arguments
+    const shouldSuppress = 
+      shouldSuppressError(message) || 
+      shouldSuppressError(allArgs) || 
+      shouldSuppressError(fullMessage) ||
+      hasFirestoreBlocked ||
+      args.some(arg => {
+        const argStr = typeof arg === 'string' ? arg : String(arg);
+        // Aggressively suppress any firebase_firestore.js errors
+        if (argStr.includes('firebase_firestore.js') && 
+            (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
+             argStr.includes('net::ERR') ||
+             argStr.includes('POST') ||
+             argStr.includes('Listen/channel') ||
+             argStr.includes('Write/channel'))) {
+          return true;
+        }
+        return shouldSuppressError(argStr);
+      });
+    
+    if (shouldSuppress) {
+      // If this is a Firestore blocking error, mark Firestore as blocked
+      if (hasFirestoreBlocked && markFirestoreBlockedFn) {
+        markFirestoreBlockedFn();
+      }
       // Suppress known errors silently
       return;
     }
@@ -97,7 +253,47 @@ export const initErrorSuppression = () => {
     const errorSource = (event.target as HTMLElement)?.src || (event.target as HTMLElement)?.href || '';
     const fullMessage = `${errorMessage} ${errorSource}`;
     
-    if (shouldSuppressError(fullMessage) || shouldSuppressError(errorMessage) || shouldSuppressError(errorSource)) {
+    // Check stack trace for Firestore errors
+    const stackTrace = (event.error as Error)?.stack || '';
+    const fullErrorText = `${fullMessage} ${stackTrace}`;
+    
+    // Also check the error filename/path
+    const errorFilename = event.filename || '';
+    const errorColno = event.colno || 0;
+    const errorLineno = event.lineno || 0;
+    const errorPath = `${errorFilename}:${errorLineno}:${errorColno}`;
+    
+    // Check URL if available (for network errors)
+    const errorUrl = (event.target as any)?.url || (event.target as any)?.src || '';
+    
+    // Combine all error information
+    const allErrorInfo = `${fullMessage} ${fullErrorText} ${errorPath} ${errorUrl}`;
+    
+    // Check if error is from Firebase Auth (COOP errors)
+    const isFirebaseAuthError = errorFilename.includes('firebase_auth') || 
+                                errorMessage.includes('firebase_auth') ||
+                                stackTrace.includes('firebase_auth');
+    
+    // Check if error is from Firestore (blocked by ad blocker)
+    const isFirestoreBlockedError = errorFilename.includes('firebase_firestore') ||
+                                     errorMessage.includes('firebase_firestore') ||
+                                     errorUrl.includes('firestore.googleapis.com') ||
+                                     stackTrace.includes('firebase_firestore') ||
+                                     (errorMessage.includes('ERR_BLOCKED_BY_CLIENT') && 
+                                      (errorUrl.includes('firestore') || errorFilename.includes('firestore')));
+    
+    if (shouldSuppressError(fullMessage) || 
+        shouldSuppressError(errorMessage) || 
+        shouldSuppressError(errorSource) || 
+        shouldSuppressError(fullErrorText) || 
+        shouldSuppressError(errorPath) || 
+        shouldSuppressError(errorUrl) ||
+        shouldSuppressError(allErrorInfo) ||
+        isFirestoreBlockedError ||
+        (isFirestoreBlockedError && markFirestoreBlockedFn ? (() => { markFirestoreBlockedFn(); return true; })() : false) ||
+        (isFirebaseAuthError && (errorMessage.includes('Cross-Origin-Opener-Policy') || 
+                                 errorMessage.includes('window.closed') ||
+                                 errorMessage.includes('window.close')))) {
       event.preventDefault();
       event.stopPropagation();
       return false;
@@ -120,6 +316,56 @@ export const initErrorSuppression = () => {
     }
   };
   
+  // Intercept XMLHttpRequest errors (Firebase uses XHR internally)
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  const originalXHRSend = XMLHttpRequest.prototype.send;
+  
+  XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
+    const errorUrl = typeof url === 'string' ? url : url.toString();
+    if (errorUrl.includes('firestore.googleapis.com')) {
+      this.addEventListener('error', function() {
+        if (shouldSuppressError(errorUrl) && markFirestoreBlockedFn) {
+          markFirestoreBlockedFn();
+        }
+        // Suppress error event
+        this.dispatchEvent = () => {};
+      });
+    } else {
+      this.addEventListener('error', function() {
+        if (shouldSuppressError(errorUrl)) {
+          // Suppress error event
+          this.dispatchEvent = () => {};
+        }
+      });
+    }
+    return originalXHROpen.apply(this, [method, url, ...rest] as any);
+  };
+  
+  XMLHttpRequest.prototype.send = function(...args: any[]) {
+    const errorUrl = this.responseURL || '';
+    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com');
+    
+    this.addEventListener('error', function(event) {
+      if (shouldSuppressError(errorUrl)) {
+        if (isFirestoreRequest && markFirestoreBlockedFn) {
+          markFirestoreBlockedFn();
+        }
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      }
+    });
+    
+    // Also check for blocked status
+    this.addEventListener('loadend', function() {
+      if (this.status === 0 && isFirestoreRequest && markFirestoreBlockedFn) {
+        // Status 0 often indicates blocked request
+        markFirestoreBlockedFn();
+      }
+    });
+    
+    return originalXHRSend.apply(this, args);
+  };
+  
   // Suppress network errors from Performance API
   if ('PerformanceObserver' in window) {
     try {
@@ -140,11 +386,20 @@ export const initErrorSuppression = () => {
   // Add global handler for unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
     const errorMessage = event.reason?.message || event.reason?.toString() || '';
-    if (shouldSuppressError(errorMessage)) {
+    const stackTrace = event.reason?.stack || '';
+    const errorString = JSON.stringify(event.reason) || '';
+    const fullErrorText = `${errorMessage} ${stackTrace} ${errorString}`;
+    
+    // Check all possible error representations
+    if (shouldSuppressError(errorMessage) || 
+        shouldSuppressError(fullErrorText) || 
+        shouldSuppressError(stackTrace) ||
+        shouldSuppressError(errorString)) {
       event.preventDefault();
+      event.stopPropagation();
       return false;
     }
-  });
+  }, true);
 };
 
 /**
