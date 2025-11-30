@@ -6,12 +6,12 @@ import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment,
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
+import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
 import UploadModal from '../components/UploadModal';
 import { isImageFile } from '../utils/fileHandler';
 import { formatDate as formatDateUtil, formatDateTime } from '../utils/dateFormatter';
-import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import JSZip from 'jszip';
 import './ViewCode.css';
 
@@ -347,8 +347,8 @@ const ViewCode: React.FC = () => {
   const loadFolderFiles = async (folderId: string) => {
     try {
       setLoadingFiles(true);
-      const files = await apiService.getCodeFiles(folderId);
-      setFolderFiles(files);
+      const response = await apiService.getCodeFiles(folderId, 1000, 0, true);
+      setFolderFiles(response.codes);
       applyLanguageFilter(files, filterLanguage);
       if (files.length > 0) {
         setSelectedFile(files[0]);

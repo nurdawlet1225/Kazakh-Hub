@@ -35,6 +35,115 @@ const ChatPage: React.FC = () => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadChatsRef = useRef<(() => Promise<void>) | null>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadCurrentUser = async () => {
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+      } else {
+        const user = await apiService.getCurrentUser();
+        setCurrentUser(user);
+      }
+    } catch (err) {
+      console.error('Failed to load current user:', err);
+    }
+  };
+
+  const connectWebSocket = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      await websocketService.connect(currentUser.id);
+    } catch (error) {
+      console.error('Failed to connect WebSocket:', error);
+    }
+  }, [currentUser?.id]);
+
+  const loadChats = useCallback(async () => {
+    if (!currentUser?.id) return;
+    try {
+      const chatsList = await apiService.getChats(currentUser.id);
+      setChats(chatsList);
+    } catch (err) {
+      console.error('Failed to load chats:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser?.id]);
+
+  // Store loadChats in ref for use in other callbacks
+  useEffect(() => {
+    loadChatsRef.current = loadChats;
+  }, [loadChats]);
+
+  const loadFriendRequests = useCallback(async () => {
+    if (!currentUser?.id) {
+      setFriendRequests([]);
+      setOutgoingFriendRequests([]);
+      return;
+    }
+    try {
+      const [incoming, outgoing] = await Promise.all([
+        apiService.getIncomingFriendRequests(currentUser.id),
+        apiService.getOutgoingFriendRequests(currentUser.id)
+      ]);
+      setFriendRequests(incoming || []);
+      setOutgoingFriendRequests(outgoing || []);
+    } catch (err) {
+      console.error('Failed to load friend requests:', err);
+      // If error, clear requests
+      setFriendRequests([]);
+      setOutgoingFriendRequests([]);
+    }
+  }, [currentUser?.id]);
+
+  const loadIncomingRequestCount = useCallback(async () => {
+    if (!currentUser?.id) {
+      setIncomingRequestCount(0);
+      return;
+    }
+    try {
+      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(currentUser.id);
+      setIncomingRequestCount(incomingRequestCount || 0);
+    } catch (err) {
+      console.error('Failed to load incoming request count:', err);
+      // If user not found or error, set count to 0
+      setIncomingRequestCount(0);
+    }
+  }, [currentUser?.id]);
+
+  const loadMessages = useCallback(async () => {
+    if (!currentUser?.id || !selectedFriend?.id) return;
+    try {
+      const conversationMessages = await apiService.getConversation(
+        currentUser.id,
+        selectedFriend.id
+      );
+      setMessages(conversationMessages);
+      scrollToBottom();
+    } catch (err) {
+      console.error('Failed to load messages:', err);
+    }
+  }, [currentUser?.id, selectedFriend?.id]);
+
+  const markConversationRead = useCallback(async () => {
+    if (!currentUser?.id || !selectedFriend?.id) return;
+    try {
+      await apiService.markConversationRead(currentUser.id, selectedFriend.id);
+      // Refresh chats to update unread count using ref to avoid dependency issues
+      if (loadChatsRef.current) {
+        loadChatsRef.current();
+      }
+    } catch (err) {
+      console.error('Failed to mark conversation as read:', err);
+    }
+  }, [currentUser?.id, selectedFriend?.id]);
 
   // Load current user
   useEffect(() => {
@@ -43,21 +152,22 @@ const ChatPage: React.FC = () => {
 
   // Connect WebSocket when user is loaded
   useEffect(() => {
-    if (currentUser) {
-      connectWebSocket();
-      loadChats();
-      loadFriendRequests();
-      loadIncomingRequestCount();
-      
-      return () => {
-        websocketService.disconnect();
-      };
-    }
-  }, [currentUser]);
+    if (!currentUser?.id) return;
+    
+    connectWebSocket();
+    loadChats();
+    loadFriendRequests();
+    loadIncomingRequestCount();
+    
+    return () => {
+      websocketService.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   // Setup WebSocket listeners
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.id) return;
 
     const handleNewMessage = (data: WebSocketMessage) => {
       if (data.message) {
@@ -126,42 +236,118 @@ const ChatPage: React.FC = () => {
       websocketService.off('messages_read', handleMessagesRead);
       websocketService.off('typing', handleTyping);
     };
-  }, [currentUser, selectedFriend]);
+  }, [currentUser?.id, selectedFriend?.id]);
 
   // Load chats periodically
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.id) return;
     
     if (activeTab === 'friends') {
-      const interval = setInterval(loadChats, 5000);
-      return () => clearInterval(interval);
+      // Use Page Visibility API to pause polling when tab is hidden
+      let interval: NodeJS.Timeout | null = null;
+      
+      const startPolling = () => {
+        if (document.visibilityState === 'visible') {
+          interval = setInterval(loadChats, 5000);
+        }
+      };
+      
+      const stopPolling = () => {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      };
+      
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          // Reload immediately when tab becomes visible
+          loadChats();
+          startPolling();
+        } else {
+          stopPolling();
+        }
+      };
+      
+      // Load immediately and start polling if tab is visible
+      if (document.visibilityState === 'visible') {
+        loadChats();
+        startPolling();
+      }
+      
+      // Listen for visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        stopPolling();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
-  }, [currentUser, activeTab]);
+  }, [currentUser?.id, activeTab, loadChats]);
 
   // Load friend requests periodically
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?.id) return;
     
     if (activeTab === 'requests') {
       loadFriendRequests();
       loadIncomingRequestCount();
       loadChats(); // Also reload chats to check if any requests were accepted
-      const interval = setInterval(() => {
-        loadFriendRequests();
-        loadIncomingRequestCount();
-        loadChats(); // Check if any requests were accepted
-      }, 5000);
-      return () => clearInterval(interval);
+      
+      // Use Page Visibility API to pause polling when tab is hidden
+      let interval: NodeJS.Timeout | null = null;
+      
+      const startPolling = () => {
+        if (document.visibilityState === 'visible') {
+          interval = setInterval(() => {
+            loadFriendRequests();
+            loadIncomingRequestCount();
+            loadChats(); // Check if any requests were accepted
+          }, 5000);
+        }
+      };
+      
+      const stopPolling = () => {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      };
+      
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          // Reload immediately when tab becomes visible
+          loadFriendRequests();
+          loadIncomingRequestCount();
+          loadChats();
+          startPolling();
+        } else {
+          stopPolling();
+        }
+      };
+      
+      // Start polling if tab is visible
+      if (document.visibilityState === 'visible') {
+        startPolling();
+      }
+      
+      // Listen for visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        stopPolling();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     }
-  }, [currentUser, activeTab]);
+  }, [currentUser?.id, activeTab, loadFriendRequests, loadIncomingRequestCount, loadChats]);
 
   // Load messages when friend is selected
   useEffect(() => {
-    if (currentUser && selectedFriend) {
+    if (currentUser?.id && selectedFriend?.id) {
       loadMessages();
       markConversationRead();
     }
-  }, [currentUser, selectedFriend]);
+  }, [currentUser?.id, selectedFriend?.id, loadMessages, markConversationRead]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -179,66 +365,6 @@ const ChatPage: React.FC = () => {
       }
     };
   }, []);
-
-  const connectWebSocket = async () => {
-    if (!currentUser) return;
-    try {
-      await websocketService.connect(currentUser.id);
-    } catch (error) {
-      console.error('Failed to connect WebSocket:', error);
-    }
-  };
-
-  const loadCurrentUser = async () => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
-      } else {
-        const user = await apiService.getCurrentUser();
-        setCurrentUser(user);
-      }
-    } catch (err) {
-      console.error('Failed to load current user:', err);
-    }
-  };
-
-  const loadChats = async () => {
-    if (!currentUser) return;
-    try {
-      const chatsList = await apiService.getChats(currentUser.id);
-      setChats(chatsList);
-    } catch (err) {
-      console.error('Failed to load chats:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMessages = async () => {
-    if (!currentUser || !selectedFriend) return;
-    try {
-      const conversationMessages = await apiService.getConversation(
-        currentUser.id,
-        selectedFriend.id
-      );
-      setMessages(conversationMessages);
-      scrollToBottom();
-    } catch (err) {
-      console.error('Failed to load messages:', err);
-    }
-  };
-
-  const markConversationRead = async () => {
-    if (!currentUser || !selectedFriend) return;
-    try {
-      await apiService.markConversationRead(currentUser.id, selectedFriend.id);
-      loadChats(); // Refresh chats to update unread count
-    } catch (err) {
-      console.error('Failed to mark conversation as read:', err);
-    }
-  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,33 +427,6 @@ const ChatPage: React.FC = () => {
     }, 3000);
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const loadFriendRequests = async () => {
-    if (!currentUser) return;
-    try {
-      const [incoming, outgoing] = await Promise.all([
-        apiService.getIncomingFriendRequests(currentUser.id),
-        apiService.getOutgoingFriendRequests(currentUser.id)
-      ]);
-      setFriendRequests(incoming);
-      setOutgoingFriendRequests(outgoing);
-    } catch (err) {
-      console.error('Failed to load friend requests:', err);
-    }
-  };
-
-  const loadIncomingRequestCount = async () => {
-    if (!currentUser) return;
-    try {
-      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(currentUser.id);
-      setIncomingRequestCount(incomingRequestCount);
-    } catch (err) {
-      console.error('Failed to load incoming request count:', err);
-    }
-  };
 
   const handleSearchUsers = async (query: string) => {
     if (!currentUser) {
@@ -783,10 +882,10 @@ const ChatPage: React.FC = () => {
                 <div className="chat-empty">Сұраулар жоқ</div>
               ) : (
                 <div className="chat-requests-items">
-                  {/* Келіп түскен сұраулар */}
+                  {/* Келіп түскен сұраулар - бұл сізге келген сұраулар */}
                   {friendRequests.length > 0 && (
                     <>
-                      {friendRequests.length > 0 && outgoingFriendRequests.length > 0 && (
+                      {outgoingFriendRequests.length > 0 && (
                         <div className="chat-requests-section-title">Келіп түскен сұраулар</div>
                       )}
                       {friendRequests.map((request) => (
@@ -821,10 +920,10 @@ const ChatPage: React.FC = () => {
                     </>
                   )}
                   
-                  {/* Жіберілген сұраулар */}
+                  {/* Жіберілген сұраулар - бұл сіз жіберген сұраулар */}
                   {outgoingFriendRequests.length > 0 && (
                     <>
-                      {friendRequests.length > 0 && outgoingFriendRequests.length > 0 && (
+                      {friendRequests.length > 0 && (
                         <div className="chat-requests-section-title">Жіберілген сұраулар</div>
                       )}
                       {outgoingFriendRequests.map((request) => (

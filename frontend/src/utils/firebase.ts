@@ -3,7 +3,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCQV1oUnC4GISVmWPAk-fIk-3UOoEYBink",
+  apiKey: "AIzaSyCQV1oUnC4GISVmWPAk-fIk-3UoEYBink",
   authDomain: "kazakh-hub.firebaseapp.com",
   projectId: "kazakh-hub",
   storageBucket: "kazakh-hub.firebasestorage.app",
@@ -24,6 +24,44 @@ export const db = getFirestore(app);
 // Google Auth Provider
 export const googleProvider = new GoogleAuthProvider();
 
+// Track if Firestore is blocked to prevent repeated connection attempts
+let firestoreBlocked = false;
+let firestoreBlockCheckAttempts = 0;
+const MAX_FIRESTORE_CHECK_ATTEMPTS = 3;
+
+/**
+ * Check if Firestore is blocked by ad blocker
+ */
+const checkFirestoreBlocked = (error: any): boolean => {
+  const errorMessage = error?.message || error?.toString() || '';
+  const errorCode = error?.code || '';
+  return (
+    errorCode === 'unavailable' || 
+    errorCode === 'permission-denied' ||
+    errorCode === 'cancelled' ||
+    errorMessage.includes('BLOCKED_BY_CLIENT') ||
+    errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
+    errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+    errorMessage.includes('network') ||
+    errorMessage.includes('Failed to fetch') ||
+    errorMessage.includes('firestore.googleapis.com')
+  );
+};
+
+/**
+ * Check if Firestore is blocked (for use by other modules)
+ */
+export const isFirestoreBlocked = (): boolean => {
+  return firestoreBlocked;
+};
+
+/**
+ * Mark Firestore as blocked (called when blocking is detected)
+ */
+export const markFirestoreBlocked = () => {
+  firestoreBlocked = true;
+};
+
 /**
  * Helper function to save/update user in Firestore
  * 
@@ -33,6 +71,11 @@ export const googleProvider = new GoogleAuthProvider();
  * do not depend on Firestore.
  */
 export const saveUserToFirestore = async (userData: { id: string; username: string; email: string; avatar?: string }) => {
+  // Skip Firestore if we've detected it's blocked
+  if (firestoreBlocked) {
+    return;
+  }
+  
   try {
     const userRef = doc(db, 'users', userData.id);
     await setDoc(userRef, {
@@ -41,28 +84,28 @@ export const saveUserToFirestore = async (userData: { id: string; username: stri
       avatar: userData.avatar || null,
       updatedAt: new Date().toISOString()
     }, { merge: true }); // merge: true allows updating existing documents
+    
+    // Reset block check attempts on success
+    firestoreBlockCheckAttempts = 0;
   } catch (error: any) {
-    // Silently handle Firestore errors (may be blocked by ad blockers)
-    // This is not critical for authentication to work
-    const errorMessage = error?.message || error?.toString() || '';
-    const errorCode = error?.code || '';
-    const isBlocked = 
-      errorCode === 'unavailable' || 
-      errorCode === 'permission-denied' ||
-      errorCode === 'cancelled' ||
-      errorMessage.includes('BLOCKED_BY_CLIENT') ||
-      errorMessage.includes('ERR_BLOCKED_BY_CLIENT') ||
-      errorMessage.includes('network') ||
-      errorMessage.includes('Failed to fetch') ||
-      errorMessage.includes('firestore.googleapis.com');
+    const isBlocked = checkFirestoreBlocked(error);
+    
+    if (isBlocked) {
+      firestoreBlockCheckAttempts++;
+      // After multiple blocked attempts, mark Firestore as blocked
+      if (firestoreBlockCheckAttempts >= MAX_FIRESTORE_CHECK_ATTEMPTS) {
+        firestoreBlocked = true;
+        markFirestoreBlocked();
+      }
+      // Silently ignore blocked errors - they don't affect app functionality
+      return;
+    }
     
     // Only log non-blocked errors (error suppression utility will handle console output)
     // Blocked errors are expected and non-critical
-    if (!isBlocked) {
-      // Error suppression will handle this if it's a known pattern
-      console.warn('Firestore save failed (non-critical):', errorMessage);
-    }
-    // Silently ignore blocked errors - they don't affect app functionality
+    const errorMessage = error?.message || error?.toString() || '';
+    // Error suppression will handle this if it's a known pattern
+    console.warn('Firestore save failed (non-critical):', errorMessage);
   }
 };
 

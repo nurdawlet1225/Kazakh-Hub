@@ -96,6 +96,12 @@ app.add_middleware(
 async def log_requests(request, call_next):
     print(f"{datetime.now().isoformat()} - {request.method} {request.url.path}")
     response = await call_next(request)
+    
+    # Add caching headers for GET requests
+    if request.method == "GET" and request.url.path.startswith("/api/codes"):
+        # Cache codes list for 30 seconds
+        response.headers["Cache-Control"] = "public, max-age=30"
+    
     return response
 
 # Root endpoints

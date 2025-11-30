@@ -4,9 +4,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComment, faUserPlus, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
+import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';
 import { formatDateTime } from '../utils/dateFormatter';
 import { ensureNumericId, isNumericId } from '../utils/idConverter';
-import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';
 import './Chat.css';
 
 interface ChatProps {

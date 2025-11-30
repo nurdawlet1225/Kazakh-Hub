@@ -111,8 +111,8 @@
 .logo-img {
   width: 28.2px;
   height: 28.2px;
-  object-fit: contain;
-  border-radius: 7.7px;
+  object-fit: cover;
+  border-radius: 50%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-md);
   filter: drop-shadow(0 2.6px 3.8px rgba(251, 191, 36, 0.15));

@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "df14afe5-3e76-4655-8a10-f675751c15c8",
+    "fromUserId": "001400479735",
+    "toUserId": "728388036309",
+    "status": "cancelled",
+    "createdAt": "2025-11-30T12:53:32.850813"
+  },
+  {
+    "id": "a61c77b0-8ffe-40b9-ac93-91f4e0504300",
+    "fromUserId": "001400479735",
+    "toUserId": "728388036309",
+    "status": "pending",
+    "createdAt": "2025-11-30T12:53:56.679635"
+  }
+]

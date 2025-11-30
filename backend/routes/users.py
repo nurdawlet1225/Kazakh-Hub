@@ -9,8 +9,15 @@ router = APIRouter()
 
 
 @router.get("/user")
-async def get_current_user(email: Optional[str] = Query(None)):
-    """Get current user by email or return first user"""
+async def get_current_user(email: Optional[str] = Query(None), user_id: Optional[str] = Query(None)):
+    """Get current user by email, user_id, or return first user"""
+    # Try to find by user_id first (most specific)
+    if user_id:
+        user = UserService.find_user_by_id(user_id)
+        if user:
+            return user
+    
+    # Try to find by email
     if email:
         user = UserService.find_user_by_email(email)
         if user:

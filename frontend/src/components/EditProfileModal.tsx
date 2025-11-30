@@ -247,8 +247,17 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
       onUpdate(updatedUser);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating profile:', err);
+      
+      // If user not found, clear localStorage and redirect to login
+      if (err?.message?.includes('User not found') || err?.message?.includes('Пайдаланушы табылмады')) {
+        localStorage.removeItem('user');
+        window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+        alert('Пайдаланушы табылмады. Жүйені қайта жүктеңіз немесе қайта кіріңіз.');
+        window.location.reload();
+        return;
+      }
       let errorMessage = err instanceof Error ? err.message : 'Профильді жаңарту қатесі';
       
       // Remove password-related error message for profile updates (not password changes)

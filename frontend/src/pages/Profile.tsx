@@ -280,15 +280,35 @@ const Profile: React.FC = () => {
       
       if (storedUser) {
         userData = JSON.parse(storedUser);
+        // Verify user exists in backend
+        try {
+          const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
+          userData = verifiedUser;
+        } catch (err: any) {
+          // If user not found in backend, clear localStorage and reload
+          if (err?.message?.includes('not found') || err?.message?.includes('табылмады') || err?.message?.includes('404')) {
+            localStorage.removeItem('user');
+            window.location.reload();
+            return;
+          }
+          // Otherwise, try to get current user without email
+          try {
+            userData = await apiService.getCurrentUser();
+          } catch (err2) {
+            localStorage.removeItem('user');
+            window.location.reload();
+            return;
+          }
+        }
       } else {
         // Fallback to API
         userData = await apiService.getCurrentUser();
       }
       
-      const codesData = await apiService.getCodeFiles();
+      const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);
       setUser(userData);
       // Пайдаланушының кодтарын сүзгілеу
-      const filteredCodes = codesData.filter((code) => code.author === userData.username);
+      const filteredCodes = codesResponse.codes.filter((code) => code.author === userData.username);
       setUserCodes(filteredCodes);
       
       // Статистикаларды есептеу

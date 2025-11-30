@@ -73,8 +73,8 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
   const loadCodes = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiService.getCodeFiles();
-      setCodes(data);
+      const response = await apiService.getCodeFiles(undefined, 100, 0, false);
+      setCodes(response.codes);
     } catch (err) {
       console.error('Failed to load codes:', err);
     } finally {

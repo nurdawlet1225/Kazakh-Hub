@@ -82,9 +82,9 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
         }
       }
       
-      const codesData = await apiService.getCodeFiles();
+      const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);
       setUser(userData);
-      const filteredCodes = codesData.filter((code) => code.author === userData.username);
+      const filteredCodes = codesResponse.codes.filter((code) => code.author === userData.username);
       setUserCodes(filteredCodes);
       
       const totalLikes = filteredCodes.reduce((sum, code) => sum + (code.likes?.length || 0), 0);

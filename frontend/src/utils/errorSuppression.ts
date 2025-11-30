@@ -20,6 +20,14 @@ const originalWarn = console.warn;
 // Patterns to suppress
 const SUPPRESSED_ERROR_PATTERNS = [
   /Cross-Origin-Opener-Policy.*would block.*window\.(closed|close)/i,
+  /Cross-Origin-Opener-Policy.*policy would block/i,
+  /policy would block.*window\.(closed|close)/i,
+  /window\.closed.*Cross-Origin-Opener-Policy/i,
+  /window\.close.*Cross-Origin-Opener-Policy/i,
+  /firebase_auth\.js.*Cross-Origin-Opener-Policy/i,
+  /firebase_auth\.js.*window\.(closed|close)/i,
+  /poll @ firebase_auth\.js/i,
+  /close @ firebase_auth\.js/i,
   /ERR_BLOCKED_BY_CLIENT/i,
   /BLOCKED_BY_CLIENT/i,
   /net::ERR_BLOCKED_BY_CLIENT/i,
@@ -47,7 +55,6 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /firestore\.googleapis\.com.*Listen\/channel.*TYPE=terminate/i,
   /firestore\.googleapis\.com.*Listen\/channel.*ERR_BLOCKED_BY_CLIENT/i,
   /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
-  /firebase_auth\.js.*Cross-Origin-Opener-Policy/i,
   /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
   /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
   /google\.firestore\.v1\.Firestore.*ERR_BLOCKED_BY_CLIENT/i,
@@ -117,6 +124,21 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /firebase_firestore\.js.*h\.Ea/i,
   /firebase_firestore\.js.*bc @/i,
   /firebase_firestore\.js.*h\.connect/i,
+  // More comprehensive Firestore error patterns
+  /POST.*firestore\.googleapis\.com.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js.*POST.*firestore\.googleapis\.com.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js.*__PRIVATE_sendWatchRequest/i,
+  /firebase_firestore\.js.*__PRIVATE_onWatchStreamOpen/i,
+  /firebase_firestore\.js.*__PRIVATE_onWriteStreamOpen/i,
+  // Catch any error containing firebase_firestore.js with ERR_BLOCKED_BY_CLIENT
+  /firebase_firestore.*ERR_BLOCKED_BY_CLIENT/i,
+  /ERR_BLOCKED_BY_CLIENT.*firebase_firestore/i,
+  // Catch stack trace patterns
+  /\(анонимная\) @ firebase_firestore/i,
+  /анонимная.*firebase_firestore/i,
+  // Catch any line that contains firebase_firestore.js and error indicators
+  /firebase_firestore\.js.*:\d+.*ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js.*:\d+.*net::ERR/i,
 ];
 
 // Patterns to suppress warnings
@@ -137,6 +159,16 @@ export const shouldSuppressError = (message: string): boolean => {
  */
 export const shouldSuppressWarning = (message: string): boolean => {
   return SUPPRESSED_WARN_PATTERNS.some(pattern => pattern.test(message));
+};
+
+// Import Firestore blocking detection
+let markFirestoreBlockedFn: (() => void) | null = null;
+
+/**
+ * Set the function to mark Firestore as blocked (called from firebase.ts)
+ */
+export const setMarkFirestoreBlockedFn = (fn: () => void) => {
+  markFirestoreBlockedFn = fn;
 };
 
 /**
@@ -163,7 +195,40 @@ export const initErrorSuppression = () => {
     const message = args.join(' ');
     const fullMessage = `${message} ${allArgs}`;
     
-    if (shouldSuppressError(message) || shouldSuppressError(allArgs) || shouldSuppressError(fullMessage)) {
+    // Check if any argument contains firebase_firestore.js and ERR_BLOCKED_BY_CLIENT
+    const hasFirestoreBlocked = args.some(arg => {
+      const argStr = typeof arg === 'string' ? arg : String(arg);
+      return argStr.includes('firebase_firestore') && 
+             (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
+              argStr.includes('net::ERR_BLOCKED_BY_CLIENT') ||
+              argStr.includes('BLOCKED_BY_CLIENT'));
+    });
+    
+    // Also check individual arguments
+    const shouldSuppress = 
+      shouldSuppressError(message) || 
+      shouldSuppressError(allArgs) || 
+      shouldSuppressError(fullMessage) ||
+      hasFirestoreBlocked ||
+      args.some(arg => {
+        const argStr = typeof arg === 'string' ? arg : String(arg);
+        // Aggressively suppress any firebase_firestore.js errors
+        if (argStr.includes('firebase_firestore.js') && 
+            (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
+             argStr.includes('net::ERR') ||
+             argStr.includes('POST') ||
+             argStr.includes('Listen/channel') ||
+             argStr.includes('Write/channel'))) {
+          return true;
+        }
+        return shouldSuppressError(argStr);
+      });
+    
+    if (shouldSuppress) {
+      // If this is a Firestore blocking error, mark Firestore as blocked
+      if (hasFirestoreBlocked && markFirestoreBlockedFn) {
+        markFirestoreBlockedFn();
+      }
       // Suppress known errors silently
       return;
     }
@@ -204,13 +269,31 @@ export const initErrorSuppression = () => {
     // Combine all error information
     const allErrorInfo = `${fullMessage} ${fullErrorText} ${errorPath} ${errorUrl}`;
     
+    // Check if error is from Firebase Auth (COOP errors)
+    const isFirebaseAuthError = errorFilename.includes('firebase_auth') || 
+                                errorMessage.includes('firebase_auth') ||
+                                stackTrace.includes('firebase_auth');
+    
+    // Check if error is from Firestore (blocked by ad blocker)
+    const isFirestoreBlockedError = errorFilename.includes('firebase_firestore') ||
+                                     errorMessage.includes('firebase_firestore') ||
+                                     errorUrl.includes('firestore.googleapis.com') ||
+                                     stackTrace.includes('firebase_firestore') ||
+                                     (errorMessage.includes('ERR_BLOCKED_BY_CLIENT') && 
+                                      (errorUrl.includes('firestore') || errorFilename.includes('firestore')));
+    
     if (shouldSuppressError(fullMessage) || 
         shouldSuppressError(errorMessage) || 
         shouldSuppressError(errorSource) || 
         shouldSuppressError(fullErrorText) || 
         shouldSuppressError(errorPath) || 
         shouldSuppressError(errorUrl) ||
-        shouldSuppressError(allErrorInfo)) {
+        shouldSuppressError(allErrorInfo) ||
+        isFirestoreBlockedError ||
+        (isFirestoreBlockedError && markFirestoreBlockedFn ? (() => { markFirestoreBlockedFn(); return true; })() : false) ||
+        (isFirebaseAuthError && (errorMessage.includes('Cross-Origin-Opener-Policy') || 
+                                 errorMessage.includes('window.closed') ||
+                                 errorMessage.includes('window.close')))) {
       event.preventDefault();
       event.stopPropagation();
       return false;
@@ -231,6 +314,56 @@ export const initErrorSuppression = () => {
       }
       throw error;
     }
+  };
+  
+  // Intercept XMLHttpRequest errors (Firebase uses XHR internally)
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  const originalXHRSend = XMLHttpRequest.prototype.send;
+  
+  XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
+    const errorUrl = typeof url === 'string' ? url : url.toString();
+    if (errorUrl.includes('firestore.googleapis.com')) {
+      this.addEventListener('error', function() {
+        if (shouldSuppressError(errorUrl) && markFirestoreBlockedFn) {
+          markFirestoreBlockedFn();
+        }
+        // Suppress error event
+        this.dispatchEvent = () => {};
+      });
+    } else {
+      this.addEventListener('error', function() {
+        if (shouldSuppressError(errorUrl)) {
+          // Suppress error event
+          this.dispatchEvent = () => {};
+        }
+      });
+    }
+    return originalXHROpen.apply(this, [method, url, ...rest] as any);
+  };
+  
+  XMLHttpRequest.prototype.send = function(...args: any[]) {
+    const errorUrl = this.responseURL || '';
+    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com');
+    
+    this.addEventListener('error', function(event) {
+      if (shouldSuppressError(errorUrl)) {
+        if (isFirestoreRequest && markFirestoreBlockedFn) {
+          markFirestoreBlockedFn();
+        }
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      }
+    });
+    
+    // Also check for blocked status
+    this.addEventListener('loadend', function() {
+      if (this.status === 0 && isFirestoreRequest && markFirestoreBlockedFn) {
+        // Status 0 often indicates blocked request
+        markFirestoreBlockedFn();
+      }
+    });
+    
+    return originalXHRSend.apply(this, args);
   };
   
   // Suppress network errors from Performance API

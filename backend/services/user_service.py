@@ -41,8 +41,9 @@ class UserService:
     
     @staticmethod
     def find_user_by_email(email: str) -> Optional[Dict[str, Any]]:
-        """Find user by email"""
-        return next((u for u in users if u['email'] == email), None)
+        """Find user by email (case-insensitive)"""
+        email_lower = email.strip().lower()
+        return next((u for u in users if u.get('email', '').strip().lower() == email_lower), None)
     
     @staticmethod
     def create_user(username: str, email: str, password: Optional[str] = None, firebase_uid: Optional[str] = None) -> Dict[str, Any]:
@@ -209,11 +210,11 @@ class UserService:
                 elif normalized_search_id in normalized_stored_id or search_term in stored_id:
                     matched = True
             # Partial match for username or email
-            elif not is_numeric_query and (
-                search_term_lower in user.get('username', '').lower() or 
-                search_term_lower in user.get('email', '').lower()
-            ):
-                matched = True
+            elif not is_numeric_query:
+                user_email = user.get('email', '').strip().lower()
+                user_username = user.get('username', '').strip().lower()
+                if search_term_lower in user_username or search_term_lower in user_email:
+                    matched = True
             # Partial ID match (for non-numeric queries that might contain numbers)
             elif search_term_lower in stored_id.lower():
                 matched = True
