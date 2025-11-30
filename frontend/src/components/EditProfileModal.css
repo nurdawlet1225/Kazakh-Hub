@@ -16,7 +16,7 @@
   justify-content: center;
   z-index: var(--z-modal, 10000);
   padding: 0.80rem;
-  backdrop-filter: blur(5.1px) saturate(180%);
+  backdrop-filter: blur(4.1px) saturate(180%);
   animation: fadeIn 0.3s ease;
   box-sizing: border-box;
 }
@@ -32,9 +32,9 @@
 
 .modal-content {
   background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.98) 100%);
-  border-radius: 12.3px;
+  border-radius: 9.8px;
   width: 100%;
-  max-width: 332.8px;
+  max-width: 266.2px;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -44,11 +44,11 @@
 }
   overflow-x: hidden;
   box-shadow: 
-    0 12.8px 38.4px rgba(0, 0, 0, 0.3),
-    0 0 25.6px rgba(8, 145, 178, 0.2);
+    0 10.2px 30.7px rgba(0, 0, 0, 0.3),
+    0 0 20.5px rgba(8, 145, 178, 0.2);
   animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1.3px solid rgba(8, 145, 178, 0.2);
-  backdrop-filter: blur(12.8px) saturate(180%);
+  border: 1.0px solid rgba(8, 145, 178, 0.2);
+  backdrop-filter: blur(10.2px) saturate(180%);
   position: relative;
   margin: auto;
   box-sizing: border-box;
@@ -57,7 +57,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(12.8px);
+    transform: translateY(10.2px);
   }
   to {
     opacity: 1;
@@ -67,7 +67,7 @@
 
 .modal-header {
   padding: 1.5rem;
-  border-bottom: 0.64px solid var(--border-color);
+  border-bottom: 0.51px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -87,12 +87,12 @@
   color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
-  width: 20.5px;
-  height: 20.5px;
+  width: 16.4px;
+  height: 16.4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 5.1px;
+  border-radius: 4.1px;
   transition: all 0.2s;
 }
 
@@ -102,7 +102,7 @@
 }
 
 .edit-profile-modal {
-  max-width: 320px;
+  max-width: 256px;
 }
 
 .edit-profile-form {
@@ -126,8 +126,8 @@
 
 .form-group input {
   padding: 0.75rem;
-  border: 0.64px solid var(--border-color);
-  border-radius: 5.1px;
+  border: 0.51px solid var(--border-color);
+  border-radius: 4.1px;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 1rem;
@@ -137,14 +137,14 @@
 .form-group input:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 1.9px rgba(8, 145, 178, 0.1);
+  box-shadow: 0 0 0 1.5px rgba(8, 145, 178, 0.1);
 }
 
 .form-error {
   background: rgba(251, 191, 36, 0.1);
   color: var(--error-color);
   padding: 0.75rem;
-  border-radius: 5.1px;
+  border-radius: 4.1px;
   font-size: 0.9rem;
   text-align: center;
 }
@@ -159,9 +159,9 @@
 .btn-secondary {
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 0.64px solid var(--border-color);
+  border: 0.51px solid var(--border-color);
   padding: 0.75rem 1.5rem;
-  border-radius: 7.7px;
+  border-radius: 6.2px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -177,7 +177,7 @@
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
-  border-radius: 7.7px;
+  border-radius: 6.2px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -185,7 +185,7 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-1.3px);
+  transform: translateY(-1.0px);
   box-shadow: var(--shadow-xl), var(--shadow-glow);
 }
 
@@ -205,16 +205,16 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-secondary);
-  border: 0.64px solid var(--border-color);
-  border-radius: 7.7px;
+  border: 0.51px solid var(--border-color);
+  border-radius: 6.2px;
 }
 
 .avatar-preview {
-  width: 76.8px;
-  height: 76.8px;
+  width: 61.4px;
+  height: 61.4px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1.9px solid var(--primary-color);
+  border: 1.5px solid var(--primary-color);
   flex-shrink: 0;
   background: var(--bg-primary);
 }
@@ -249,7 +249,7 @@
   color: white;
   border: none;
   padding: 0.5rem 1rem;
-  border-radius: 5.1px;
+  border-radius: 4.1px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -258,7 +258,7 @@
 }
 
 .btn-upload-avatar:hover:not(.uploading) {
-  transform: translateY(-1.3px);
+  transform: translateY(-1.0px);
   box-shadow: var(--shadow-xl), var(--shadow-glow);
 }
 
@@ -271,9 +271,9 @@
 .btn-remove-avatar {
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 0.64px solid var(--border-color);
+  border: 0.51px solid var(--border-color);
   padding: 0.5rem 1rem;
-  border-radius: 5.1px;
+  border-radius: 4.1px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -304,8 +304,8 @@
   margin-top: 1rem;
   padding: 1.5rem;
   background: var(--bg-secondary);
-  border: 0.64px solid var(--border-color);
-  border-radius: 7.7px;
+  border: 0.51px solid var(--border-color);
+  border-radius: 6.2px;
 }
 
 .password-change-section .section-label {

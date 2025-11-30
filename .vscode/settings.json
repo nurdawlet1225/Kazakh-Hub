@@ -3,5 +3,8 @@
     "python.defaultInterpreterPath": "C:/Users/nurda/AppData/Local/Programs/Python/Python310/python.exe",
     "python.analysis.extraPaths": [
         "${workspaceFolder}/backend"
+    ],
+    "cursorpyright.analysis.extraPaths": [
+        "${workspaceFolder}/backend"
     ]
 }

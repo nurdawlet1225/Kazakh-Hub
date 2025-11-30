@@ -1,7 +1,7 @@
 .code-editor {
   background: var(--bg-code);
-  border: 0.51px solid var(--border-color);
-  border-radius: 4.1px;
+  border: 0.41px solid var(--border-color);
+  border-radius: 3.3px;
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -10,12 +10,12 @@
 
 .code-editor.read-only {
   border: none;
-  height: 256px;
-  max-height: 256px;
+  height: 204.8px;
+  max-height: 204.8px;
   overflow-y: auto;
   overflow-x: auto;
-  max-width: 411.7px;
-  width: 411.7px;
+  max-width: 329.4px;
+  width: 329.4px;
 }
 
 .code-editor-header {
@@ -24,7 +24,7 @@
   align-items: center;
   padding: 0.60rem 0.80rem;
   background: var(--bg-secondary);
-  border-bottom: 0.51px solid var(--border-color);
+  border-bottom: 0.41px solid var(--border-color);
 }
 
 .code-editor-language {
@@ -32,15 +32,15 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.26px;
+  letter-spacing: 0.21px;
 }
 
 .code-editor-copy {
   background: transparent;
-  border: 0.51px solid var(--border-color);
+  border: 0.41px solid var(--border-color);
   color: var(--text-secondary);
   padding: 0.20rem 0.60rem;
-  border-radius: 2.1px;
+  border-radius: 1.7px;
   cursor: pointer;
   font-size: 0.68rem;
   transition: all 0.2s;
@@ -54,7 +54,7 @@
 
 .code-editor-textarea {
   width: 100%;
-  min-height: 256px;
+  min-height: 204.8px;
   padding: 1.5rem;
   background: var(--bg-code);
   color: var(--text-primary);
@@ -82,39 +82,39 @@
 }
 
 .code-editor.read-only .code-editor-content {
-  height: 320px;
-  max-height: 320px;
+  height: 256px;
+  max-height: 256px;
   overflow-y: auto;
   overflow-x: auto;
-  max-width: 514.6px;
-  width: 514.6px;
+  max-width: 411.7px;
+  width: 411.7px;
 }
 
 /* Custom scrollbar for code editor */
 .code-editor.read-only .code-editor-content::-webkit-scrollbar,
 .code-editor.read-only .code-editor-content pre::-webkit-scrollbar {
-  width: 7.7px;
-  height: 7.7px;
+  width: 6.2px;
+  height: 6.2px;
 }
 
 .code-editor.read-only .code-editor-content::-webkit-scrollbar-track,
 .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-track {
   background: var(--bg-code);
-  border-radius: 3.8px;
+  border-radius: 3.0px;
 }
 
 .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb,
 .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #06b6d4 0%, #06b6d4 50%, #fbbf24 100%);
-  border-radius: 3.8px;
-  border: 1.3px solid var(--bg-code);
-  box-shadow: 0 1.3px 2.6px rgba(0, 0, 0, 0.2);
+  border-radius: 3.0px;
+  border: 1.0px solid var(--bg-code);
+  box-shadow: 0 1.0px 2.1px rgba(0, 0, 0, 0.2);
 }
 
 .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb:hover,
 .code-editor.read-only .code-editor-content pre::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #0891b2 0%, #0891b2 50%, #f59e0b 100%);
-  box-shadow: 0 2.6px 5.1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2.1px 4.1px rgba(0, 0, 0, 0.3);
 }
 
 .dark-theme .code-editor.read-only .code-editor-content::-webkit-scrollbar-thumb,
