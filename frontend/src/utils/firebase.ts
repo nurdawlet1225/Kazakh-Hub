@@ -2,14 +2,15 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
+// Firebase configuration from environment variables or fallback to defaults
 const firebaseConfig = {
-  apiKey: "AIzaSyCQV1oUnC4GISVmWPAk-fIk-3UoEYBink",
-  authDomain: "kazakh-hub.firebaseapp.com",
-  projectId: "kazakh-hub",
-  storageBucket: "kazakh-hub.firebasestorage.app",
-  messagingSenderId: "669228897264",
-  appId: "1:669228897264:web:095fe725a868d1eb768335",
-  measurementId: "G-N2X6FB3KXN"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCQV1oUnC4GISVmWPAk-fIk-3UOoEYBink",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "kazakh-hub.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "kazakh-hub",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "kazakh-hub.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "669228897264",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:669228897264:web:095fe725a868d1eb768335",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-N2X6FB3KXN"
 };
 
 // Initialize Firebase
