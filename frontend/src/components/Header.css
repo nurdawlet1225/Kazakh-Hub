@@ -563,6 +563,8 @@
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
+  flex-wrap: nowrap;
+  flex-direction: row;
 }
 
 .header-actions .login-btn-wrapper {
@@ -894,6 +896,7 @@
   box-shadow: 0 1.3px 5.1px rgba(251, 191, 36, 0.1);
   height: 28.2px;
   box-sizing: border-box;
+  transform: translateY(-3.2px);
 }
 
 .btn-secondary::before {

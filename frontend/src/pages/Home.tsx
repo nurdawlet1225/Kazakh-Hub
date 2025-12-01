@@ -306,6 +306,7 @@ const Home: React.FC = () => {
             <div className="stat-icon"><FontAwesomeIcon icon={faBook} /></div>
             <div className="stat-label">{t('home.totalCodes')}</div>
           </div>
+          <div className="stat-separator"></div>
           <div className="stat-value">{stats.totalCodes}</div>
         </div>
         <div className="stat-card">
@@ -313,6 +314,7 @@ const Home: React.FC = () => {
             <div className="stat-icon"><FontAwesomeIcon icon={faLaptop} /></div>
             <div className="stat-label">{t('home.programmingLanguages')}</div>
           </div>
+          <div className="stat-separator"></div>
           <div className="stat-value">{stats.totalLanguages}</div>
         </div>
         <div className="stat-card">
@@ -320,6 +322,7 @@ const Home: React.FC = () => {
             <div className="stat-icon"><FontAwesomeIcon icon={faUsers} /></div>
             <div className="stat-label">{t('home.authors')}</div>
           </div>
+          <div className="stat-separator"></div>
           <div className="stat-value">{stats.totalAuthors}</div>
         </div>
         <div className="stat-card">
@@ -327,6 +330,7 @@ const Home: React.FC = () => {
             <div className="stat-icon"><FontAwesomeIcon icon={faStar} /></div>
             <div className="stat-label">{t('home.lastWeek')}</div>
           </div>
+          <div className="stat-separator"></div>
           <div className="stat-value">{stats.recentCodes}</div>
         </div>
       </div>

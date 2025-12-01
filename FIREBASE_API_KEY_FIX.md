@@ -117,3 +117,5 @@ const firebaseConfig = {
 1. Firebase Console-да **Project Settings** → **General** → **Your apps** бөлімінде жаңа веб-приложение құрыңыз
 2. Жаңа конфигурация мәндерін алып, кодта жаңартыңыз
 
+
+

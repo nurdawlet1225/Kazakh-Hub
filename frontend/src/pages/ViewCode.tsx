@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical, faEllipsis, faImage } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -61,6 +61,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
   likingCommentId = null,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
   const isLiked = currentUser ? comment.likes?.includes(currentUser.id) : false;
   const likeCount = comment.likes?.length || 0;
   const isReply = comment.parentId ? true : false;
@@ -70,6 +72,28 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const parentComment = comment.parentId 
     ? allComments.find(c => c.id === comment.parentId)
     : null;
+
+  const handleAvatarClick = () => {
+    navigate(`/profile/${comment.author}`);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showActionsMenu && !target.closest('.comment-actions-menu')) {
+        setShowActionsMenu(false);
+      }
+    };
+
+    if (showActionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showActionsMenu]);
 
   return (
     <div className={`comment-item ${isReply ? 'comment-reply-item' : ''}`} data-comment-id={comment.id}>
@@ -84,6 +108,15 @@ const CommentItem: React.FC<CommentItemProps> = ({
           </span>
         </div>
       )}
+      <div 
+        className="comment-avatar" 
+        onClick={handleAvatarClick}
+        style={{ cursor: 'pointer' }}
+        title={`${comment.author} профилін көру`}
+      >
+        {comment.author.charAt(0).toUpperCase()}
+      </div>
+      <div className="comment-content-wrapper">
       <div className="comment-header">
         <div className="comment-header-left">
           <span className="comment-author"><FontAwesomeIcon icon={faUser} /> {comment.author}</span>
@@ -107,25 +140,37 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 </button>
               </>
             ) : (
-              <>
+              <div className="comment-actions-menu">
                 <button
-                  className="btn-comment-edit"
-                  onClick={() => onEdit(comment)}
-                  title={t('common.edit')}
+                  className="btn-comment-actions-toggle"
+                  onClick={() => setShowActionsMenu(!showActionsMenu)}
+                  title="Әрекеттер"
                 >
-                  <span className="menu-icon">
-                    <span className="menu-line"></span>
-                    <span className="menu-line"></span>
-                    <span className="menu-line"></span>
-                  </span>
+                  <FontAwesomeIcon icon={faEllipsis} />
                 </button>
-                <button
-                  className="btn-comment-delete"
-                  onClick={() => onDelete(comment.id)}
-                >
-                  <FontAwesomeIcon icon={faTrash} /> {t('common.delete')}
-                </button>
-              </>
+                {showActionsMenu && (
+                  <div className="comment-actions-dropdown">
+                    <button
+                      className="comment-actions-menu-item"
+                      onClick={() => {
+                        onEdit(comment);
+                        setShowActionsMenu(false);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faEdit} /> {t('common.edit')}
+                    </button>
+                    <button
+                      className="comment-actions-menu-item comment-actions-menu-item-danger"
+                      onClick={() => {
+                        onDelete(comment.id);
+                        setShowActionsMenu(false);
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTrash} /> {t('common.delete')}
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -138,62 +183,43 @@ const CommentItem: React.FC<CommentItemProps> = ({
           rows={3}
         />
       ) : (
-        <div className="comment-content">{comment.content}</div>
-      )}
-      <div className="comment-reactions">
-        <button
-          className={`comment-reaction-btn ${isLiked ? 'liked' : ''} ${isLiking ? 'liking' : ''}`}
-          onClick={() => onLike(comment.id)}
-          disabled={!currentUser || isLiking}
-          title="Лайк"
-        >
-          👍 {likeCount}
-        </button>
-        {currentUser && (
-          <button
-            className="btn-comment-reply"
-            onClick={() => onReply(comment.id)}
-          >
-            <FontAwesomeIcon icon={faComment} /> {t('viewCode.reply')}
-          </button>
-        )}
-      </div>
-      {replyingToCommentId === comment.id && (
-        <form
-          className="reply-form"
-          onSubmit={(e) => onSubmitReply(e, comment.id)}
-        >
-          <textarea
-            className="reply-input"
-            placeholder={t('viewCode.replyPlaceholder')}
-            value={replyText}
-            onChange={(e) => setReplyText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                onSubmitReply(e, comment.id);
-              }
-            }}
-            rows={2}
-          />
-          <div className="reply-actions">
+        <div className="comment-content">
+          <span className="comment-text">{comment.content}</span>
+          <div className="comment-reactions">
             <button
-              type="submit"
-              className="btn-reply-submit"
-              disabled={!replyText.trim() || isSubmittingReply}
+              className={`comment-reaction-btn ${isLiked ? 'liked' : ''} ${isLiking ? 'liking' : ''}`}
+              onClick={() => onLike(comment.id)}
+              disabled={!currentUser || isLiking}
+              title="Лайк"
             >
-              {isSubmittingReply ? t('common.loading') : t('common.submit')}
+              👍 {likeCount}
             </button>
-            <button
-              type="button"
-              className="btn-reply-cancel"
-              onClick={onCancelReply}
-            >
-              {t('common.cancel')}
-            </button>
+            {currentUser && (
+              <button
+                className="btn-comment-reply"
+                onClick={() => onReply(comment.id)}
+              >
+                <FontAwesomeIcon icon={faComment} /> {t('viewCode.reply')}
+              </button>
+            )}
           </div>
-        </form>
+        </div>
       )}
+      {replyingToCommentId === comment.id && (
+        <div className="reply-indicator">
+          <span className="reply-indicator-text">
+            {t('viewCode.replyingTo')}: <strong>{comment.author}</strong>
+          </span>
+          <button
+            type="button"
+            className="btn-reply-cancel-inline"
+            onClick={onCancelReply}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      </div>
     </div>
   );
 };
@@ -216,8 +242,6 @@ const ViewCode: React.FC = () => {
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
   const [likingCommentId, setLikingCommentId] = useState<string | null>(null); // Track which comment is being liked
   const [folderFiles, setFolderFiles] = useState<CodeFile[]>([]);
-  const [filteredFolderFiles, setFilteredFolderFiles] = useState<CodeFile[]>([]);
-  const [filterLanguage, setFilterLanguage] = useState<string>('all');
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -348,8 +372,8 @@ const ViewCode: React.FC = () => {
     try {
       setLoadingFiles(true);
       const response = await apiService.getCodeFiles(folderId, 1000, 0, true);
-      setFolderFiles(response.codes);
-      applyLanguageFilter(files, filterLanguage);
+      const files = response.codes;
+      setFolderFiles(files);
       if (files.length > 0) {
         setSelectedFile(files[0]);
       }
@@ -360,20 +384,6 @@ const ViewCode: React.FC = () => {
     }
   };
 
-  const applyLanguageFilter = (files: CodeFile[], language: string) => {
-    if (language === 'all') {
-      setFilteredFolderFiles(files);
-    } else {
-      const filtered = files.filter(file => file.language === language);
-      setFilteredFolderFiles(filtered);
-    }
-  };
-
-  const handleLanguageFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const language = e.target.value;
-    setFilterLanguage(language);
-    applyLanguageFilter(folderFiles, language);
-  };
 
   const handleRefreshFolder = async () => {
     if (code && id) {
@@ -927,24 +937,8 @@ const ViewCode: React.FC = () => {
         <div className="folder-view">
           <div className="folder-explorer">
               <div className="folder-explorer-header">
-                <h3 className="folder-explorer-title">Файлдар ({filteredFolderFiles.length})</h3>
+                <h3 className="folder-explorer-title">Файлдар ({folderFiles.length})</h3>
                 <div className="folder-filters">
-                  <div className="folder-language-filter">
-                    <label htmlFor="folder-language-filter">{t('home.language') || 'Тіл'}:</label>
-                    <select
-                      id="folder-language-filter"
-                      value={filterLanguage}
-                      onChange={handleLanguageFilterChange}
-                      className="filter-select"
-                    >
-                      <option value="all">{t('home.allLanguages') || 'Барлығы'}</option>
-                      {Array.from(new Set(folderFiles.map(file => file.language))).map((lang) => (
-                        <option key={lang} value={lang}>
-                          {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
                   <button
                     className="btn-refresh-folder"
                     onClick={handleRefreshFolder}
@@ -956,7 +950,7 @@ const ViewCode: React.FC = () => {
                 </div>
               </div>
             <FileExplorer
-              files={filteredFolderFiles}
+              files={folderFiles}
               onFileSelect={handleFileSelect}
               selectedFileId={selectedFile?.id}
               showFolderStructure={true}
@@ -1083,43 +1077,6 @@ const ViewCode: React.FC = () => {
                 <h2 className="comments-title"><FontAwesomeIcon icon={faComment} /> {t('viewCode.comments')} ({code.comments?.length || 0})</h2>
                     <div className="comments-divider"></div>
                   </div>
-                  
-                  {currentUser ? (
-                <form onSubmit={handleAddComment} className="comment-form">
-                      <div className="comment-input-wrapper">
-                        <textarea
-                          className="comment-input"
-                          placeholder={t('viewCode.commentPlaceholder')}
-                          value={commentText}
-                          onChange={(e) => setCommentText(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleAddComment();
-                            }
-                          }}
-                          rows={3}
-                        />
-                        <button
-                          type="submit"
-                          className="btn-comment-submit-icon"
-                          disabled={!commentText.trim() || isSubmittingComment}
-                          title={isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
-                        >
-                          <FontAwesomeIcon icon={faPaperPlane} />
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="comment-login-prompt">
-                      <div className="comment-login-prompt-left">
-                        {t('viewCode.loginToComment')}
-                      </div>
-                      <div className="comment-login-prompt-right">
-                        <button onClick={() => navigate('/login')} className="link-button">{t('common.login')}</button>
-                      </div>
-                    </div>
-                  )}
 
                   <div className="comments-list">
                 {code.comments && code.comments.length > 0 ? (
@@ -1152,6 +1109,101 @@ const ViewCode: React.FC = () => {
                   <p className="no-comments">{t('viewCode.noComments')}</p>
                     )}
                   </div>
+
+                  {replyingToCommentId && (
+                    <div className="reply-indicator-in-form">
+                      <span className="reply-indicator-text-in-form">
+                        {t('viewCode.replyingTo')}: <strong>{code.comments?.find(c => c.id === replyingToCommentId)?.author || ''}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-reply-cancel-inline"
+                        onClick={handleCancelReply}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  <form onSubmit={currentUser ? (e) => { 
+                    e.preventDefault();
+                    if (replyingToCommentId) {
+                      handleSubmitReply(e, replyingToCommentId);
+                    } else {
+                      handleAddComment(e);
+                    }
+                  } : (e) => { e.preventDefault(); navigate('/login'); }} className="comment-form">
+                      {currentUser && (
+                        <label className="comment-form-image-upload">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              // Handle image upload here
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // TODO: Handle image upload
+                                console.log('Image selected:', file);
+                              }
+                            }}
+                          />
+                          <FontAwesomeIcon icon={faImage} />
+                        </label>
+                      )}
+                      <div className="comment-input-wrapper">
+                        <textarea
+                          className="comment-input"
+                          placeholder={currentUser ? (replyingToCommentId ? t('viewCode.replyPlaceholder') : t('viewCode.commentPlaceholder')) : t('viewCode.loginToComment')}
+                          value={replyingToCommentId ? replyText : commentText}
+                          onChange={(e) => {
+                            if (currentUser) {
+                              if (replyingToCommentId) {
+                                setReplyText(e.target.value);
+                              } else {
+                                setCommentText(e.target.value);
+                              }
+                            } else {
+                              navigate('/login');
+                            }
+                          }}
+                          onFocus={(e) => {
+                            if (!currentUser) {
+                              e.target.blur();
+                              navigate('/login');
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (currentUser && e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (replyingToCommentId) {
+                                handleSubmitReply(e, replyingToCommentId);
+                              } else {
+                                handleAddComment(e);
+                              }
+                            } else if (!currentUser) {
+                              e.preventDefault();
+                              navigate('/login');
+                            }
+                          }}
+                          rows={3}
+                          disabled={!currentUser}
+                        />
+                        <button
+                          type="submit"
+                          className="btn-comment-submit-icon"
+                          disabled={!currentUser || (replyingToCommentId ? !replyText.trim() : !commentText.trim()) || (replyingToCommentId ? isSubmittingReply : isSubmittingComment)}
+                          title={!currentUser ? t('viewCode.loginToComment') : (replyingToCommentId ? (isSubmittingReply ? t('common.loading') : t('viewCode.addReply')) : (isSubmittingComment ? t('common.loading') : t('viewCode.addComment')))}
+                          onClick={(e) => {
+                            if (!currentUser) {
+                              e.preventDefault();
+                              navigate('/login');
+                            }
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faPaperPlane} />
+                        </button>
+                      </div>
+                    </form>
                 </div>
           </div>
         </div>

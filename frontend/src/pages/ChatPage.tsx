@@ -285,12 +285,14 @@ const ChatPage: React.FC = () => {
     }
   }, [currentUser?.id, activeTab, loadChats]);
 
-  // Load friend requests periodically
+  // Load friend requests periodically - always load to show count on button
   useEffect(() => {
     if (!currentUser?.id) return;
     
+    // Always load friend requests initially to show count on button
+    loadFriendRequests();
+    
     if (activeTab === 'requests') {
-      loadFriendRequests();
       loadIncomingRequestCount();
       loadChats(); // Also reload chats to check if any requests were accepted
       
@@ -332,6 +334,44 @@ const ChatPage: React.FC = () => {
       }
       
       // Listen for visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      return () => {
+        stopPolling();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    } else {
+      // When not on requests tab, still poll friend requests less frequently to keep count updated
+      let interval: NodeJS.Timeout | null = null;
+      
+      const startPolling = () => {
+        if (document.visibilityState === 'visible') {
+          interval = setInterval(() => {
+            loadFriendRequests();
+          }, 10000); // Poll every 10 seconds when tab is not active
+        }
+      };
+      
+      const stopPolling = () => {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      };
+      
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          loadFriendRequests();
+          startPolling();
+        } else {
+          stopPolling();
+        }
+      };
+      
+      if (document.visibilityState === 'visible') {
+        startPolling();
+      }
+      
       document.addEventListener('visibilitychange', handleVisibilityChange);
       
       return () => {
@@ -677,7 +717,7 @@ const ChatPage: React.FC = () => {
               className={`chat-tab ${activeTab === 'requests' ? 'active' : ''}`}
               onClick={() => setActiveTab('requests')}
             >
-              Сұраулар {incomingRequestCount > 0 && `(${incomingRequestCount})`}
+              Сұраулар {friendRequests.length > 0 && `(${friendRequests.length})`}
             </button>
           </div>
 

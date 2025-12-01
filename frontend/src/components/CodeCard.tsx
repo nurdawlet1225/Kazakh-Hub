@@ -73,19 +73,17 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
         <div className="code-card-header">
           <h3 className="code-card-title">{code.title}</h3>
           <div className="code-card-header-right">
-            <span
-              className="code-card-language"
-              style={{ 
-                backgroundColor: code.isFolder 
-                  ? getLanguageColor('other') + '20' 
-                  : getLanguageColor(code.language?.toLowerCase() || 'other') + '20', 
-                color: code.isFolder 
-                  ? getLanguageColor('other') 
-                  : getLanguageColor(code.language?.toLowerCase() || 'other') 
-              }}
-            >
-              {code.isFolder ? <><FontAwesomeIcon icon={faFolder} /> Папка</> : (code.language || 'other').charAt(0).toUpperCase() + (code.language || 'other').slice(1)}
-            </span>
+            {!code.isFolder && (
+              <span
+                className="code-card-language"
+                style={{ 
+                  backgroundColor: getLanguageColor(code.language?.toLowerCase() || 'other') + '20', 
+                  color: getLanguageColor(code.language?.toLowerCase() || 'other') 
+                }}
+              >
+                {(code.language || 'other').charAt(0).toUpperCase() + (code.language || 'other').slice(1)}
+              </span>
+            )}
             {/* Файл үшін checkbox header-да */}
             {onToggleSelect && !code.isFolder && (
               <div className="code-card-checkbox" onClick={handleCheckboxClick}>
@@ -161,25 +159,12 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
         <div className="code-card-footer-right">
           {code.tags && code.tags.length > 0 && (
             <div className="code-card-tags">
-              {code.tags.slice(0, 3).map((tag, index) => (
-                <span key={index} className="tag">{tag}</span>
-              ))}
-            </div>
-          )}
-          {/* Папка үшін checkbox footer-да */}
-          {onToggleSelect && code.isFolder && (
-            <div className="code-card-checkbox code-card-checkbox-footer" onClick={handleCheckboxClick}>
-              <input
-                type="checkbox"
-                id={`checkbox-${code.id}`}
-                checked={isSelected}
-                onChange={() => {}} // Controlled by parent
-                onClick={handleCheckboxClick}
-                readOnly
-              />
-              <label htmlFor={`checkbox-${code.id}`} className="checkbox-label">
-                {isSelected && <span className="checkbox-checkmark">✓</span>}
-              </label>
+              {code.tags
+                .filter(tag => tag.toLowerCase() !== 'folder')
+                .slice(0, 3)
+                .map((tag, index) => (
+                  <span key={index} className="tag">{tag}</span>
+                ))}
             </div>
           )}
         </div>

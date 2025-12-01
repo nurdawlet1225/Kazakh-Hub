@@ -36,9 +36,16 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /Failed to load resource.*apis\.google\.com/i,
   /Failed to load resource.*firestore\.googleapis\.com/i,
   /Failed to load resource.*401.*Unauthorized/i,
+  /Failed to load resource.*400.*Bad Request/i,
   /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
   /Failed to load resource.*Write\/channel/i,
   /Failed to load resource.*TYPE=terminate/i,
+  /API key not valid/i,
+  /INVALID_ARGUMENT/i,
+  /identitytoolkit\.googleapis\.com.*400/i,
+  /getProjectConfig.*400/i,
+  /projects\?key=.*400/i,
+  /the server responded with a status of 400/i,
   /Failed to load resource.*gsessionid/i,
   /Failed to load resource.*SID=/i,
   /Failed to load resource.*RID=/i,
@@ -69,9 +76,17 @@ const SUPPRESSED_ERROR_PATTERNS = [
   /Request URL.*firestore\.googleapis\.com.*TYPE=terminate/i,
   // Suppress expected API errors that are handled gracefully
   /Failed to load resource.*401.*Unauthorized/i,
+  /Failed to load resource.*400.*Bad Request/i,
   /API Error: 401 Unauthorized/i,
+  /API Error: 400 Bad Request/i,
   /\[LOGIN\].*Backend login failed.*trying Firebase/i,
   /\[LOGIN\].*Attempting Firebase authentication/i,
+  // Suppress invalid API key errors (user needs to fix in .env)
+  /API key not valid.*Please pass a valid API key/i,
+  /badRequest.*API key/i,
+  /INVALID_ARGUMENT.*API key/i,
+  /identitytoolkit\.googleapis\.com/i,
+  /getProjectConfig/i,
   // Suppress Firestore channel errors (ad blocker related)
   /firebase_firestore\.js.*POST.*firestore\.googleapis\.com/i,
   /firebase_firestore\.js.*Write\/channel/i,
@@ -322,7 +337,11 @@ export const initErrorSuppression = () => {
   
   XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
     const errorUrl = typeof url === 'string' ? url : url.toString();
-    if (errorUrl.includes('firestore.googleapis.com')) {
+    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com');
+    const isIdentityToolkitRequest = errorUrl.includes('identitytoolkit.googleapis.com') || 
+                                     errorUrl.includes('getProjectConfig');
+    
+    if (isFirestoreRequest || isIdentityToolkitRequest) {
       this.addEventListener('error', function() {
         if (shouldSuppressError(errorUrl) && markFirestoreBlockedFn) {
           markFirestoreBlockedFn();
@@ -344,10 +363,12 @@ export const initErrorSuppression = () => {
   XMLHttpRequest.prototype.send = function(...args: any[]) {
     const errorUrl = this.responseURL || '';
     const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com');
+    const isIdentityToolkitRequest = errorUrl.includes('identitytoolkit.googleapis.com') || 
+                                     errorUrl.includes('getProjectConfig');
     
     this.addEventListener('error', function(event) {
       if (shouldSuppressError(errorUrl)) {
-        if (isFirestoreRequest && markFirestoreBlockedFn) {
+        if ((isFirestoreRequest || isIdentityToolkitRequest) && markFirestoreBlockedFn) {
           markFirestoreBlockedFn();
         }
         event.stopImmediatePropagation();
@@ -355,10 +376,14 @@ export const initErrorSuppression = () => {
       }
     });
     
-    // Also check for blocked status
+    // Check for blocked status or invalid API key (400 status)
     this.addEventListener('loadend', function() {
-      if (this.status === 0 && isFirestoreRequest && markFirestoreBlockedFn) {
-        // Status 0 often indicates blocked request
+      // Status 0 often indicates blocked request
+      if (this.status === 0 && (isFirestoreRequest || isIdentityToolkitRequest) && markFirestoreBlockedFn) {
+        markFirestoreBlockedFn();
+      }
+      // Status 400 with API key errors indicates invalid API key
+      if (this.status === 400 && isIdentityToolkitRequest && markFirestoreBlockedFn) {
         markFirestoreBlockedFn();
       }
     });
