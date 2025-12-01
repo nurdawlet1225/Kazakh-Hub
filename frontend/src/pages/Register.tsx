@@ -6,6 +6,7 @@ import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import { ensureNumericId, isNumericId } from '../utils/idConverter';
 import { isCOOPBlockingPopups } from '../utils/errorSuppression';
+import Button from '../components/Button';
 import './Auth.css';
 
 const Register: React.FC = () => {
@@ -503,9 +504,9 @@ const Register: React.FC = () => {
               </div>
             )}
 
-            <button type="submit" className="btn-primary" disabled={loading}>
+            <Button type="submit" variant="primary" fullWidth disabled={loading}>
               {loading ? 'Тіркелу...' : 'Тіркелу'}
-            </button>
+            </Button>
           </form>
 
           <p className="auth-footer">

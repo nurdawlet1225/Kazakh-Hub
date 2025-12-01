@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 import uvicorn
 import os
@@ -161,6 +162,10 @@ async def health_check():
 
 # Include API routes
 app.include_router(api_router)
+
+# Mount static files for uploads
+if os.path.exists("uploads"):
+    app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Include WebSocket endpoint directly (WebSocket doesn't work well with APIRouter)
 from fastapi import WebSocket, WebSocketDisconnect

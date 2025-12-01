@@ -10,6 +10,7 @@ import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
 import UploadModal from '../components/UploadModal';
+import Button from '../components/Button';
 import { isImageFile } from '../utils/fileHandler';
 import { formatDate as formatDateUtil, formatDateTime } from '../utils/dateFormatter';
 import JSZip from 'jszip';
@@ -804,9 +805,9 @@ const ViewCode: React.FC = () => {
           <p className="error-icon">❌</p>
           <p className="error-title">{t('viewCode.error')}</p>
           <p className="error-message">{error || t('viewCode.pageNotFound')}</p>
-          <button onClick={() => navigate('/')} className="btn-primary">
+          <Button onClick={() => navigate('/')} variant="primary">
             {t('home.title')}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -1242,20 +1243,20 @@ const ViewCode: React.FC = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
+              <Button
+                variant="secondary"
                 onClick={handleCancelEditFolder}
                 disabled={isSaving}
               >
                 {t('common.cancel')}
-              </button>
-              <button
-                className="btn-primary"
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleSaveEdit}
                 disabled={isSaving || !editTitle.trim()}
               >
                 {isSaving ? t('common.loading') : t('common.save')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

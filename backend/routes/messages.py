@@ -1,10 +1,22 @@
 """Message routes"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from typing import Optional, List
+import json
 from models import MessageCreate
 from services.message_service import MessageService
 from services.friend_service import FriendService
+import os
+from datetime import datetime
 
 router = APIRouter()
+
+# Create uploads directory if it doesn't exist
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/images", exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/audio", exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/video", exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/files", exist_ok=True)
 
 
 @router.get("/messages/{user_id}")
@@ -22,20 +34,100 @@ async def get_conversation(user_id: str, friend_id: str):
 @router.post("/messages")
 async def create_message(message_data: MessageCreate):
     """Create a new message"""
-    if not message_data.fromUserId or not message_data.toUserId or not message_data.content:
+    if not message_data.fromUserId or not message_data.toUserId:
         raise HTTPException(status_code=400, detail="Missing required fields")
+    
+    # For non-text messages, content can be empty
+    if message_data.type == "text" and not message_data.content:
+        raise HTTPException(status_code=400, detail="Text messages require content")
     
     try:
         are_friends = FriendService.are_friends(message_data.fromUserId, message_data.toUserId)
         message = await MessageService.create_message(
             from_user_id=message_data.fromUserId,
             to_user_id=message_data.toUserId,
-            content=message_data.content,
-            are_friends=are_friends
+            content=message_data.content or "",
+            are_friends=are_friends,
+            message_type=message_data.type or "text",
+            attachments=message_data.attachments,
+            metadata=message_data.metadata
         )
         return message
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
+
+
+@router.post("/messages/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    fromUserId: str = Form(...),
+    toUserId: str = Form(...),
+    messageType: str = Form("file"),
+    content: Optional[str] = Form(None),
+    metadata: Optional[str] = Form(None)
+):
+    """Upload a file and create a message with attachment"""
+    try:
+        # Verify friendship
+        are_friends = FriendService.are_friends(fromUserId, toUserId)
+        if not are_friends:
+            raise HTTPException(status_code=403, detail="You can only message friends")
+        
+        # Determine upload directory based on message type
+        upload_subdir = {
+            "image": "images",
+            "audio": "audio",
+            "video": "video",
+            "file": "files"
+        }.get(messageType, "files")
+        
+        upload_path = f"{UPLOAD_DIR}/{upload_subdir}"
+        os.makedirs(upload_path, exist_ok=True)
+        
+        # Generate unique filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_extension = os.path.splitext(file.filename)[1] if file.filename else ""
+        unique_filename = f"{timestamp}_{file.filename}"
+        file_path = os.path.join(upload_path, unique_filename)
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            content_bytes = await file.read()
+            buffer.write(content_bytes)
+        
+        # Get file size
+        file_size = len(content_bytes)
+        
+        # Create attachment object
+        attachment = {
+            "filename": file.filename,
+            "url": f"/api/uploads/{upload_subdir}/{unique_filename}",
+            "size": file_size,
+            "mimeType": file.content_type or "application/octet-stream"
+        }
+        
+        # Parse metadata if provided
+        metadata_dict = {}
+        if metadata:
+            try:
+                metadata_dict = json.loads(metadata)
+            except:
+                pass
+        
+        # Create message
+        message = await MessageService.create_message(
+            from_user_id=fromUserId,
+            to_user_id=toUserId,
+            content=content or "",
+            are_friends=are_friends,
+            message_type=messageType,
+            attachments=[attachment],
+            metadata=metadata_dict
+        )
+        
+        return message
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 
 @router.put("/messages/{message_id}/read")

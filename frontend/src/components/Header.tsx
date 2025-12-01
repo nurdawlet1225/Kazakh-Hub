@@ -5,6 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch, faUpload, faLock, faUser, faComment } from '@fortawesome/free-solid-svg-icons';
 import UploadModal from './UploadModal';
 import ProfileModal from './ProfileModal';
+import Button from './Button';
+import LinkButton from './LinkButton';
 import { apiService } from '../utils/api';
 import './Header.css';
 
@@ -200,26 +202,33 @@ const Header: React.FC = () => {
         </nav>
 
         <div className="header-actions">
-          <button 
-            className="btn-primary"
+          <Button 
+            variant="primary"
             onClick={() => {
               navigate('/');
               setIsUploadModalOpen(true);
             }}
+            icon={<FontAwesomeIcon icon={faUpload} />}
           >
-            <span className="btn-icon"><FontAwesomeIcon icon={faUpload} /></span>
-            <span className="btn-text">{t('common.upload')}</span>
-          </button>
+            {t('common.upload')}
+          </Button>
           {isLoggedIn && (
-            <Link to="/chat" className="btn-secondary header-chat-btn" title={t('header.chat')}>
-              <span className="btn-icon">
-                <FontAwesomeIcon icon={faComment} />
-                {incomingRequestCount > 0 && (
-                  <span className="header-badge">{incomingRequestCount > 99 ? '99+' : incomingRequestCount}</span>
-                )}
-              </span>
-              <span className="btn-text">{t('header.chat')}</span>
-            </Link>
+            <LinkButton 
+              to="/chat" 
+              variant="secondary" 
+              className="header-chat-btn" 
+              title={t('header.chat')}
+              icon={
+                <>
+                  <FontAwesomeIcon icon={faComment} />
+                  {incomingRequestCount > 0 && (
+                    <span className="header-badge">{incomingRequestCount > 99 ? '99+' : incomingRequestCount}</span>
+                  )}
+                </>
+              }
+            >
+              {t('header.chat')}
+            </LinkButton>
           )}
           {isLoggedIn && (
             <button 
@@ -238,10 +247,13 @@ const Header: React.FC = () => {
           )}
           {!isLoggedIn && (
             <div className="login-btn-wrapper">
-              <Link to="/login" className="btn-secondary">
-                <span className="btn-icon"><FontAwesomeIcon icon={faLock} /></span>
-                <span className="btn-text">{t('common.login')}</span>
-              </Link>
+              <LinkButton 
+                to="/login" 
+                variant="secondary"
+                icon={<FontAwesomeIcon icon={faLock} />}
+              >
+                {t('common.login')}
+              </LinkButton>
             </div>
           )}
         </div>

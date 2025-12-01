@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faEye, faEyeSlash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { User } from '../utils/api';
 import { apiService } from '../utils/api';
+import Button from './Button';
 import './EditProfileModal.css';
 
 interface EditProfileModalProps {
@@ -419,12 +420,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           )}
 
           <div className="form-actions">
-            <button type="button" onClick={onClose} className="btn-secondary">
+            <Button type="button" onClick={onClose} variant="secondary">
               Болдырмау
-            </button>
-            <button type="submit" className="btn-primary" disabled={loading}>
+            </Button>
+            <Button type="submit" variant="primary" disabled={loading}>
               {loading ? 'Сақталуда...' : 'Сақтау'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

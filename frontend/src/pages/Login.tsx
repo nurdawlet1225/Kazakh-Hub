@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { signInWithPopup, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword } from 'firebase/auth';
@@ -6,11 +6,14 @@ import { auth, googleProvider, saveUserToFirestore } from '../utils/firebase';
 import { apiService } from '../utils/api';
 import { ensureNumericId, isNumericId } from '../utils/idConverter';
 import { isCOOPBlockingPopups } from '../utils/errorSuppression';
+import Button from '../components/Button';
+import GalaxyBackground from '../components/GalaxyBackground';
 import './Auth.css';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const heroRef = useRef<HTMLDivElement>(null);
   
   // Сақталған логин деректерін жүктеу
   const savedEmail = localStorage.getItem('savedEmail') || '';
@@ -425,7 +428,8 @@ const Login: React.FC = () => {
 
   return (
     <div className="landing-page">
-      <div className="landing-hero">
+      <div className="landing-hero" ref={heroRef}>
+        <GalaxyBackground containerRef={heroRef} />
         <div className="hero-content">
           <h1 className="hero-title">
             <span className="hero-title-main">{t('header.appName')}</span>
@@ -556,9 +560,9 @@ const Login: React.FC = () => {
               </div>
             )}
 
-            <button type="submit" className="btn-primary" disabled={loading || googleLoading}>
+            <Button type="submit" variant="primary" fullWidth disabled={loading || googleLoading}>
               {loading ? 'Кіру...' : 'Кіру'}
-            </button>
+            </Button>
           </form>
 
           <p className="auth-footer">

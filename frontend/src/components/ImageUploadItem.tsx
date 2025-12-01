@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
+import Button from './Button';
 import './ImageUploadItem.css';
 
 interface ImageUploadItemProps {
@@ -246,16 +247,16 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
         )}
 
         <div className="form-actions">
-          <button type="button" onClick={handleReset} className="btn-secondary">
+          <Button type="button" onClick={handleReset} variant="secondary">
             Тазалау
-          </button>
-          <button 
+          </Button>
+          <Button 
             type="submit" 
-            className="btn-primary" 
+            variant="primary" 
             disabled={!selectedFile || !imagePreview || uploading}
           >
             {uploading ? 'Жүктелуде...' : 'Жүктеу'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

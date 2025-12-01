@@ -1,24 +1,28 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faComment, faSearch, faTimes, faUserMinus, faUserPlus, 
-  faClock, faCheck, faCheckDouble, faCheckCircle 
+  faClock, faCheck, faCheckDouble, faCheckCircle,
+  faImage, faVideo, faFile, faMicrophone, faMapMarkerAlt, faPlay, faPause
 } from '@fortawesome/free-solid-svg-icons';
-import { User, Message, FriendRequest, Chat } from '../utils/api';
+import { User, Message, FriendRequest, Chat, MessageAttachment } from '../utils/api';
 import { apiService } from '../utils/api';
 import { websocketService, WebSocketMessage } from '../utils/websocket';
 import { formatDateTime } from '../utils/dateFormatter';
 import { ensureNumericId, isNumericId } from '../utils/idConverter';
+import { API_BASE_URL } from '../utils/constants';
+import MessageInput from '../components/MessageInput';
 import '../components/Chat.css';
 
 const ChatPage: React.FC = () => {
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'friends' | 'add' | 'requests'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,14 +49,24 @@ const ChatPage: React.FC = () => {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
+        const userData = JSON.parse(storedUser);
+        // Verify user exists in backend using stored email and id
+        try {
+          const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
+          setCurrentUser(verifiedUser);
+        } catch (err: any) {
+          // If user not found, clear localStorage and redirect to login
+          console.error('Failed to verify user:', err);
+          localStorage.removeItem('user');
+          navigate('/login');
+        }
       } else {
-        const user = await apiService.getCurrentUser();
-        setCurrentUser(user);
+        // No stored user - redirect to login
+        navigate('/login');
       }
     } catch (err) {
       console.error('Failed to load current user:', err);
+      navigate('/login');
     }
   };
 
@@ -406,12 +420,14 @@ const ChatPage: React.FC = () => {
     };
   }, []);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentUser || !selectedFriend) return;
+  const handleSendMessage = async (
+    content: string,
+    type: string = 'text',
+    attachments?: MessageAttachment[],
+    metadata?: any
+  ) => {
+    if (!currentUser || !selectedFriend) return;
 
-    const messageContent = newMessage.trim();
-    setNewMessage('');
     setIsTyping(false);
     
     // Clear typing indicator
@@ -424,7 +440,10 @@ const ChatPage: React.FC = () => {
       const sentMessage = await apiService.sendMessage(
         currentUser.id,
         selectedFriend.id,
-        messageContent
+        content,
+        type,
+        attachments,
+        metadata
       );
       
       // Add message to list immediately
@@ -444,27 +463,39 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleTypingChange = (value: string) => {
-    setNewMessage(value);
-    
-    if (!selectedFriend || !currentUser) return;
+  const handleUploadFile = async (
+    file: File,
+    type: string,
+    content?: string,
+    metadata?: any
+  ) => {
+    if (!currentUser || !selectedFriend) return;
 
-    // Send typing indicator
-    if (!isTyping && value.trim()) {
-      setIsTyping(true);
-      websocketService.sendTyping(selectedFriend.id, true);
+    try {
+      const sentMessage = await apiService.uploadFile(
+        file,
+        currentUser.id,
+        selectedFriend.id,
+        type as 'image' | 'audio' | 'video' | 'file',
+        content,
+        metadata
+      );
+      
+      // Add message to list immediately
+      setMessages(prev => [...prev, sentMessage]);
+      scrollToBottom();
+      
+      // Mark as delivered if recipient is online
+      if (websocketService.isConnected()) {
+        websocketService.markDelivered(sentMessage.id);
+      }
+      
+      // Reload chats to update last message
+      loadChats();
+    } catch (err: any) {
+      console.error('Failed to upload file:', err);
+      alert(err.message || 'Файл жүктеу қатесі');
     }
-
-    // Clear previous timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Stop typing indicator after 3 seconds of no typing
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-      websocketService.sendTyping(selectedFriend.id, false);
-    }, 3000);
   };
 
 
@@ -685,6 +716,178 @@ const ChatPage: React.FC = () => {
     if (minutes < 1440) return `${Math.floor(minutes / 60)} сағ бұрын`;
     
     return formatDateTime(dateString, i18n.language);
+  };
+
+  const renderMessageContent = (message: Message) => {
+    const messageType = message.type || 'text';
+    
+    // Helper to get full URL
+    const getFullUrl = (url: string) => {
+      if (url.startsWith('http')) return url;
+      // If URL already starts with /api, use API_BASE_URL directly
+      if (url.startsWith('/api')) return `${API_BASE_URL.replace('/api', '')}${url}`;
+      // Otherwise, assume it's relative to /api/uploads
+      return `${API_BASE_URL.replace('/api', '')}/api${url}`;
+    };
+
+    switch (messageType) {
+      case 'image':
+        if (message.attachments && message.attachments.length > 0) {
+          return (
+            <div className="chat-message-media">
+              {message.attachments.map((att, idx) => {
+                const imageUrl = getFullUrl(att.url);
+                return (
+                  <div key={idx} className="chat-message-image-wrapper">
+                    <img
+                      src={imageUrl}
+                      alt={att.filename}
+                      className="chat-message-image"
+                      onClick={() => {
+                        // Open image in new tab
+                        window.open(imageUrl, '_blank');
+                      }}
+                    />
+                  </div>
+                );
+              })}
+              {message.content && (
+                <div className="chat-message-text">{message.content}</div>
+              )}
+            </div>
+          );
+        }
+        break;
+
+      case 'video':
+        if (message.attachments && message.attachments.length > 0) {
+          return (
+            <div className="chat-message-media">
+              {message.attachments.map((att, idx) => (
+                <div key={idx} className="chat-message-video-wrapper">
+                  <video
+                    src={getFullUrl(att.url)}
+                    controls
+                    className="chat-message-video"
+                  />
+                </div>
+              ))}
+              {message.content && (
+                <div className="chat-message-text">{message.content}</div>
+              )}
+            </div>
+          );
+        }
+        break;
+
+      case 'audio':
+        if (message.attachments && message.attachments.length > 0) {
+          return (
+            <div className="chat-message-media">
+              {message.attachments.map((att, idx) => (
+                <div key={idx} className="chat-message-audio-wrapper">
+                  <audio
+                    src={getFullUrl(att.url)}
+                    controls
+                    className="chat-message-audio"
+                  />
+                </div>
+              ))}
+              {message.content && (
+                <div className="chat-message-text">{message.content}</div>
+              )}
+            </div>
+          );
+        }
+        break;
+
+      case 'file':
+        if (message.attachments && message.attachments.length > 0) {
+          return (
+            <div className="chat-message-media">
+              {message.attachments.map((att, idx) => (
+                <a
+                  key={idx}
+                  href={getFullUrl(att.url)}
+                  download={att.filename}
+                  className="chat-message-file"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <FontAwesomeIcon icon={faFile} />
+                  <div className="chat-message-file-info">
+                    <div className="chat-message-file-name">{att.filename}</div>
+                    <div className="chat-message-file-size">
+                      {(att.size / 1024).toFixed(1)} KB
+                    </div>
+                  </div>
+                </a>
+              ))}
+              {message.content && (
+                <div className="chat-message-text">{message.content}</div>
+              )}
+            </div>
+          );
+        }
+        break;
+
+      case 'location':
+        if (message.metadata?.latitude && message.metadata?.longitude) {
+          const { latitude, longitude, address } = message.metadata;
+          const mapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=15`;
+          
+          return (
+            <div className="chat-message-location">
+              <a
+                href={mapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="chat-location-link"
+              >
+                <FontAwesomeIcon icon={faMapMarkerAlt} />
+                <div className="chat-location-info">
+                  <div className="chat-location-address">
+                    {address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+                  </div>
+                  <div className="chat-location-coords">
+                    {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                  </div>
+                </div>
+              </a>
+              {message.content && (
+                <div className="chat-message-text">{message.content}</div>
+              )}
+            </div>
+          );
+        }
+        break;
+
+      case 'emoji':
+        return (
+          <div className="chat-message-emoji">
+            {message.metadata?.emoji || message.content}
+          </div>
+        );
+
+      case 'sticker':
+        return (
+          <div className="chat-message-sticker">
+            {message.metadata?.stickerId ? (
+              <div className="sticker-placeholder">
+                Sticker: {message.metadata.stickerId}
+              </div>
+            ) : (
+              message.content
+            )}
+          </div>
+        );
+
+      default:
+        return <div className="chat-message-text">{message.content}</div>;
+    }
+
+    // Fallback to text
+    return <div className="chat-message-text">{message.content || ''}</div>;
   };
 
   const filteredChats = chats.filter(chat =>
@@ -981,26 +1184,6 @@ const ChatPage: React.FC = () => {
                           </div>
                           <div className="chat-request-actions">
                             <button
-                              className="chat-accept-btn"
-                              onClick={async () => {
-                                // Егер пайдаланушы сұрауды қабылдаса, оны келіп түскен сұрауларға ауыстыру
-                                // Бірақ бұл логикалық тұрғыдан дұрыс емес, өйткені сіз өз сұрауыңызды қабылдай алмайсыз
-                                // Сондықтан, біз сұрауды жойып, пайдаланушыға хабарлама береміз
-                                try {
-                                  await handleCancelRequest(request.id);
-                                  // Егер пайдаланушы сұрауды қабылдау керек болса, оны келіп түскен сұрауларға ауыстыру
-                                  // Бірақ бұл мүмкін емес, өйткені сіз өз сұрауыңызды қабылдай алмайсыз
-                                  // Сондықтан, біз сұрауды жойып, пайдаланушыға хабарлама береміз
-                                  alert('Сіз өз сұрауыңызды қабылдай алмайсыз. Егер пайдаланушы сіздің сұрауыңызды қабылдаса, ол келіп түскен сұраулар тізімінде пайда болады.');
-                                } catch (err) {
-                                  console.error('Failed to handle accept request:', err);
-                                }
-                              }}
-                              title="Қабылдау"
-                            >
-                              ✓
-                            </button>
-                            <button
                               className="chat-cancel-btn"
                               onClick={() => handleCancelRequest(request.id)}
                               title="Сұрауды жою"
@@ -1042,10 +1225,10 @@ const ChatPage: React.FC = () => {
                   return (
                     <div
                       key={message.id}
-                      className={`chat-message ${isOwn ? 'own' : 'other'}`}
+                      className={`chat-message ${isOwn ? 'own' : 'other'} ${message.type || 'text'}`}
                     >
                       <div className="chat-message-content">
-                        {message.content}
+                        {renderMessageContent(message)}
                       </div>
                       <div className="chat-message-footer">
                         <div className="chat-message-time">
@@ -1062,18 +1245,11 @@ const ChatPage: React.FC = () => {
                 })}
                 <div ref={messagesEndRef} />
               </div>
-              <form className="chat-input-form" onSubmit={handleSendMessage}>
-                <input
-                  type="text"
-                  className="chat-input"
-                  placeholder="Хабарлама жазыңыз..."
-                  value={newMessage}
-                  onChange={(e) => handleTypingChange(e.target.value)}
-                />
-                <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
-                  Жіберу
-                </button>
-              </form>
+              <MessageInput
+                onSendMessage={handleSendMessage}
+                onUploadFile={handleUploadFile}
+                disabled={!selectedFriend}
+              />
             </>
           ) : (
             <div className="chat-no-selection">

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { User } from '../utils/api';
+import Button from './Button';
 import './ChangeBackgroundModal.css';
 
 interface ChangeBackgroundModalProps {
@@ -214,12 +215,12 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
           )}
 
           <div className="form-actions">
-            <button type="button" onClick={onClose} className="btn-secondary">
+            <Button type="button" onClick={onClose} variant="secondary">
               Болдырмау
-            </button>
-            <button type="button" onClick={handleSave} className="btn-primary" disabled={loading}>
+            </Button>
+            <Button type="button" onClick={handleSave} variant="primary" disabled={loading}>
               {loading ? 'Сақталуда...' : 'Сақтау'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

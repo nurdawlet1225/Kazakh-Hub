@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { User } from '../utils/api';
 import { apiService } from '../utils/api';
+import Button from '../components/Button';
 import './Settings.css';
 
 const Settings: React.FC = () => {
@@ -27,13 +28,24 @@ const Settings: React.FC = () => {
       try {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-          setUser(JSON.parse(storedUser));
+          const userData = JSON.parse(storedUser);
+          // Verify user exists in backend using stored email and id
+          try {
+            const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
+            setUser(verifiedUser);
+          } catch (err: any) {
+            // If user not found, clear localStorage and redirect to login
+            console.error('Failed to verify user:', err);
+            localStorage.removeItem('user');
+            navigate('/login');
+          }
         } else {
-          const userData = await apiService.getCurrentUser();
-          setUser(userData);
+          // No stored user - redirect to login
+          navigate('/login');
         }
       } catch (err) {
         console.error('Error loading user:', err);
+        navigate('/login');
       }
     };
     loadUser();
@@ -118,10 +130,10 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="settings-actions">
-        <button className="btn-primary" onClick={handleSave}>
+        <Button variant="primary" onClick={handleSave}>
           {t('common.save') || 'Сақтау'}
-        </button>
-        <button className="btn-secondary" onClick={() => {
+        </Button>
+        <Button variant="secondary" onClick={() => {
           const defaultLanguage = 'kk';
           i18n.changeLanguage(defaultLanguage);
           localStorage.setItem('i18nextLng', defaultLanguage);

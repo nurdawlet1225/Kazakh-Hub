@@ -280,29 +280,22 @@ const Profile: React.FC = () => {
       
       if (storedUser) {
         userData = JSON.parse(storedUser);
-        // Verify user exists in backend
+        // Always verify user exists in backend using stored email and id
+        // Never call getCurrentUser() without parameters to avoid getting wrong user
         try {
           const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
           userData = verifiedUser;
         } catch (err: any) {
-          // If user not found in backend, clear localStorage and reload
-          if (err?.message?.includes('not found') || err?.message?.includes('табылмады') || err?.message?.includes('404')) {
-            localStorage.removeItem('user');
-            window.location.reload();
-            return;
-          }
-          // Otherwise, try to get current user without email
-          try {
-            userData = await apiService.getCurrentUser();
-          } catch (err2) {
-            localStorage.removeItem('user');
-            window.location.reload();
-            return;
-          }
+          // If user not found in backend, clear localStorage and redirect to login
+          console.error('Failed to verify user:', err);
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return;
         }
       } else {
-        // Fallback to API
-        userData = await apiService.getCurrentUser();
+        // No stored user - redirect to login instead of trying to get random user
+        window.location.href = '/login';
+        return;
       }
       
       const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);

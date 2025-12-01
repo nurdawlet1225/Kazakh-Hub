@@ -74,12 +74,23 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
           userData.id = ensureNumericId(userData.id);
           localStorage.setItem('user', JSON.stringify(userData));
         }
-      } else {
-        userData = await apiService.getCurrentUser();
-        // Convert to numeric ID if it contains letters
-        if (userData.id && !/^\d+$/.test(userData.id)) {
-          userData.id = ensureNumericId(userData.id);
+        // Always verify user exists in backend using stored email and id
+        // Never call getCurrentUser() without parameters to avoid getting wrong user
+        try {
+          const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
+          userData = verifiedUser;
+        } catch (err: any) {
+          // If user not found in backend, show error
+          console.error('Failed to verify user:', err);
+          setError('Пайдаланушы табылмады. Қайта кіріңіз.');
+          setLoading(false);
+          return;
         }
+      } else {
+        // No stored user - show error
+        setError('Кіру қажет. Қайта кіріңіз.');
+        setLoading(false);
+        return;
       }
       
       const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);
