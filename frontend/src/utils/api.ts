@@ -37,11 +37,28 @@ export interface User {
   avatar?: string;
 }
 
+export interface MessageAttachment {
+  filename: string;
+  url: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface Message {
   id: string;
   fromUserId: string;
   toUserId: string;
   content: string;
+  type?: 'text' | 'image' | 'audio' | 'video' | 'file' | 'sticker' | 'emoji' | 'location';
+  attachments?: MessageAttachment[];
+  metadata?: {
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+    stickerId?: string;
+    emoji?: string;
+    [key: string]: any;
+  };
   createdAt: string;
   read: boolean;
   status?: 'sent' | 'delivered' | 'read';
@@ -390,11 +407,62 @@ class ApiService {
     return this.request<Message[]>(`/messages/${userId}/${friendId}`);
   }
 
-  async sendMessage(fromUserId: string, toUserId: string, content: string): Promise<Message> {
+  async sendMessage(
+    fromUserId: string, 
+    toUserId: string, 
+    content: string,
+    type: string = 'text',
+    attachments?: MessageAttachment[],
+    metadata?: Record<string, any>
+  ): Promise<Message> {
     return this.request<Message>('/messages', {
       method: 'POST',
-      body: JSON.stringify({ fromUserId, toUserId, content }),
+      body: JSON.stringify({ 
+        fromUserId, 
+        toUserId, 
+        content,
+        type,
+        attachments,
+        metadata
+      }),
     });
+  }
+
+  async uploadFile(
+    file: File,
+    fromUserId: string,
+    toUserId: string,
+    messageType: 'image' | 'audio' | 'video' | 'file',
+    content?: string,
+    metadata?: Record<string, any>
+  ): Promise<Message> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fromUserId', fromUserId);
+    formData.append('toUserId', toUserId);
+    formData.append('messageType', messageType);
+    if (content) formData.append('content', content);
+    if (metadata) formData.append('metadata', JSON.stringify(metadata));
+
+    try {
+      const url = `${this.baseUrl}/messages/upload`;
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(errorData.detail || 'File upload failed');
+      }
+
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('File upload failed');
+    }
   }
 
   async markMessageAsRead(messageId: string): Promise<Message> {

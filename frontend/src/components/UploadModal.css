@@ -656,9 +656,6 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 2px 8px rgba(8, 145, 178, 0.3),
-    0 0 10px rgba(8, 145, 178, 0.15);
   font-size: 0.9rem;
   position: relative;
   overflow: hidden;
@@ -684,9 +681,6 @@
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 
-    0 4px 12px rgba(8, 145, 178, 0.4),
-    0 0 16px rgba(8, 145, 178, 0.25);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -697,6 +691,5 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 1px 3px rgba(8, 145, 178, 0.15);
 }
 

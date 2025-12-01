@@ -32,7 +32,9 @@ class MessageService:
     
     @staticmethod
     async def create_message(from_user_id: str, to_user_id: str, content: str, 
-                           are_friends: bool) -> Dict[str, Any]:
+                           are_friends: bool, message_type: str = "text",
+                           attachments: Optional[List[Dict[str, Any]]] = None,
+                           metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Create a new message"""
         if not are_friends:
             raise ValueError("You can only message friends")
@@ -41,7 +43,10 @@ class MessageService:
             'id': str(uuid.uuid4()),
             'fromUserId': from_user_id,
             'toUserId': to_user_id,
-            'content': content.strip(),
+            'content': content.strip() if content else '',
+            'type': message_type,
+            'attachments': attachments or [],
+            'metadata': metadata or {},
             'createdAt': datetime.now().isoformat(),
             'status': 'sent',
             'read': False,

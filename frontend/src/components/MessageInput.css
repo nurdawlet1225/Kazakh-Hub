@@ -1,0 +1,292 @@
+.message-input-container {
+  position: relative;
+  background: var(--bg-primary);
+  border-top: 0.96px solid var(--border-color);
+  padding: 0.75rem;
+}
+
+.message-preview-files {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.message-preview-item {
+  position: relative;
+  display: inline-block;
+}
+
+.message-preview-item img {
+  max-width: 150px;
+  max-height: 150px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  object-fit: cover;
+}
+
+.message-preview-file {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.message-preview-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--error-color, #ff4444);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s;
+}
+
+.message-preview-remove:hover {
+  opacity: 0.9;
+  transform: scale(1.1);
+}
+
+.message-location-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.message-location-preview svg {
+  color: var(--accent-color);
+}
+
+.message-input-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.message-input-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.message-toolbar-btn {
+  background: var(--bg-secondary);
+  border: 0.64px solid var(--border-color);
+  border-radius: 5.1px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.message-toolbar-btn:hover {
+  background: var(--bg-primary);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.message-toolbar-btn.active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.message-toolbar-btn.recording {
+  background: var(--error-color, #ff4444);
+  border-color: var(--error-color, #ff4444);
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.message-input-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.message-textarea {
+  flex: 1;
+  padding: 0.75rem;
+  border: 0.64px solid var(--border-color);
+  border-radius: 5.1px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 2.5rem;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.message-textarea:focus {
+  border-color: var(--accent-color);
+}
+
+.message-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.message-send-btn {
+  padding: 0.75rem;
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  border-radius: 5.1px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+}
+
+.message-send-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-0.64px);
+}
+
+.message-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emoji-picker {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border: 0.96px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.25rem;
+}
+
+.emoji-item {
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 1.2rem;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emoji-item:hover {
+  background: var(--bg-secondary);
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--error-color, rgba(255, 68, 68, 0.1));
+  border: 1px solid var(--error-color, #ff4444);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  color: var(--error-color, #ff4444);
+  font-weight: 500;
+}
+
+.recording-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--error-color, #ff4444);
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
+
+.recording-stop-btn {
+  margin-left: auto;
+  padding: 0.25rem 0.75rem;
+  background: var(--error-color, #ff4444);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: opacity 0.2s;
+}
+
+.recording-stop-btn:hover {
+  opacity: 0.9;
+}
+
+/* Scrollbar for emoji picker */
+.emoji-picker::-webkit-scrollbar {
+  width: 6px;
+}
+
+.emoji-picker::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3px;
+}
+
+.emoji-picker::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.emoji-picker::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-color);
+}
+

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { useFileUpload } from '../hooks/useFileUpload';
+import Button from './Button';
 import './UploadModal.css';
 
 interface UploadModalProps {
@@ -211,16 +212,16 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
           )}
 
           <div className="form-actions">
-            <button type="button" onClick={handleClose} className="btn-secondary">
+            <Button type="button" onClick={handleClose} variant="secondary">
               Болдырмау
-            </button>
-            <button 
+            </Button>
+            <Button 
               type="submit" 
-              className="btn-primary" 
+              variant="primary" 
               disabled={!selectedFiles || !language || !projectDescription.trim() || uploading}
             >
               {uploading ? t('settings.uploading') : t('settings.upload')}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

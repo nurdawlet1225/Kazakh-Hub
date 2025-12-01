@@ -83,11 +83,20 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setCurrentUser(user);
+        const userData = JSON.parse(storedUser);
+        // Verify user exists in backend using stored email and id
+        try {
+          const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
+          setCurrentUser(verifiedUser);
+        } catch (err: any) {
+          // If user not found, clear localStorage and don't set currentUser
+          console.error('Failed to verify user:', err);
+          localStorage.removeItem('user');
+          // Don't set currentUser, which will prevent the component from working
+        }
       } else {
-        const user = await apiService.getCurrentUser();
-        setCurrentUser(user);
+        // No stored user - don't set currentUser
+        console.warn('No stored user found');
       }
     } catch (err) {
       console.error('Failed to load current user:', err);

@@ -10,7 +10,9 @@ router = APIRouter()
 
 @router.get("/user")
 async def get_current_user(email: Optional[str] = Query(None), user_id: Optional[str] = Query(None)):
-    """Get current user by email, user_id, or return first user"""
+    """Get current user by email or user_id. Returns 404 if not found."""
+    user = None
+    
     # Try to find by user_id first (most specific)
     if user_id:
         user = UserService.find_user_by_id(user_id)
@@ -23,13 +25,12 @@ async def get_current_user(email: Optional[str] = Query(None), user_id: Optional
         if user:
             return user
     
-    # Fallback: try to find by username 'current-user'
-    user = UserService.find_user_by_username('current-user')
-    if not user and users:
-        user = users[0]
-    if not user:
+    # If both user_id and email were provided but user not found, return 404
+    if user_id or email:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    
+    # If no parameters provided, return 400 (bad request) instead of random user
+    raise HTTPException(status_code=400, detail="Email or user_id parameter is required")
 
 
 @router.get("/users/search")
