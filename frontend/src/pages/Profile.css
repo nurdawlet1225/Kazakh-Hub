@@ -43,6 +43,48 @@
   background-repeat: no-repeat;
 }
 
+/* Кіші екрандарда фон суретінің әдемі көрінуі */
+@media (max-width: 768px) {
+  .profile-header {
+    min-height: 160px;
+    padding: 0.5rem;
+    gap: 1rem;
+    background-size: cover;
+    background-position: center center;
+  }
+  
+  .profile-header[style*="background-image"] {
+    background-size: cover !important;
+    background-position: center center !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-header {
+    min-height: 140px;
+    padding: 0.4rem;
+    gap: 0.75rem;
+    border-radius: 10px;
+  }
+  
+  .profile-header[style*="background-image"] {
+    background-size: cover !important;
+    background-position: center center !important;
+  }
+  
+  .profile-header .profile-header-overlay {
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .profile-header {
+    min-height: 120px;
+    padding: 0.3rem;
+    gap: 0.5rem;
+  }
+}
+
 /* When background image is applied */
 .profile-header[style*="background-image"] {
   background-size: cover !important;
