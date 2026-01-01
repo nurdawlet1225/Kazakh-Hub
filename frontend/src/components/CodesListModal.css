@@ -160,7 +160,7 @@
 }
 
 .dark-theme .codes-modal-close:hover {
-  box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.2);
 }
 
 .light-theme .codes-modal-close:hover {
@@ -169,7 +169,7 @@
 
 @media (prefers-color-scheme: dark) {
   .codes-modal-close:hover {
-    box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.2);
+    box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.2);
   }
 }
 
@@ -236,7 +236,7 @@
 }
 
 .dark-theme .codes-filter-select:focus {
-  box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.2);
 }
 
 .light-theme .codes-filter-select:focus {
@@ -249,16 +249,16 @@
 }
 
 .dark-theme .codes-filter-select:hover {
-  background: linear-gradient(180deg, rgba(6, 182, 212, 0.05) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.95) 100%);
+  background: linear-gradient(180deg, rgba(0, 175, 202, 0.05) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.95) 100%);
 }
 
 @media (prefers-color-scheme: dark) {
   .codes-filter-select:focus {
-    box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.2);
+    box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.2);
   }
 
   .codes-filter-select:hover {
-    background: linear-gradient(180deg, rgba(6, 182, 212, 0.05) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.95) 100%);
+    background: linear-gradient(180deg, rgba(0, 175, 202, 0.05) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.95) 100%);
   }
 }
 
@@ -310,7 +310,7 @@
 }
 
 .dark-theme .codes-folder:hover {
-  box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.15);
+  box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.15);
 }
 
 .light-theme .codes-folder:hover {
@@ -319,7 +319,7 @@
 
 @media (prefers-color-scheme: dark) {
   .codes-folder:hover {
-    box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.15);
+    box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.15);
   }
 }
 
@@ -454,7 +454,7 @@
 }
 
 .dark-theme .codes-modal-loading .spinner {
-  box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.2);
+  box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.2);
 }
 
 .light-theme .codes-modal-loading .spinner {
@@ -463,7 +463,7 @@
 
 @media (prefers-color-scheme: dark) {
   .codes-modal-loading .spinner {
-    box-shadow: 0 2.1px 6.2px rgba(6, 182, 212, 0.2);
+    box-shadow: 0 2.1px 6.2px rgba(0, 175, 202, 0.2);
   }
 }
 

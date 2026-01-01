@@ -20,6 +20,7 @@ void HelpCommand::printHelp() {
     std::cout << "  pwd           - Print current working directory" << std::endl;
     std::cout << "  userinfo      - Display user information" << std::endl;
     std::cout << "  clear         - Clear the terminal screen" << std::endl;
+    std::cout << "  upload <file> - Upload a code file to Kazakh Hub" << std::endl;
     std::cout << std::endl;
 }
 

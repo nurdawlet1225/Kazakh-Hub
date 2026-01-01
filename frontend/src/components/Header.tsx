@@ -12,13 +12,9 @@ import './Header.css';
 
 // Логотипті импорттау - бірнеше нұсқаны тексеру
 const getLogoPath = () => {
-  // Бірінші нұсқа: logo.png
-  try {
-    return '/logo.png';
-  } catch {
-    // Екінші нұсқа: бастапқы атау
-    return encodeURI('/Image 9 нояб. 2025 г., 19_46_29.png');
-  }
+  // Логотип файлы public/logo (кеңейтімі жоқ)
+  // Бірнеше нұсқаны тексеру
+  return '/logo'; // әдепкі: logo файлы
 };
 
 const Header: React.FC = () => {
@@ -174,11 +170,19 @@ const Header: React.FC = () => {
             alt="Kazakh Hub" 
             className="logo-img"
             onError={(e) => {
-              // Егер бірінші сурет табылмаса, басқа нұсқаны пайдалану
+              // Егер логотип табылмаса, басқа нұсқаны пайдалану
               const target = e.target as HTMLImageElement;
-              if (target.src.includes('logo.png')) {
-                target.src = encodeURI('/ChatGPT Image 9 нояб. 2025 г., 19_46_29.png');
+              const currentSrc = target.src;
+              
+              // Бірнеше нұсқаны тексеру
+              if (currentSrc.includes('/logo')) {
+                // PNG нұсқасын тексеру
+                target.src = '/logo.png';
+              } else if (currentSrc.includes('logo.png')) {
+                // SVG нұсқасын тексеру
+                target.src = '/logo.svg';
               } else {
+                // Егер ешқайсысы табылмаса, суретті жасыру
                 target.style.display = 'none';
               }
             }}

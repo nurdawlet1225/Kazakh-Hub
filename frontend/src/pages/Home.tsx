@@ -29,148 +29,89 @@ const Home: React.FC = () => {
   });
   const [isCodesModalOpen, setIsCodesModalOpen] = useState(false);
 
-  const loadCodes = useCallback(async (limit?: number, offset?: number) => {
+  // Жаңа жүктеу стратегиясы: жеңілдетілген және тиімді
+  const loadCodes = useCallback(async (limit: number = 50, offset: number = 0, retryCount: number = 0): Promise<{ codes: CodeFile[]; total: number } | null> => {
+    const MAX_RETRIES = 2;
+    
     try {
-      setLoading(true);
       const response = await apiService.getCodeFiles(undefined, limit, offset, false);
+      
       setCodes(response.codes);
       setError(null);
-      return response;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('home.error'));
-      return null;
-    } finally {
       setLoading(false);
+      
+      console.log('Home: Loaded codes from API:', response.codes.length, '/', response.total, 'folders:', response.codes.filter(c => c.isFolder === true).length);
+      return response;
+    } catch (err: any) {
+      // Егер желі қатесі болса, қайталау
+      if ((err?.message?.includes('timeout') || err?.message?.includes('Failed to fetch') || err?.message?.includes('қосылу')) && retryCount < MAX_RETRIES) {
+        console.log(`Retrying loadCodes (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        return loadCodes(limit, offset, retryCount + 1);
+      }
+      
+      setError(err instanceof Error ? err.message : t('home.error'));
+      setLoading(false);
+      setCodes([]);
+      return null;
     }
   }, [t]);
 
   useEffect(() => {
-    let apiCodes: CodeFile[] = [];
-    let realTimeInitialized = false;
     let isMounted = true;
-    let loadingTimeout: NodeJS.Timeout | null = null;
+    let unsubscribeListener: (() => void) | null = null;
+    let apiCodesLoaded = false;
     
-    // Алдымен API-дан жүктеу (пагинациямен - алдымен 50 код)
-    const loadInitialCodes = async () => {
-      // Set a maximum timeout for the entire loading process (15 seconds)
-      loadingTimeout = setTimeout(() => {
-        if (isMounted) {
-          console.warn('Loading timeout - showing empty state');
-          setLoading(false);
-          setCodes([]);
-          setError('Жүктеу уақыты асқынып кетті. Интернет байланысын тексеріңіз.');
-        }
-      }, 15000);
+    // Негізгі жүктеу функциясы
+    const initializeCodes = async () => {
+      setLoading(true);
       
-      try {
-        const response = await apiService.getCodeFiles(undefined, 50, 0, false);
-        
-        if (loadingTimeout) {
-          clearTimeout(loadingTimeout);
-          loadingTimeout = null;
+      // API-дан кодтарды жүктеу
+      const response = await loadCodes(50, 0);
+      
+      if (!isMounted) return;
+      
+      if (response && response.codes.length > 0) {
+        apiCodesLoaded = true;
+      }
+      
+      // Real-time listener қосу (тек Firestore блокталмаған болса)
+      if (!isFirestoreBlocked()) {
+        try {
+          unsubscribeListener = subscribeToCodes(
+            null,
+            (updatedCodes) => {
+              if (!isMounted) return;
+              
+              // Real-time жаңартуларды тек API-дан жүктелген кодтар болған кезде елемеу
+              // Бұл пагинацияны сақтайды - API деректерін басым ету
+              if (!apiCodesLoaded && updatedCodes.length > 0) {
+                // Егер API жүктемесе, real-time деректерді пайдалану
+                setCodes(updatedCodes);
+              }
+              // Егер API деректері жүктелген болса, оларды сақтау (real-time тек жаңартулар үшін)
+            },
+            (error: any) => {
+              // Real-time қателерін тыныштықпен елемеу - API деректері пайдаланылады
+              if (!isMounted) return;
+            }
+          );
+        } catch (err) {
+          console.warn('Real-time listener failed to initialize, using API only');
         }
-        if (!isMounted) return;
-        
-        apiCodes = response.codes;
-        setCodes(response.codes);
-        setLoading(false);
-        console.log('Home: Loaded codes from API:', response.codes.length, '/', response.total, 'folders:', response.codes.filter(c => c.isFolder === true).length);
-      } catch (err) {
-        if (loadingTimeout) {
-          clearTimeout(loadingTimeout);
-          loadingTimeout = null;
-        }
-        console.error('Failed to load codes from API:', err);
-        if (!isMounted) return;
-        setLoading(false);
-        // Егер API қате берсе, бос тізімді көрсету
-        setCodes([]);
-        setError(err instanceof Error ? err.message : t('home.error'));
       }
     };
     
-    loadInitialCodes();
-    
-    // Real-time listener қосу (тек жаңартулар үшін, опционалды)
-    // Ескерту: Real-time listener тек жаңартуларды көрсетеді, алғашқы жүктеуді API-дан аламыз
-    // Егер ad blocker болса, real-time listener жұмыс істемейді, сондықтан оны опционалды етіп қалдырамыз
-    let unsubscribeListener: (() => void) | null = null;
-    let realTimeErrorCount = 0;
-    const MAX_REALTIME_ERRORS = 3; // 3 қатеден кейін real-time listener-ды өшіру
-    
-    // Check if Firestore is blocked before attempting to subscribe
-    if (!isFirestoreBlocked()) {
-      try {
-        unsubscribeListener = subscribeToCodes(
-        null, // folderId = null - барлық кодтар
-        (updatedCodes) => {
-          if (!isMounted) return;
-          
-          realTimeInitialized = true;
-          realTimeErrorCount = 0; // Сәтті жаңарту кезінде қате санын нөлге қайтару
-          
-          // Real-time listener тек жаңартулар үшін - егер API-дан кодтар жүктелген болса, оларды пайдалану
-          // Real-time listener барлық кодтарды қайтарған кезде, біз тек API-дан жүктелген кодтарды көрсетеміз
-          if (apiCodes.length > 0) {
-            // API-дан жүктелген кодтарды пайдалану (пагинациямен)
-            setCodes(apiCodes);
-          } else if (updatedCodes.length > 0) {
-            // Егер API-дан кодтар жоқ болса, real-time кодтарды пайдалану
-            const folderCount = updatedCodes.filter(c => c.isFolder === true).length;
-            console.log('Home: Real-time update received. Total codes:', updatedCodes.length, 'Folders:', folderCount);
-            setCodes(updatedCodes);
-            apiCodes = updatedCodes;
-          }
-        },
-        (error: any) => {
-          if (!isMounted) return;
-          
-          realTimeErrorCount++;
-          
-          // ERR_BLOCKED_BY_CLIENT қатесін (ad blocker) елемеу
-          const isBlocked = error?.code === 'unavailable' || 
-              error?.code === 'permission-denied' ||
-              error?.message?.includes('BLOCKED_BY_CLIENT') ||
-              error?.message?.includes('ERR_BLOCKED_BY_CLIENT') ||
-              error?.message?.includes('network') ||
-              error?.message?.includes('Failed to fetch');
-          
-          if (isBlocked) {
-            // Егер ad blocker болса, real-time listener-ды өшіру
-            if (realTimeErrorCount >= MAX_REALTIME_ERRORS && unsubscribeListener) {
-              unsubscribeListener();
-              unsubscribeListener = null;
-              unsubscribe('codes-all');
-            }
-            // Тыныштықпен API деректерін пайдалану
-            if (apiCodes.length > 0) {
-              setCodes(apiCodes);
-            }
-            return;
-          }
-          // Real-time қателерін елемеу - API деректері пайдаланылады
-        }
-      );
-      } catch (err) {
-        // Real-time listener қосылмаса, елемеу - API деректері пайдаланылады
-        console.warn('Real-time listener failed to initialize, using API only');
-      }
-    } else {
-      // Firestore is blocked, skip real-time listener
-      console.log('Firestore is blocked, using API only');
-    }
+    initializeCodes();
     
     return () => {
       isMounted = false;
-      if (loadingTimeout) {
-        clearTimeout(loadingTimeout);
-      }
       if (unsubscribeListener) {
         unsubscribeListener();
         unsubscribe('codes-all');
       }
     };
-  }, [loadCodes, t]);
+  }, [loadCodes]);
 
   useEffect(() => {
     // Папка жүктелгеннен кейін тізімді жаңарту

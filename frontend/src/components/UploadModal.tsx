@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolder } from '@fortawesome/free-solid-svg-icons';
+import { faFolder, faTerminal } from '@fortawesome/free-solid-svg-icons';
 import { useFileUpload } from '../hooks/useFileUpload';
 import Button from './Button';
+import WebTerminal from './WebTerminal';
 import './UploadModal.css';
 
 interface UploadModalProps {
@@ -12,14 +13,19 @@ interface UploadModalProps {
   onSuccess?: () => void;
 }
 
+type UploadMode = 'folder' | 'terminal';
+
 const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { t } = useTranslation();
+  const [uploadMode, setUploadMode] = useState<UploadMode>('folder');
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const terminalCommandRef = useRef<HTMLInputElement>(null);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const { uploading, error, uploadProgress, uploadFolder, reset } = useFileUpload();
 
   if (!isOpen) return null;
@@ -94,8 +100,24 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
     setTitle('');
     setLanguage('');
     setProjectDescription('');
+    setUploadMode('folder');
     reset();
     onClose();
+  };
+
+  const handleCopyCommand = () => {
+    if (terminalCommandRef.current) {
+      terminalCommandRef.current.select();
+      document.execCommand('copy');
+      // Show feedback
+      const originalValue = terminalCommandRef.current.value;
+      terminalCommandRef.current.value = 'Команда көшірілді!';
+      setTimeout(() => {
+        if (terminalCommandRef.current) {
+          terminalCommandRef.current.value = originalValue;
+        }
+      }, 1000);
+    }
   };
 
   return (
@@ -107,16 +129,39 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
         </div>
 
         <form onSubmit={handleSubmit} className="upload-form">
-          <div
-            className={`upload-dropzone ${dragActive ? 'active' : ''} ${selectedFiles ? 'has-file' : ''}`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => {
-              folderInputRef.current?.click();
-            }}
-          >
+          {/* Режим таңдау баттамалары */}
+          <div className="upload-mode-toggle">
+            <button
+              type="button"
+              className={`mode-btn ${uploadMode === 'folder' ? 'active' : ''}`}
+              onClick={() => setUploadMode('folder')}
+            >
+              <FontAwesomeIcon icon={faFolder} style={{ marginRight: '0.5rem' }} />
+              Папка/Файл
+            </button>
+            <button
+              type="button"
+              className={`mode-btn ${uploadMode === 'terminal' ? 'active' : ''}`}
+              onClick={() => setUploadMode('terminal')}
+            >
+              <FontAwesomeIcon icon={faTerminal} style={{ marginRight: '0.5rem' }} />
+              Терминал
+            </button>
+          </div>
+
+          {/* Папка/Файл режимі */}
+          {uploadMode === 'folder' && (
+            <>
+              <div
+                className={`upload-dropzone ${dragActive ? 'active' : ''} ${selectedFiles ? 'has-file' : ''}`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => {
+                  folderInputRef.current?.click();
+                }}
+              >
             <input
               ref={folderInputRef}
               type="file"
@@ -140,7 +185,137 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
               </div>
             )}
           </div>
+          </>
+          )}
 
+          {/* Терминал режимі */}
+          {uploadMode === 'terminal' && (
+            <div className="terminal-upload-section">
+              <div className="terminal-instructions">
+                <h3>Терминал арқылы код жүктеу</h3>
+                <p>Терминалды іске қосып, төмендегі команданы орындаңыз:</p>
+              </div>
+              
+              <div className="terminal-start-section">
+                <div className="terminal-launch-box">
+                  <p className="terminal-launch-title">💻 Веб-терминалды ашу:</p>
+                  <p className="terminal-launch-description">
+                    Терминалды браузерде ашу үшін төмендегі баттаманы басыңыз
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsTerminalOpen(true)}
+                    className="launch-terminal-btn"
+                  >
+                    <FontAwesomeIcon icon={faTerminal} style={{ marginRight: '0.5rem' }} />
+                    Терминалды ашу
+                  </button>
+                </div>
+                
+                <p className="terminal-start-title"><strong>Немесе терминалды іске қосу:</strong></p>
+                <div className="terminal-start-commands">
+                  <div className="terminal-start-option">
+                    <p className="option-label">Windows (Command Prompt):</p>
+                    <div className="terminal-command-box">
+                      <input
+                        type="text"
+                        readOnly
+                        value='cd "C:\Users\nurda\code\Kazakh Hub\nairee_cli" && run.bat'
+                        className="terminal-command-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.value = 'cd "C:\\Users\\nurda\\code\\Kazakh Hub\\nairee_cli" && run.bat';
+                          document.body.appendChild(input);
+                          input.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(input);
+                          alert('Команда көшірілді!');
+                        }}
+                        className="copy-command-btn"
+                      >
+                        Көшіру
+                      </button>
+                    </div>
+                  </div>
+                  <div className="terminal-start-option">
+                    <p className="option-label">Windows (PowerShell):</p>
+                    <div className="terminal-command-box">
+                      <input
+                        type="text"
+                        readOnly
+                        value='cd "C:\Users\nurda\code\Kazakh Hub\nairee_cli"; .\run.ps1'
+                        className="terminal-command-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.value = 'cd "C:\\Users\\nurda\\code\\Kazakh Hub\\nairee_cli"; .\\run.ps1';
+                          document.body.appendChild(input);
+                          input.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(input);
+                          alert('Команда көшірілді!');
+                        }}
+                        className="copy-command-btn"
+                      >
+                        Көшіру
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="terminal-command-section">
+                <p className="terminal-start-title"><strong>2. Код жүктеу командасы:</strong></p>
+                <div className="terminal-command-box">
+                  <input
+                    ref={terminalCommandRef}
+                    type="text"
+                    readOnly
+                    value='upload <file_path> --author "<author_name>" [options]'
+                    className="terminal-command-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyCommand}
+                    className="copy-command-btn"
+                  >
+                    Көшіру
+                  </button>
+                </div>
+              </div>
+
+              <div className="terminal-examples">
+                <p className="terminal-examples-title">Мысалдар:</p>
+                <div className="terminal-example">
+                  <code>upload main.cpp --author "John Doe" --title "My C++ Program"</code>
+                </div>
+                <div className="terminal-example">
+                  <code>upload app.py --author "Jane Smith" --language "Python"</code>
+                </div>
+                <div className="terminal-example">
+                  <code>upload index.html --author "Bob" --title "Homepage"</code>
+                </div>
+              </div>
+              <div className="terminal-requirements">
+                <p><strong>Қажетті талаптар:</strong></p>
+                <ul>
+                  <li>Терминал <code>nairee_cli</code> папкасында орналасқан</li>
+                  <li>Backend сервері <code>http://127.0.0.1:3000</code> адресінде жұмыс істеуі керек</li>
+                  <li><code>curl</code> құралы жүйеде орнатылған болуы керек</li>
+                  <li>C++ компилятор (CMake, g++ немесе cl) құрастыру үшін қажет</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Форма өрістері (тек папка режимінде) */}
+          {uploadMode === 'folder' && (
+            <>
           <div className="form-group">
             <label htmlFor="title">{t('settings.title')}</label>
             <input
@@ -177,7 +352,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
             />
           </div>
 
-          {uploadProgress && uploadProgress.total > 0 && (
+          {uploadMode === 'folder' && uploadProgress && uploadProgress.total > 0 && (
             <div className="upload-progress">
               <div className="progress-info">
                 <span>
@@ -205,7 +380,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
             </div>
           )}
 
-          {error && (
+          {uploadMode === 'folder' && error && (
             <div className="form-error">
               {error}
             </div>
@@ -215,16 +390,30 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
             <Button type="button" onClick={handleClose} variant="secondary">
               Болдырмау
             </Button>
-            <Button 
-              type="submit" 
-              variant="primary" 
-              disabled={!selectedFiles || !language || !projectDescription.trim() || uploading}
-            >
-              {uploading ? t('settings.uploading') : t('settings.upload')}
-            </Button>
+            {uploadMode === 'folder' && (
+              <Button 
+                type="submit" 
+                variant="primary" 
+                disabled={!selectedFiles || !language || !projectDescription.trim() || uploading}
+              >
+                {uploading ? t('settings.uploading') : t('settings.upload')}
+              </Button>
+            )}
+            {uploadMode === 'terminal' && (
+              <Button 
+                type="button" 
+                variant="primary" 
+                onClick={handleClose}
+              >
+                Түсіндім
+              </Button>
+            )}
           </div>
+          </>
+          )}
         </form>
       </div>
+      <WebTerminal isOpen={isTerminalOpen} onClose={() => setIsTerminalOpen(false)} />
     </div>
   );
 };

@@ -30,6 +30,7 @@ set(SOURCES
     src/commands/MkdirCommand.cpp
     src/commands/CpCommand.cpp
     src/commands/UserInfoCommand.cpp
+    src/commands/UploadCodeCommand.cpp
 )
 
 # Header files
@@ -46,6 +47,7 @@ set(HEADERS
     src/commands/MkdirCommand.hpp
     src/commands/CpCommand.hpp
     src/commands/UserInfoCommand.hpp
+    src/commands/UploadCodeCommand.hpp
 )
 
 # Create executable

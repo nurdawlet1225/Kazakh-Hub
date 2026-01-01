@@ -6,6 +6,7 @@
 #include "commands/MkdirCommand.hpp"
 #include "commands/CpCommand.hpp"
 #include "commands/UserInfoCommand.hpp"
+#include "commands/UploadCodeCommand.hpp"
 #include <iostream>
 
 namespace Terminal {
@@ -62,6 +63,10 @@ void CommandExecutor::initializeCommands() {
         system("clear");
         #endif
         return true;
+    });
+    
+    registerCommand("upload", [this](const ParsedCommand& cmd) {
+        return UploadCodeCommand::execute(cmd);
     });
 }
 

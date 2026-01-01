@@ -145,7 +145,7 @@ const Settings: React.FC = () => {
           });
         }}>
           {t('common.cancel') || 'Болдырмау'}
-        </button>
+        </Button>
       </div>
     </div>
   );

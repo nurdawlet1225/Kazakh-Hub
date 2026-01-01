@@ -41,7 +41,31 @@ Terminal.exe
 - `pwd` - Ағымдағы жолды көрсету
 - `userinfo` - Пайдаланушы ақпараты
 - `clear` - Экранды тазалау
+- `upload <file> [options]` - Код файлын Kazakh Hub-қа жүктеу
 - `exit` / `quit` - Шығу
+
+### Код жүктеу командасы
+
+Код файлын сайтқа жүктеу үшін:
+
+```bash
+upload <file_path> --author "<author_name>" [options]
+```
+
+**Опциялар:**
+- `--title <title>` - Код атауы (әдепкі: файл атауы)
+- `--author <author>` - Автор аты (міндетті)
+- `--language <lang>` - Бағдарламалау тілі (автоматты анықталады, егер көрсетілмесе)
+- `--description <desc>` - Код сипаттамасы
+
+**Мысалдар:**
+```bash
+upload main.cpp --author "John Doe" --title "My C++ Program"
+upload app.py --author "Jane Smith" --language "Python" --description "Web application"
+upload index.html --author "Bob" --title "Homepage"
+```
+
+**Ескерту:** Backend сервері `http://127.0.0.1:3000` адресінде жұмыс істеуі керек. Сондай-ақ, `curl` құралы жүйеде орнатылған болуы керек.
 
 ## 🎨 Ерекшеліктер
 

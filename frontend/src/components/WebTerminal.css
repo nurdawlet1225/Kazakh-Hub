@@ -1,0 +1,249 @@
+.web-terminal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.web-terminal-container {
+  width: 100%;
+  max-width: 900px;
+  height: 80vh;
+  max-height: 700px;
+  background: #1e1e1e;
+  border-radius: 12px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(0, 153, 204, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid rgba(0, 153, 204, 0.3);
+}
+
+.web-terminal-header {
+  background: linear-gradient(135deg, #0d7377 0%, #14a085 100%);
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(0, 153, 204, 0.5);
+}
+
+.web-terminal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.terminal-icon {
+  font-size: 1.5rem;
+}
+
+.web-terminal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  line-height: 1;
+}
+
+.web-terminal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg) scale(1.1);
+}
+
+.web-terminal-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 1rem;
+  background: #1e1e1e;
+}
+
+.web-terminal-content {
+  width: 100%;
+  height: 100%;
+}
+
+.web-terminal-footer {
+  padding: 0.75rem 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(0, 153, 204, 0.2);
+}
+
+.terminal-hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.terminal-hint code {
+  background: rgba(0, 153, 204, 0.2);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  color: #00afca;
+  font-family: 'Courier New', monospace;
+}
+
+/* xterm.js стильдері */
+.xterm {
+  font-feature-settings: "liga" 0;
+  position: relative;
+  user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+}
+
+.xterm.focus,
+.xterm:focus {
+  outline: none;
+}
+
+.xterm .xterm-helpers {
+  position: absolute;
+  top: 0;
+  z-index: 5;
+}
+
+.xterm .xterm-helper-textarea {
+  position: absolute;
+  opacity: 0;
+  left: -9999em;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: -5;
+  white-space: nowrap;
+  overflow: hidden;
+  resize: none;
+}
+
+.xterm .composition-view {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  display: none;
+  position: absolute;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.xterm .composition-view.active {
+  display: block;
+}
+
+.xterm .xterm-viewport {
+  background-color: #1e1e1e;
+  overflow-y: scroll;
+  cursor: default;
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.xterm .xterm-screen {
+  position: relative;
+}
+
+.xterm .xterm-screen canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.xterm .xterm-scroll-area {
+  visibility: hidden;
+}
+
+.xterm-char-measure-element {
+  display: inline-block;
+  visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: -9999em;
+  line-height: normal;
+}
+
+.xterm.enable-mouse-events {
+  cursor: default;
+}
+
+.xterm.xterm-cursor-pointer {
+  cursor: pointer;
+}
+
+.xterm.column-select.focus {
+  cursor: crosshair;
+}
+
+.xterm .xterm-accessibility,
+.xterm .xterm-message {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  z-index: 10;
+  color: transparent;
+}
+
+.xterm .live-region {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.xterm-dim {
+  opacity: 0.5;
+}
+
+.xterm-underline {
+  text-decoration: underline;
+}
+
+.xterm-strikethrough {
+  text-decoration: line-through;
+}
+
+.xterm .xterm-screen .xterm-decoration-container .xterm-decoration {
+  z-index: 6;
+  position: absolute;
+}
+
+.xterm .xterm-decoration-overview-ruler {
+  z-index: 7;
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.xterm .xterm-decoration-top {
+  z-index: 2;
+  position: relative;
+}
+
+

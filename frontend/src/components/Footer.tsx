@@ -18,14 +18,6 @@ const Footer: React.FC = () => {
               <p className="footer-description">
                 {t('footer.description')}
               </p>
-              <div className="footer-social">
-                <a href="https://oyji.org" target="_blank" rel="noopener noreferrer" className="social-link" title="OyJI">
-                  <span className="social-icon"><img src="https://oyji.org/favicon.ico" alt="OyJI" style={{ width: '24px', height: '24px', objectFit: 'contain' }} /></span>
-                </a>
-                <a href="nurdawlettawirbaev01@gmail.com" className="social-link" title="Email">
-                  <span className="social-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
-                </a>
-              </div>
             </div>
           </div>
 

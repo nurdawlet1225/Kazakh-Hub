@@ -105,7 +105,7 @@
   overflow: hidden;
   border: 1.9px solid var(--primary-color);
   position: relative;
-  box-shadow: 0 2.6px 10.2px rgba(8, 145, 178, 0.3);
+  box-shadow: 0 2.6px 10.2px rgba(0, 153, 204, 0.3);
 }
 
 .profile-modal-avatar img {
