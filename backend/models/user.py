@@ -7,8 +7,7 @@ from utils.validators import validate_email
 class UserRegister(BaseModel):
     username: str
     email: str
-    password: Optional[str] = None  # Optional for Firebase auth users
-    firebase_uid: Optional[str] = None  # Firebase user ID
+    password: str  # Required for SQL-based auth
     
     @field_validator('email')
     @classmethod

@@ -11,6 +11,7 @@ import os
 # Import database and config
 from database import load_data, codes
 from config import FIRESTORE_SYNC_AVAILABLE, FIRESTORE_INIT
+from db import init_db
 
 # Import routes
 from routes import api_router
@@ -23,6 +24,9 @@ async def lifespan(app: FastAPI):
     from database import save_codes, save_users, save_friends, save_messages, save_friend_requests, save_passwords
     
     # Startup
+    # Initialize SQL database
+    init_db()
+    
     load_data()
     print(f"Loaded {len(codes)} codes from file")
     

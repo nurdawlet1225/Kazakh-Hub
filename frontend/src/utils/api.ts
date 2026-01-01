@@ -283,10 +283,10 @@ class ApiService {
   }
 
   // Authentication
-  async register(username: string, email: string, password: string, firebaseUid?: string): Promise<{ user: User; message: string }> {
+  async register(username: string, email: string, password: string): Promise<{ user: User; message: string }> {
     return this.request<{ user: User; message: string }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, email, password, firebase_uid: firebaseUid }),
+      body: JSON.stringify({ username, email, password }),
     });
   }
 

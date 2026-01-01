@@ -1,14 +1,21 @@
 """Authentication routes"""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from models import UserRegister, UserLogin, ChangePassword
-from services.user_service import UserService
-from database import passwords, save_passwords
+from db import get_db, User
+from utils.password import hash_password, verify_password
+import random
 
 router = APIRouter()
 
 
+def generate_user_id() -> str:
+    """Generate a 12-digit numeric user ID"""
+    return ''.join([str(random.randint(0, 9)) for _ in range(12)])
+
+
 @router.post("/auth/register")
-async def register(user_data: UserRegister):
+async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     """Register a new user"""
     try:
         # Validate input
@@ -18,68 +25,99 @@ async def register(user_data: UserRegister):
         if not user_data.email or not user_data.email.strip():
             raise HTTPException(status_code=400, detail="Email is required")
         
+        if not user_data.password or not user_data.password.strip():
+            raise HTTPException(status_code=400, detail="Password is required")
+        
+        if len(user_data.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
+        username = user_data.username.strip()
+        email = user_data.email.strip().lower()
+        
         # Check if user already exists
-        existing_user = UserService.find_user_by_email(user_data.email) or \
-                        UserService.find_user_by_username(user_data.username)
+        existing_user = db.query(User).filter(
+            (User.email == email) | (User.username == username)
+        ).first()
+        
         if existing_user:
             raise HTTPException(status_code=409, detail="User already exists")
         
+        # Generate unique user ID
+        user_id = generate_user_id()
+        while db.query(User).filter(User.id == user_id).first():
+            user_id = generate_user_id()
+        
+        # Hash password
+        password_hash = hash_password(user_data.password)
+        
         # Create new user
-        new_user = UserService.create_user(
-            username=user_data.username.strip(),
-            email=user_data.email.strip(),
-            password=user_data.password if user_data.password else None,
-            firebase_uid=user_data.firebase_uid
+        new_user = User(
+            id=user_id,
+            username=username,
+            email=email,
+            password_hash=password_hash,
+            avatar=None
         )
         
-        if not new_user:
-            raise HTTPException(status_code=500, detail="Failed to create user")
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
         
-        return {"user": new_user, "message": "User registered successfully"}
+        # Return user data (without password hash)
+        user_dict = {
+            "id": new_user.id,
+            "username": new_user.username,
+            "email": new_user.email,
+            "avatar": new_user.avatar
+        }
+        
+        return {"user": user_dict, "message": "User registered successfully"}
     except HTTPException:
         raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         print(f"Registration error: {e}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
 
 @router.post("/auth/login")
-async def login(login_data: UserLogin):
+async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     """Login a user"""
     if not login_data.email and not login_data.username:
         raise HTTPException(status_code=400, detail="Email or username required")
     
-    user = None
-    
-    if login_data.email:
-        user = UserService.find_user_by_email(login_data.email)
-    elif login_data.username:
-        user = UserService.find_user_by_username(login_data.username)
-    
-    # If no password provided, assume Firebase auth and return user if found
     if not login_data.password:
-        if user:
-            return {"user": user, "message": "Login successful"}
-        else:
-            raise HTTPException(status_code=401, detail="User not found")
+        raise HTTPException(status_code=400, detail="Password is required")
     
-    # Traditional password-based login
-    stored_password = None
+    # Find user by email or username
+    user = None
     if login_data.email:
-        stored_password = passwords.get(login_data.email)
-    elif login_data.username and user:
-        stored_password = passwords.get(user['email'])
+        user = db.query(User).filter(User.email == login_data.email.strip().lower()).first()
+    elif login_data.username:
+        user = db.query(User).filter(User.username == login_data.username.strip()).first()
     
-    if not user or stored_password != login_data.password:
+    if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    return {"user": user, "message": "Login successful"}
+    # Verify password
+    if not user.password_hash or not verify_password(login_data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Return user data (without password hash)
+    user_dict = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "avatar": user.avatar
+    }
+    
+    return {"user": user_dict, "message": "Login successful"}
 
 
 @router.post("/auth/change-password")
-async def change_password(request: ChangePassword):
+async def change_password(request: ChangePassword, db: Session = Depends(get_db)):
     """Change user password"""
     if not request.newPassword:
         raise HTTPException(status_code=400, detail="New password required")
@@ -87,21 +125,24 @@ async def change_password(request: ChangePassword):
     if len(request.newPassword) < 6:
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
     
+    # Find user
     user = None
     if request.userId:
-        user = UserService.find_user_by_id(request.userId)
+        user = db.query(User).filter(User.id == request.userId).first()
     elif request.email:
-        user = UserService.find_user_by_email(request.email)
+        user = db.query(User).filter(User.email == request.email.strip().lower()).first()
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Verify current password if provided
     if request.currentPassword:
-        stored_password = passwords.get(user['email'])
-        if stored_password != request.currentPassword:
+        if not user.password_hash or not verify_password(request.currentPassword, user.password_hash):
             raise HTTPException(status_code=401, detail="Current password is incorrect")
     
-    passwords[user['email']] = request.newPassword
-    save_passwords()
+    # Update password
+    user.password_hash = hash_password(request.newPassword)
+    db.commit()
+    
     return {"message": "Password changed successfully"}
 
