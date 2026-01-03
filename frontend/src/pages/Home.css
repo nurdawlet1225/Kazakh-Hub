@@ -33,17 +33,15 @@
 }
 
 .home-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100px;
-  height: 3px;
-  background: var(--accent-gradient);
-  border-radius: 4px;
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
-  animation: pulse 2s ease-in-out infinite;
+  display: none;
+}
+
+.home-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 400;
+  animation: slideInUp 0.8s ease-out 0.2s both;
 }
 
 .home-header h1 {
@@ -72,13 +70,6 @@
   }
 }
 
-.home-subtitle {
-  color: var(--text-secondary);
-  font-size: 1.25rem;
-  margin: 0;
-  font-weight: 400;
-  animation: slideInUp 0.8s ease-out 0.2s both;
-}
 
 @keyframes slideInUp {
   from {
@@ -106,7 +97,7 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
   backdrop-filter: blur(12px) saturate(180%);
   position: relative;
@@ -123,8 +114,10 @@
 
 .stat-header {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
 }
 
@@ -140,7 +133,7 @@
   color: var(--text-secondary);
   font-weight: 600;
   flex: 1;
-  text-align: left;
+  text-align: center;
   line-height: 1.3;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -240,6 +233,7 @@
   border: 1.5px solid var(--border-color);
   backdrop-filter: blur(12px) saturate(180%);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: visible;
   transition: all var(--transition-base);
   overflow-x: visible;
   overflow-y: visible;
@@ -256,11 +250,25 @@
   flex-shrink: 0;
   overflow-x: auto;
   overflow-y: visible;
+  padding-top: 1rem;
   padding-bottom: 0.5rem;
   scrollbar-width: thin;
   scrollbar-color: var(--primary-color) var(--bg-secondary);
   width: 100%;
   flex-direction: row;
+  position: relative;
+}
+
+.home-controls-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(0, 175, 202, 0.8) 0%, rgba(251, 191, 36, 0.8) 50%, rgba(0, 175, 202, 0.8) 100%);
+  z-index: 10;
+  pointer-events: none;
 }
 
 .home-controls-header > * {
@@ -1482,7 +1490,7 @@
   padding-top: 0;
   max-height: 300px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: visible;
   padding-right: 0.75rem;
   padding-bottom: 1rem;
 }
@@ -1536,6 +1544,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 
 /* Бөлім бас тақырыптары */

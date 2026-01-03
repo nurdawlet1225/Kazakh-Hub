@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBook, faLaptop, faUsers, faStar, faFileAlt, faList } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faLaptop, faUsers, faStar, faFileAlt, faList, faSearch } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
 import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
@@ -16,11 +16,13 @@ type ViewMode = 'grid' | 'list';
 
 const Home: React.FC = () => {
   const { t } = useTranslation();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [totalCodesCount, setTotalCodesCount] = useState(0);
   const [filterLanguage, setFilterLanguage] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -37,6 +39,7 @@ const Home: React.FC = () => {
       const response = await apiService.getCodeFiles(undefined, limit, offset, false);
       
       setCodes(response.codes);
+      setTotalCodesCount(response.total);
       setError(null);
       setLoading(false);
       
@@ -127,10 +130,45 @@ const Home: React.FC = () => {
   }, [loadCodes]);
 
   useEffect(() => {
-    // Sync search query with URL params from Header
+    // Sync search query with URL params
     const urlSearch = searchParams.get('search') || '';
     setSearchQuery(urlSearch);
-  }, [searchParams]);
+    
+    // Егер URL-да іздеу сұрауы болса, барлық кодтарды жүктеу
+    if (urlSearch && (totalCodesCount === 0 || codes.length < totalCodesCount) && !loading) {
+      setLoading(true);
+      loadCodes(1000, 0);
+    }
+  }, [searchParams, totalCodesCount, codes.length, loading, loadCodes]);
+
+  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    // Update URL params
+    if (value) {
+      setSearchParams({ search: value });
+      // Іздеу сұрауы болғанда, барлық кодтарды жүктеу (іздеу дұрыс жұмыс істеуі үшін)
+      // Егер кодтар жүктелмеген болса немесе барлық кодтар жүктелмеген болса
+      if (totalCodesCount === 0 || codes.length < totalCodesCount) {
+        setLoading(true);
+        // Барлық кодтарды жүктеу үшін үлкен лимит пайдалану
+        await loadCodes(1000, 0);
+      }
+    } else {
+      setSearchParams({});
+      // Іздеу сұрауы жойылғанда, тек 50 кодты қалдыру (егер кодтар көп болса)
+      if (codes.length > 50) {
+        setLoading(true);
+        await loadCodes(50, 0);
+      }
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Search is already handled by handleSearchChange
+  };
 
   const stats = useMemo(() => {
     const totalCodes = codes.length;
@@ -154,10 +192,18 @@ const Home: React.FC = () => {
   const filteredAndSortedCodes = useMemo(() => {
     let filtered = codes.filter((code) => {
       // Іздеу сұрауын тексеру (Header-дан келген)
-      const matchesSearch = !searchQuery || 
-        code.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        code.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        code.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!searchQuery) {
+        // Іздеу сұрауы жоқ болса, барлық кодтарды қайтару
+        return true;
+      }
+      
+      const searchLower = searchQuery.toLowerCase();
+      const matchesSearch = 
+        code.title?.toLowerCase().includes(searchLower) ||
+        (code.content && code.content.toLowerCase().includes(searchLower)) ||
+        code.description?.toLowerCase().includes(searchLower) ||
+        code.author?.toLowerCase().includes(searchLower) ||
+        code.language?.toLowerCase().includes(searchLower);
       
       // Тіл фильтрін тексеру
       let matchesLanguage = true;
@@ -279,12 +325,18 @@ const Home: React.FC = () => {
       {/* Сүзгілер және басқару элементтері */}
       <div className="home-controls">
         <div className="home-controls-header">
-          <button 
-            className="btn-header-list"
-            onClick={() => setIsCodesModalOpen(true)}
-          >
-            <FontAwesomeIcon icon={faList} /> {t('header.codesList')}
-          </button>
+          <form onSubmit={handleSearchSubmit} className="header-search-form">
+            <div className="header-search-box">
+              <input
+                type="text"
+                placeholder={t('common.search')}
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="header-search-input"
+              />
+              <span className="header-search-icon"><FontAwesomeIcon icon={faSearch} /></span>
+            </div>
+          </form>
           <div className="language-filter">
             <label htmlFor="language-filter">{t('home.language')}</label>
             <select
@@ -315,30 +367,12 @@ const Home: React.FC = () => {
               <option value="author">{t('home.byAuthor')}</option>
             </select>
           </div>
-          <div className="view-toggle">
-            <button
-              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => {
-                setViewMode('grid');
-                localStorage.setItem('homeViewMode', 'grid');
-              }}
-              title={t('home.gridView')}
-              aria-label={t('home.gridView')}
-            >
-              ⊞
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => {
-                setViewMode('list');
-                localStorage.setItem('homeViewMode', 'list');
-              }}
-              title={t('home.listView')}
-              aria-label={t('home.listView')}
-            >
-              ☰
-            </button>
-          </div>
+          <button 
+            className="btn-header-list"
+            onClick={() => setIsCodesModalOpen(true)}
+          >
+            <FontAwesomeIcon icon={faList} /> {t('header.codesList')}
+          </button>
         </div>
 
         {error && (
@@ -350,7 +384,9 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {filteredAndSortedCodes.length === 0 && !loading && (
+        {loading ? (
+          <div className="loading-state">Жүктелуде...</div>
+        ) : filteredAndSortedCodes.length === 0 ? (
           <div className="empty-state">
             <p className="empty-icon"><FontAwesomeIcon icon={faFileAlt} /></p>
             <p className="empty-title">{t('home.noCodes')}</p>
@@ -360,18 +396,18 @@ const Home: React.FC = () => {
                 : t('home.firstCode')}
             </p>
           </div>
+        ) : (
+          <div className={`codes-container ${viewMode === 'list' ? 'list-view' : 'grid-view'}`}>
+            {filteredAndSortedCodes.map((code) => (
+              <CodeCard 
+                key={code.id} 
+                code={code} 
+                viewMode={viewMode}
+              />
+            ))}
+          </div>
         )}
 
-        {/* Бірге көрсету */}
-        <div className={`codes-container ${viewMode === 'list' ? 'list-view' : 'grid-view'}`}>
-          {filteredAndSortedCodes.map((code) => (
-            <CodeCard 
-              key={code.id} 
-              code={code} 
-              viewMode={viewMode}
-            />
-          ))}
-        </div>
       </div>
       <CodesListModal 
         isOpen={isCodesModalOpen} 

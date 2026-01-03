@@ -33,5 +33,12 @@
     "toUserId": "728388036309",
     "status": "cancelled",
     "createdAt": "2025-11-30T17:35:19.439259"
+  },
+  {
+    "id": "97cd4fa0-f03a-4eb9-970a-45c9428d41ee",
+    "fromUserId": "730948837585",
+    "toUserId": "888905735740",
+    "status": "pending",
+    "createdAt": "2026-01-03T18:34:46.310466"
   }
 ]

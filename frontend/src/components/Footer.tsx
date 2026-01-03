@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faInfoCircle, faLink, faBook, faList, faLock, faRocket, faLaptop } from '@fortawesome/free-solid-svg-icons';
+import { faInfoCircle, faFolderOpen, faBook, faList, faLock, faRocket, faLaptop } from '@fortawesome/free-solid-svg-icons';
 import './Footer.css';
 
 const Footer: React.FC = () => {
@@ -23,16 +23,10 @@ const Footer: React.FC = () => {
 
           <div className="footer-section">
             <h4 className="footer-heading">
-              <span className="heading-icon"><FontAwesomeIcon icon={faLink} /></span>
+              <span className="heading-icon"><FontAwesomeIcon icon={faFolderOpen} /></span>
               {t('footer.links')}
             </h4>
             <ul className="footer-links">
-              <li>
-                <a href="nurdawlettawirbaev01@gmail.com">
-                  <span className="link-icon"><FontAwesomeIcon icon={faEnvelope} /></span>
-                 nurdawlettawirbaev01@gmail.com
-                </a>
-              </li>
               <li>
                 <a href="https://oyji.org" target="_blank" rel="noopener noreferrer">
                   <span className="link-icon link-icon-svg"><img src="https://oyji.org/favicon.ico" alt="OyJI" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /></span>

@@ -1419,6 +1419,9 @@
   gap: 1rem;
   margin-bottom: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 175, 202, 0.1);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .comment-content-wrapper {
@@ -1426,6 +1429,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .comment-item::before {
@@ -1620,6 +1626,9 @@
   justify-content: space-between;
   gap: 1rem;
   min-height: 48px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 
@@ -1781,6 +1790,10 @@
 .comment-content .comment-text {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  overflow: hidden;
 }
 
 .comment-reaction-btn {
@@ -2139,6 +2152,9 @@
   border-left: 3px solid rgba(0, 175, 202, 0.3);
   position: relative;
   animation: fadeIn 0.4s ease-out;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {
@@ -2190,6 +2206,9 @@
   font-size: 0.9rem;
   color: var(--text-secondary);
   box-shadow: 0 2px 4px rgba(0, 175, 202, 0.1);
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .reply-arrow {
@@ -2203,6 +2222,9 @@
   flex-direction: column;
   gap: 0.25rem;
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .reply-to-author {
@@ -2216,6 +2238,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .comment-reply-item {
@@ -2228,6 +2252,9 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--bg-secondary);
   opacity: 0.95;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .comment-reply-item:hover {
@@ -2258,6 +2285,9 @@
   margin-bottom: 1rem;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .comment-replies .comment-item:last-child {

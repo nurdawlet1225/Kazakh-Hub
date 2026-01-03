@@ -1,10 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFolder, faUser, faCalendar, faHeart, faComment, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faCalendar, faHeart, faComment, faEye } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
-import { formatDate } from '../utils/dateFormatter';
 import './CodeCard.css';
 
 interface CodeCardProps {
@@ -15,7 +13,13 @@ interface CodeCardProps {
 }
 
 const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected = false, onToggleSelect }) => {
-  const { i18n } = useTranslation();
+  const formatDateNumeric = (dateString: string): string => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
 
   const getLanguageColor = (language: string): string => {
     const colors: Record<string, string> = {
@@ -143,18 +147,16 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
       )}
 
       <div className="code-card-footer">
-        <div className="code-card-meta">
-          <span className="code-card-author"><FontAwesomeIcon icon={faUser} /> {code.author}</span>
-          <span className="code-card-date"><FontAwesomeIcon icon={faCalendar} /> {formatDate(code.createdAt, i18n.language)}</span>
-          {code.likes && code.likes.length > 0 && (
-            <span className="code-card-likes"><FontAwesomeIcon icon={faHeart} /> {code.likes.length}</span>
-          )}
-          {code.comments && code.comments.length > 0 && (
-            <span className="code-card-comments"><FontAwesomeIcon icon={faComment} /> {code.comments.length}</span>
-          )}
-          {code.isFolder && (
+        <div className="code-card-footer-content">
+          <div className="code-card-meta-top">
+            <span className="code-card-author"><FontAwesomeIcon icon={faUser} /> {code.author}</span>
+            <span className="code-card-date"><FontAwesomeIcon icon={faCalendar} /> {formatDateNumeric(code.createdAt)}</span>
+          </div>
+          <div className="code-card-meta-bottom">
+            <span className="code-card-likes"><FontAwesomeIcon icon={faHeart} /> {code.likes?.length || 0}</span>
+            <span className="code-card-comments"><FontAwesomeIcon icon={faComment} /> {code.comments?.length || 0}</span>
             <span className="code-card-views"><FontAwesomeIcon icon={faEye} /> {code.views || 0}</span>
-          )}
+          </div>
         </div>
         <div className="code-card-footer-right">
           {code.tags && code.tags.length > 0 && (

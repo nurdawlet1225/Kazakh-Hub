@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { apiService } from '../utils/api';
 import Button from '../components/Button';
 import GalaxyBackground from '../components/GalaxyBackground';
+import DragonCursorTrail from '../components/DragonCursorTrail';
 import './Auth.css';
 
 const Login: React.FC = () => {
@@ -76,6 +77,7 @@ const Login: React.FC = () => {
     <div className="landing-page">
       <div className="landing-hero" ref={heroRef}>
         <GalaxyBackground containerRef={heroRef} />
+        <DragonCursorTrail containerRef={heroRef} />
         <div className="hero-content">
           <h1 className="hero-title">
             <span className="hero-title-main">{t('header.appName')}</span>

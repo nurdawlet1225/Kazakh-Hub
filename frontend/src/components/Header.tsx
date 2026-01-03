@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faUpload, faLock, faUser, faComment } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faLock, faUser, faComment } from '@fortawesome/free-solid-svg-icons';
 import UploadModal from './UploadModal';
 import ProfileModal from './ProfileModal';
 import Button from './Button';
@@ -21,10 +21,8 @@ const Header: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<{ username: string; email: string; avatar?: string } | null>(null);
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [incomingRequestCount, setIncomingRequestCount] = useState(0);
@@ -130,35 +128,6 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    // Sync search query with URL params
-    const urlSearch = searchParams.get('search') || '';
-    setSearchQuery(urlSearch);
-  }, [searchParams]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    
-    // Update URL params
-    if (value) {
-      setSearchParams({ search: value });
-    } else {
-      setSearchParams({});
-    }
-    
-    // Navigate to home if not already there
-    if (location.pathname !== '/') {
-      navigate(`/?search=${encodeURIComponent(value)}`);
-    }
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (location.pathname !== '/') {
-      navigate(`/?search=${encodeURIComponent(searchQuery)}`);
-    }
-  };
 
 
   return (
@@ -191,18 +160,6 @@ const Header: React.FC = () => {
         </Link>
         
         <nav className="header-nav">
-          <form onSubmit={handleSearchSubmit} className="header-search-form">
-            <div className="header-search-box">
-              <input
-                type="text"
-                placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="header-search-input"
-              />
-              <span className="header-search-icon"><FontAwesomeIcon icon={faSearch} /></span>
-            </div>
-          </form>
         </nav>
 
         <div className="header-actions">
