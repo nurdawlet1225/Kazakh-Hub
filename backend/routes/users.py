@@ -1,16 +1,44 @@
 """User routes"""
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from sqlalchemy.orm import Session
 from typing import Optional
 from models import UserUpdate, DeleteUserRequest
 from services.user_service import UserService
 from database import users, codes, friends, messages, friend_requests, passwords, save_users, save_codes, save_friends, save_messages, save_friend_requests, save_passwords
+from db import get_db, User
 
 router = APIRouter()
 
 
 @router.get("/user")
-async def get_current_user(email: Optional[str] = Query(None), user_id: Optional[str] = Query(None)):
+async def get_current_user(
+    email: Optional[str] = Query(None), 
+    user_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
     """Get current user by email or user_id. Returns 404 if not found."""
+    # First try SQL database (for new users registered with SQL auth)
+    if user_id:
+        sql_user = db.query(User).filter(User.id == user_id).first()
+        if sql_user:
+            return {
+                "id": sql_user.id,
+                "username": sql_user.username,
+                "email": sql_user.email,
+                "avatar": sql_user.avatar
+            }
+    
+    if email:
+        sql_user = db.query(User).filter(User.email == email.strip().lower()).first()
+        if sql_user:
+            return {
+                "id": sql_user.id,
+                "username": sql_user.username,
+                "email": sql_user.email,
+                "avatar": sql_user.avatar
+            }
+    
+    # Fallback to JSON storage (for backward compatibility with old users)
     user = None
     
     # Try to find by user_id first (most specific)
@@ -34,16 +62,56 @@ async def get_current_user(email: Optional[str] = Query(None), user_id: Optional
 
 
 @router.get("/users/search")
-async def search_users(query: Optional[str] = Query(None)):
+async def search_users(query: Optional[str] = Query(None), db: Session = Depends(get_db)):
     """Search users by username or email"""
     if not query:
         return []
-    return UserService.search_users(query)
+    
+    search_term = query.strip().lower()
+    results = []
+    
+    # Search in SQL database (SQLite compatible - case insensitive)
+    from sqlalchemy import func
+    sql_users = db.query(User).filter(
+        (func.lower(User.username).contains(search_term)) | 
+        (func.lower(User.email).contains(search_term)) |
+        (User.id.like(f"%{search_term}%"))
+    ).limit(50).all()
+    
+    for user in sql_users:
+        results.append({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "avatar": user.avatar
+        })
+    
+    # Also search in JSON storage (for backward compatibility)
+    json_users = UserService.search_users(query)
+    
+    # Merge results, avoiding duplicates
+    existing_ids = {r["id"] for r in results}
+    for json_user in json_users:
+        if json_user["id"] not in existing_ids:
+            results.append(json_user)
+    
+    return results
 
 
 @router.get("/users/{user_id}")
-async def get_user(user_id: str):
+async def get_user(user_id: str, db: Session = Depends(get_db)):
     """Get user by ID"""
+    # First try SQL database
+    sql_user = db.query(User).filter(User.id == user_id).first()
+    if sql_user:
+        return {
+            "id": sql_user.id,
+            "username": sql_user.username,
+            "email": sql_user.email,
+            "avatar": sql_user.avatar
+        }
+    
+    # Fallback to JSON storage
     user = UserService.find_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -51,9 +119,59 @@ async def get_user(user_id: str):
 
 
 @router.put("/user")
-async def update_user(user_data: UserUpdate):
+async def update_user(user_data: UserUpdate, db: Session = Depends(get_db)):
     """Update user profile"""
     try:
+        # First try SQL database
+        sql_user = None
+        if user_data.userId:
+            sql_user = db.query(User).filter(User.id == user_data.userId).first()
+        elif user_data.currentEmail:
+            sql_user = db.query(User).filter(User.email == user_data.currentEmail.strip().lower()).first()
+        elif user_data.email:
+            sql_user = db.query(User).filter(User.email == user_data.email.strip().lower()).first()
+        
+        if sql_user:
+            # Update SQL user
+            if user_data.username is not None and user_data.username.strip():
+                # Check if username is taken by another user
+                existing = db.query(User).filter(
+                    User.username == user_data.username.strip(),
+                    User.id != sql_user.id
+                ).first()
+                if existing:
+                    raise ValueError("Username already in use by another user")
+                sql_user.username = user_data.username.strip()
+            
+            if user_data.email is not None and user_data.email.strip():
+                # Check if email is taken by another user
+                existing = db.query(User).filter(
+                    User.email == user_data.email.strip().lower(),
+                    User.id != sql_user.id
+                ).first()
+                if existing:
+                    raise ValueError("Email already in use by another user")
+                sql_user.email = user_data.email.strip().lower()
+            
+            if user_data.avatar is not None:
+                if user_data.avatar == '':
+                    sql_user.avatar = None
+                elif isinstance(user_data.avatar, str) and user_data.avatar.startswith('data:image'):
+                    sql_user.avatar = user_data.avatar
+                else:
+                    raise ValueError("Invalid avatar format")
+            
+            db.commit()
+            db.refresh(sql_user)
+            
+            return {
+                "id": sql_user.id,
+                "username": sql_user.username,
+                "email": sql_user.email,
+                "avatar": sql_user.avatar
+            }
+        
+        # Fallback to JSON storage
         user = UserService.update_user(
             user_id=user_data.userId,
             current_email=user_data.currentEmail,
@@ -66,17 +184,34 @@ async def update_user(user_data: UserUpdate):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         print(f'Error updating user profile: {e}')
+        db.rollback()
         raise HTTPException(status_code=500, detail="Internal server error while updating profile")
 
 
 @router.delete("/user")
-async def delete_user(request: DeleteUserRequest):
+async def delete_user(request: DeleteUserRequest, db: Session = Depends(get_db)):
     """Delete user account"""
     try:
-        user_id_to_delete, username = UserService.delete_user(
-            user_id=request.userId,
-            email=request.email
-        )
+        # First try SQL database
+        sql_user = None
+        if request.userId:
+            sql_user = db.query(User).filter(User.id == request.userId).first()
+        elif request.email:
+            sql_user = db.query(User).filter(User.email == request.email.strip().lower()).first()
+        
+        if sql_user:
+            user_id_to_delete = sql_user.id
+            username = sql_user.username
+            
+            # Delete from SQL database
+            db.delete(sql_user)
+            db.commit()
+        else:
+            # Fallback to JSON storage
+            user_id_to_delete, username = UserService.delete_user(
+                user_id=request.userId,
+                email=request.email
+            )
         
         # Delete user's codes
         codes[:] = [code for code in codes if code.get('author') != username]

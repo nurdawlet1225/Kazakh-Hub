@@ -127,3 +127,4 @@ python3 test_auth.py
 - Email және username бойынша логин жұмыс істейді
 - Firebase енді қажет емес
 
+
