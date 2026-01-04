@@ -1,7 +1,13 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 }
 
 html {
@@ -100,17 +106,6 @@ body::before {
   overflow-y: visible;
 }
 
-.app-main {
-  flex: 1;
-  margin-top: 32.8px;
-  padding: 0;
-  min-height: calc(100vh - 64px);
-  background: var(--bg-primary);
-  width: 100%;
-  max-width: 100%;
-  overflow-x: visible;
-  overflow-y: visible;
-}
 
 .app-main-auth {
   flex: 1;
