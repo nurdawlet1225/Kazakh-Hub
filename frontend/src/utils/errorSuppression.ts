@@ -154,6 +154,20 @@ const SUPPRESSED_ERROR_PATTERNS = [
   // Catch any line that contains firebase_firestore.js and error indicators
   /firebase_firestore\.js.*:\d+.*ERR_BLOCKED_BY_CLIENT/i,
   /firebase_firestore\.js.*:\d+.*net::ERR/i,
+  /firebase_firestore\.js.*:\d+.*POST/i,
+  // Catch Russian error text "Пояснение к ошибке" (Error explanation)
+  /Пояснение к ошибке/i,
+  /Пояснение.*ошибке/i,
+  // More specific Listen/channel patterns
+  /firebase_firestore\.js.*__PRIVATE_onWatchStreamClose/i,
+  /firebase_firestore\.js.*z_ @/i,
+  /firebase_firestore\.js.*close @/i,
+  /firebase_firestore\.js.*Y_ @/i,
+  /firebase_firestore\.js.*__PRIVATE_startWatchStream/i,
+  /firebase_firestore\.js.*net::ERR_BLOCKED_BY_CLIENT/i,
+  // Catch the specific error format from user's console
+  /POST.*firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen\/channel.*net::ERR_BLOCKED_BY_CLIENT/i,
+  /firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen\/channel.*VER=8/i,
 ];
 
 // Patterns to suppress warnings
@@ -213,10 +227,13 @@ export const initErrorSuppression = () => {
     // Check if any argument contains firebase_firestore.js and ERR_BLOCKED_BY_CLIENT
     const hasFirestoreBlocked = args.some(arg => {
       const argStr = typeof arg === 'string' ? arg : String(arg);
-      return argStr.includes('firebase_firestore') && 
+      return (argStr.includes('firebase_firestore') || argStr.includes('firestore.googleapis.com')) && 
              (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
               argStr.includes('net::ERR_BLOCKED_BY_CLIENT') ||
-              argStr.includes('BLOCKED_BY_CLIENT'));
+              argStr.includes('BLOCKED_BY_CLIENT') ||
+              argStr.includes('Listen/channel') ||
+              argStr.includes('TYPE=terminate') ||
+              argStr.includes('Пояснение к ошибке'));
     });
     
     // Also check individual arguments
@@ -228,12 +245,15 @@ export const initErrorSuppression = () => {
       args.some(arg => {
         const argStr = typeof arg === 'string' ? arg : String(arg);
         // Aggressively suppress any firebase_firestore.js errors
-        if (argStr.includes('firebase_firestore.js') && 
+        if ((argStr.includes('firebase_firestore.js') || argStr.includes('firestore.googleapis.com')) && 
             (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
              argStr.includes('net::ERR') ||
              argStr.includes('POST') ||
              argStr.includes('Listen/channel') ||
-             argStr.includes('Write/channel'))) {
+             argStr.includes('Write/channel') ||
+             argStr.includes('TYPE=terminate') ||
+             argStr.includes('gsessionid') ||
+             argStr.includes('Пояснение к ошибке'))) {
           return true;
         }
         return shouldSuppressError(argStr);
@@ -293,9 +313,15 @@ export const initErrorSuppression = () => {
     const isFirestoreBlockedError = errorFilename.includes('firebase_firestore') ||
                                      errorMessage.includes('firebase_firestore') ||
                                      errorUrl.includes('firestore.googleapis.com') ||
+                                     errorUrl.includes('google.firestore.v1.Firestore') ||
+                                     errorUrl.includes('Listen/channel') ||
+                                     errorUrl.includes('Write/channel') ||
                                      stackTrace.includes('firebase_firestore') ||
+                                     errorMessage.includes('Пояснение к ошибке') ||
                                      (errorMessage.includes('ERR_BLOCKED_BY_CLIENT') && 
-                                      (errorUrl.includes('firestore') || errorFilename.includes('firestore')));
+                                      (errorUrl.includes('firestore') || errorFilename.includes('firestore'))) ||
+                                     (errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') && 
+                                      (errorUrl.includes('firestore') || errorUrl.includes('googleapis')));
     
     if (shouldSuppressError(fullMessage) || 
         shouldSuppressError(errorMessage) || 
@@ -337,17 +363,31 @@ export const initErrorSuppression = () => {
   
   XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
     const errorUrl = typeof url === 'string' ? url : url.toString();
-    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com');
+    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com') || 
+                               errorUrl.includes('google.firestore.v1.Firestore');
     const isIdentityToolkitRequest = errorUrl.includes('identitytoolkit.googleapis.com') || 
                                      errorUrl.includes('getProjectConfig');
     
     if (isFirestoreRequest || isIdentityToolkitRequest) {
+      // Mark Firestore as blocked immediately if URL suggests it's a Firestore request
+      if (isFirestoreRequest && markFirestoreBlockedFn) {
+        // Don't mark immediately, wait for error to confirm
+      }
+      
       this.addEventListener('error', function() {
-        if (shouldSuppressError(errorUrl) && markFirestoreBlockedFn) {
+        if (markFirestoreBlockedFn) {
           markFirestoreBlockedFn();
         }
         // Suppress error event
         this.dispatchEvent = () => {};
+      });
+      
+      // Also check for blocked status on loadend
+      this.addEventListener('loadend', function() {
+        // Status 0 often indicates blocked request
+        if (this.status === 0 && markFirestoreBlockedFn) {
+          markFirestoreBlockedFn();
+        }
       });
     } else {
       this.addEventListener('error', function() {
@@ -361,13 +401,16 @@ export const initErrorSuppression = () => {
   };
   
   XMLHttpRequest.prototype.send = function(...args: any[]) {
-    const errorUrl = this.responseURL || '';
-    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com');
+    const errorUrl = this.responseURL || (this as any)._url || '';
+    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com') || 
+                               errorUrl.includes('google.firestore.v1.Firestore') ||
+                               errorUrl.includes('Listen/channel') ||
+                               errorUrl.includes('Write/channel');
     const isIdentityToolkitRequest = errorUrl.includes('identitytoolkit.googleapis.com') || 
                                      errorUrl.includes('getProjectConfig');
     
     this.addEventListener('error', function(event) {
-      if (shouldSuppressError(errorUrl)) {
+      if (shouldSuppressError(errorUrl) || isFirestoreRequest || isIdentityToolkitRequest) {
         if ((isFirestoreRequest || isIdentityToolkitRequest) && markFirestoreBlockedFn) {
           markFirestoreBlockedFn();
         }
@@ -387,6 +430,9 @@ export const initErrorSuppression = () => {
         markFirestoreBlockedFn();
       }
     });
+    
+    // Store URL for later reference
+    (this as any)._url = errorUrl;
     
     return originalXHRSend.apply(this, args);
   };

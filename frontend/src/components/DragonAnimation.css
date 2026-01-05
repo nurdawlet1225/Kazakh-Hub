@@ -1,4 +1,4 @@
-.cursor-snake-canvas {
+.dragon-animation {
   position: absolute;
   top: 0;
   left: 0;
@@ -6,6 +6,6 @@
   height: 100%;
   pointer-events: none;
   z-index: 1;
+  filter: blur(0.5px);
 }
-
 
