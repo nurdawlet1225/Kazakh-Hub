@@ -823,10 +823,10 @@ const ViewCode: React.FC = () => {
         <div className="code-header-main">
           <div className="code-header-top">
             <div className="code-header-title-section">
-          <h1 className="code-title">{code.title}</h1>
-          {code.description && (
-            <p className="code-description">{code.description}</p>
-          )}
+              <h1 className="code-title">{code.title}</h1>
+              {code.description && (
+                <p className="code-description">{code.description}</p>
+              )}
             </div>
             {currentUser && code.author === currentUser.username && (
               <div className="code-actions-menu">
@@ -880,29 +880,24 @@ const ViewCode: React.FC = () => {
           </div>
         </div>
 
-        <div className="code-meta">
-          <div className="meta-item">
+        <div className="code-meta-inline">
+          <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.language')}:</span>
             <span className="meta-value">{code.language}</span>
-          </div>
-          <div className="meta-item">
+          </span>
+          <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.author')}:</span>
-            <span className="meta-value">{code.author}</span>
-          </div>
-          <div className="meta-item">
+            <span className="meta-value">{code.author === currentUser?.username ? 'current-user' : code.author}</span>
+          </span>
+          <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.created')}:</span>
             <span className="meta-value">{formatDateUtil(code.createdAt, currentLanguage, 'long')}</span>
-          </div>
-          {code.updatedAt !== code.createdAt && (
-            <div className="meta-item">
-              <span className="meta-label">{t('viewCode.updated')}:</span>
-              <span className="meta-value">{formatDateUtil(code.updatedAt, currentLanguage, 'long')}</span>
-            </div>
-          )}
-          <div className="meta-item meta-actions">
-          </div>
+          </span>
+          <span className="meta-item-inline">
+            <span className="meta-label">{t('viewCode.updated')}:</span>
+            <span className="meta-value">{formatDateUtil(code.updatedAt, currentLanguage, 'long')}</span>
+          </span>
         </div>
-
 
         {code.tags && code.tags.length > 0 && (
           <div className="code-tags">
@@ -912,7 +907,7 @@ const ViewCode: React.FC = () => {
           </div>
         )}
 
-        <div style={{ marginTop: '1rem', display: 'inline-flex', justifyContent: 'flex-start', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="code-header-actions">
           <button
             className={`like-button-header ${isLiked ? 'liked' : ''}`}
             onClick={handleLike}

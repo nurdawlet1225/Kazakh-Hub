@@ -7,7 +7,7 @@ import UploadModal from './UploadModal';
 import ProfileModal from './ProfileModal';
 import Button from './Button';
 import LinkButton from './LinkButton';
-import { apiService } from '../utils/api';
+import { apiService, User } from '../utils/api';
 
 // Логотипті импорттау - бірнеше нұсқаны тексеру
 const getLogoPath = () => {
@@ -21,7 +21,7 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<{ username: string; email: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [incomingRequestCount, setIncomingRequestCount] = useState(0);
@@ -55,7 +55,8 @@ const Header: React.FC = () => {
       const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(user.id);
       setIncomingRequestCount(incomingRequestCount);
     } catch (err) {
-      console.error('Failed to load incoming request count:', err);
+      // Тыныштықпен қатені елемеу - бұл маңызды емес функционалдық
+      // console.error('Failed to load incoming request count:', err);
     }
   }, [user?.id]);
 
@@ -130,17 +131,18 @@ const Header: React.FC = () => {
 
 
   return (
-    <header className="relative border-b border-border py-2 fixed top-0 left-0 right-0 z-[9999] backdrop-blur-[20.5px] backdrop-saturate-[180%] transition-all w-full max-w-full before:absolute before:inset-0 before:bg-bg-primary before:opacity-95 dark:before:opacity-85 before:-z-10">
-      <div className="w-full m-0 pr-4 pl-0 flex items-center justify-between gap-8 relative flex-wrap max-[491.5px]:pr-4">
+    <header className="relative border-b border-border py-0.5 fixed top-0 left-0 right-0 z-[9999] backdrop-blur-[20.5px] backdrop-saturate-[180%] transition-all w-full max-w-full before:absolute before:inset-0 before:bg-bg-primary before:opacity-95 dark:before:opacity-85 before:-z-10">
+      <div className="w-full m-0 pr-4 pl-0 flex items-center justify-between gap-8 relative flex-wrap max-[491.5px]:pr-4 min-h-[45px]">
         <Link 
           to="/" 
-          className="flex items-center gap-3 no-underline text-text-primary text-2xl font-bold transition-all p-2 rounded-[7.7px] relative flex-shrink-0 m-0 hover:translate-x-1 group"
+          className="flex items-center gap-3 no-underline text-text-primary text-2xl font-bold transition-all p-1 rounded-[7.7px] relative flex-shrink-0 m-0 hover:translate-x-1 group h-[24px]"
         >
           <div className="absolute inset-0 rounded-[7.7px] bg-gradient-to-br from-[rgba(251,191,36,0.1)] to-[rgba(245,158,11,0.05)] opacity-0 transition-opacity group-hover:opacity-100"></div>
           <img 
             src={getLogoPath()}
             alt="Kazakh Hub" 
-            className="w-7 h-7 object-cover rounded-full transition-all shadow-md drop-shadow-[0_2.6px_3.8px_rgba(251,191,36,0.15)] bg-[rgba(251,191,36,0.15)] p-1 box-border hover:scale-110 hover:rotate-[5deg] hover:shadow-[var(--shadow-glow)]"
+            className="w-10
+             h-8 object-cover rounded-full transition-all shadow-md drop-shadow-[0_2.6px_3.8px_rgba(251,191,36,0.15)] bg-[rgba(251,191,36,0.15)] p-0.5 box-border hover:scale-110 hover:rotate-[5deg] hover:shadow-[var(--shadow-glow)]"
             onError={(e) => {
               // Егер логотип табылмаса, басқа нұсқаны пайдалану
               const target = e.target as HTMLImageElement;
@@ -175,6 +177,7 @@ const Header: React.FC = () => {
               setIsUploadModalOpen(true);
             }}
             icon={<FontAwesomeIcon icon={faUpload} />}
+            className="h-[32px] text-sm px-2 py-0.5"
           >
             {t('common.upload')}
           </Button>
@@ -182,7 +185,7 @@ const Header: React.FC = () => {
             <LinkButton 
               to="/chat" 
               variant="secondary" 
-              className="relative" 
+              className="relative h-[32px] text-sm px-2 py-0.5 min-w-[80px]" 
               title={t('header.chat')}
               icon={
                 <>
@@ -202,9 +205,9 @@ const Header: React.FC = () => {
             <button 
               ref={profileButtonRef}
               onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
-              className="flex items-center justify-center gap-0 p-0 rounded-full no-underline text-text-primary transition-all bg-transparent border-none relative overflow-visible cursor-pointer w-7 h-7 box-border font-inherit text-inherit dark:bg-gradient-to-br dark:from-[rgba(0,153,204,0.08)] dark:to-[rgba(0,175,202,0.05)] hover:-translate-y-[1.3px] max-[491.5px]:order-[-1] max-[491.5px]:w-[25.6px] max-[491.5px]:h-[25.6px]"
+              className="flex items-center justify-center gap-0 p-0 rounded-full no-underline text-text-primary transition-all bg-transparent border-none relative overflow-visible cursor-pointer w-[32px] h-[32px] box-border font-inherit text-inherit dark:bg-gradient-to-br dark:from-[rgba(0,153,204,0.08)] dark:to-[rgba(0,175,202,0.05)] hover:-translate-y-[1.3px] max-[491.5px]:order-[-1] max-[491.5px]:w-[32px] max-[491.5px]:h-[32px]"
             >
-              <div className="w-7 h-7 rounded-full bg-accent-gradient flex items-center justify-center text-lg font-bold text-white flex-shrink-0 shadow-md drop-shadow-[0_0_12.8px_rgba(0,175,202,0.3)] transition-all overflow-hidden relative border-[1.3px] border-[rgba(0,175,202,0.3)] hover:shadow-lg hover:drop-shadow-[0_0_19.2px_rgba(0,175,202,0.5)] hover:border-primary hover:scale-105 max-[491.5px]:w-[25.6px] max-[491.5px]:h-[25.6px] max-[491.5px]:text-base max-[491.5px]:border-[1.3px]">
+              <div className="w-[30px] h-[30px] rounded-full bg-accent-gradient flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-md drop-shadow-[0_0_12.8px_rgba(0,175,202,0.3)] transition-all overflow-hidden relative border-[1.3px] border-[rgba(0,175,202,0.3)] hover:shadow-lg hover:drop-shadow-[0_0_19.2px_rgba(0,175,202,0.5)] hover:border-primary hover:scale-105 max-[491.5px]:w-[30px] max-[491.5px]:h-[30px] max-[491.5px]:text-base max-[491.5px]:border-[1.3px]">
                 {user?.avatar ? (
                   <img 
                     src={user.avatar} 
@@ -224,6 +227,7 @@ const Header: React.FC = () => {
               <LinkButton 
                 to="/login" 
                 variant="secondary"
+                className="h-[32px] text-sm px-2 py-0.5"
                 icon={<FontAwesomeIcon icon={faLock} />}
               >
                 {t('common.login')}

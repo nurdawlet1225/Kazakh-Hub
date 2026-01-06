@@ -4,7 +4,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 12px;
   font-weight: 600;
@@ -18,6 +18,8 @@
   font-family: inherit;
   line-height: 1.5;
   box-sizing: border-box;
+  min-height: 0;
+  height: auto;
 }
 
 /* LinkButton support - make sure links styled as buttons work the same */
@@ -37,6 +39,32 @@ a.btn {
   box-shadow: 
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  outline: none !important;
+  border: none !important;
+}
+
+/* Override global focus-visible for btn-primary - remove blue neon */
+.btn-primary,
+.btn-primary:focus,
+.btn-primary:focus-visible,
+.btn-primary:focus-within,
+.btn-primary:active,
+.btn-primary:hover {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* Ensure no blue glow on hover */
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    0 4px 6px -2px rgba(0, 0, 0, 0.1) !important;
 }
 
 .btn-primary::before {
@@ -56,6 +84,7 @@ a.btn {
   box-shadow: 
     0 10px 15px -3px rgba(0, 0, 0, 0.2),
     0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  outline: none !important;
 }
 
 .btn-primary:hover:not(:disabled)::before {
@@ -65,15 +94,16 @@ a.btn {
 .btn-primary:active:not(:disabled) {
   transform: translateY(0);
   background: #0a0a0a;
+  outline: none !important;
 }
 
 .btn-primary:focus-visible:not(:disabled) {
-  outline: 2px solid #000000;
-  outline-offset: 2px;
+  outline: none !important;
+  outline-offset: 0 !important;
   box-shadow: 
     0 10px 15px -3px rgba(0, 0, 0, 0.2),
-    0 4px 6px -2px rgba(0, 0, 0, 0.1),
-    0 0 0 4px rgba(0, 0, 0, 0.1);
+    0 4px 6px -2px rgba(0, 0, 0, 0.1) !important;
+  border: none !important;
 }
 
 .btn-primary:disabled {
@@ -187,18 +217,54 @@ a.btn {
 .dark-theme .btn-primary {
   background: #000000;
   color: #ffffff;
+  outline: none !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.dark-theme .btn-primary:focus,
+.dark-theme .btn-primary:focus-visible,
+.dark-theme .btn-primary:focus-within {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .dark-theme .btn-primary:hover:not(:disabled) {
   background: #1a1a1a;
+  outline: none !important;
+  border: none !important;
 }
 
 .light-theme .btn-primary {
   background: #000000;
   color: #ffffff;
+  outline: none !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.light-theme .btn-primary:focus,
+.light-theme .btn-primary:focus-visible,
+.light-theme .btn-primary:focus-within {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border: none !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .light-theme .btn-primary:hover:not(:disabled) {
   background: #1a1a1a;
+  outline: none !important;
+  border: none !important;
 }
 

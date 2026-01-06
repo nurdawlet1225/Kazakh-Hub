@@ -2,11 +2,12 @@
   max-width: 614.4px;
   margin: 20px auto 0;
   padding: 1.60rem;
+  padding-top: 320px;
   position: relative;
   overflow: visible;
   width: 70%;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: visible;
   box-sizing: border-box;
   z-index: 1;
 }
@@ -23,6 +24,14 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   backdrop-filter: blur(6.4px) saturate(180%);
   box-shadow: 0 1.3px 5.1px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: calc(70% - 3.2rem);
+  max-width: calc(614.4px - 3.2rem);
+  box-sizing: border-box;
 }
 
 .light-theme .back-button {
@@ -55,6 +64,14 @@
   box-shadow: 0 1.3px 7.7px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(6.4px) saturate(180%);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(70% - 3.2rem);
+  max-width: calc(614.4px - 3.2rem);
+  z-index: 999;
+  box-sizing: border-box;
 }
 
 .light-theme .code-header {
@@ -63,7 +80,6 @@
 
 .code-header:hover {
   box-shadow: 0 2.6px 12.8px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1.3px);
 }
 
 .code-header-main {
@@ -105,6 +121,25 @@
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+}
+
+.code-meta-inline {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.meta-item-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .meta-actions {
@@ -172,10 +207,13 @@
 }
 
 .folder-view-wrapper {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 192px 1fr;
   gap: 2rem;
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .folder-view {
@@ -185,6 +223,10 @@
   margin-bottom: 2rem;
   align-items: stretch;
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  grid-column: 1 / -1;
 }
 
 .folder-explorer {
@@ -364,6 +406,9 @@
   flex-direction: column;
   align-items: stretch;
   transition: min-height 0.3s ease-out;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .file-header {
@@ -844,6 +889,14 @@
   transform: translateY(0);
 }
 
+.code-header-actions {
+  display: inline-flex;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
 .like-button-header {
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -929,10 +982,10 @@
   border-radius: 7.7px;
   padding: 1.5rem;
   margin-bottom: 0rem;
-  width: 810px;
+  width: 100%;
   min-height: 355px;
   height: auto;
-  max-width: 810px;
+  max-width: 100%;
   margin-left: 0;
   margin-right: 0;
   overflow-x: visible;
@@ -1041,15 +1094,20 @@
   border-radius: 16px;
   padding: 2rem;
   margin-top: 2rem;
-  width: 1030px;
-  max-width: 1030px;
+  width: 100%;
+  max-width: 100%;
   margin-left: 0;
   margin-right: 0;
   max-height: 600px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  scrollbar-width: thin;
+  scrollbar-color: #00AFCA var(--bg-secondary);
+  box-sizing: border-box;
+  grid-column: 2;
 }
 
 .folder-comments-container .comments-section-separate {
@@ -1063,6 +1121,38 @@
   min-height: 0;
   flex: 1;
   overflow: visible;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Пікірлер контейнері үшін скрол стильдері */
+.folder-comments-container::-webkit-scrollbar {
+  width: 7.7px;
+}
+
+.folder-comments-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 3.8px;
+}
+
+.folder-comments-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00AFCA 0%, #00AFCA 50%, #fbbf24 100%);
+  border-radius: 3.8px;
+  border: 1.3px solid var(--bg-secondary);
+}
+
+.folder-comments-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0099CC 0%, #0099CC 50%, #f59e0b 100%);
+  box-shadow: 0 2.6px 5.1px rgba(0, 0, 0, 0.15);
+}
+
+.dark-theme .folder-comments-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #00AFCA 0%, #00AFCA 50%, #0099CC 100%);
+}
+
+.dark-theme .folder-comments-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #0099CC 0%, #0099CC 50%, #00AFCA 100%);
 }
 
 .comments-section-header {
@@ -1405,6 +1495,9 @@
   overflow-x: hidden;
   padding-bottom: 1rem;
   padding-right: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .comment-item {
@@ -1419,9 +1512,12 @@
   gap: 1rem;
   margin-bottom: 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 175, 202, 0.1);
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
+  position: relative;
 }
 
 .comment-content-wrapper {
@@ -1430,8 +1526,10 @@
   flex-direction: column;
   gap: 0;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .comment-item::before {
@@ -1466,6 +1564,10 @@
   gap: 1rem;
   flex-wrap: wrap;
   flex: 1;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .comment-actions {
@@ -1614,6 +1716,11 @@
   margin: 0;
   font-size: 0.95rem;
   background: rgba(15, 23, 42, 0.5);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
   border-left: 1px solid rgba(0, 175, 202, 0.4);
   border-top: 1px solid rgba(0, 175, 202, 0.4);
   border-bottom: none;
@@ -1627,7 +1734,6 @@
   gap: 1rem;
   min-height: 48px;
   min-width: 0;
-  max-width: 100%;
   overflow: hidden;
 }
 
@@ -1790,10 +1896,13 @@
 .comment-content .comment-text {
   flex: 1;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  word-break: break-word;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .comment-reaction-btn {
@@ -2491,10 +2600,18 @@
 @media (max-width: 491.5px) {
   .view-code-container {
     padding: 1rem;
+    padding-top: 260px;
   }
 
   .code-header {
     padding: 1.5rem;
+    width: calc(100% - 2rem);
+    max-width: calc(100vw - 2rem);
+  }
+
+  .back-button {
+    width: calc(100% - 2rem);
+    max-width: calc(100vw - 2rem);
   }
 
   .code-title {

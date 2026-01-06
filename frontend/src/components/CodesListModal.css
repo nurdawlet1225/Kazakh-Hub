@@ -27,7 +27,7 @@
   background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(var(--bg-secondary-rgb, 0, 0, 0), 0.98) 100%);
   border-radius: 9.8px;
   width: 100%;
-  max-width: 491.5px;
+  max-width: 700px;
   max-height: 85vh;
   overflow: hidden;
   box-shadow: 0 4.1px 20.5px rgba(0, 0, 0, 0.3);
@@ -92,7 +92,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 2rem 2.5rem;
 }
 
 .codes-modal-title-section {
@@ -104,7 +104,6 @@
 .codes-modal-icon {
   font-size: 2.5rem;
   filter: drop-shadow(0 1.0px 2.1px rgba(0, 0, 0, 0.1));
-  animation: bounce 2s infinite;
 }
 
 @keyframes bounce {
@@ -118,19 +117,15 @@
 
 .codes-modal-header h2 {
   margin: 0;
-  color: var(--text-primary);
+  color: #ffffff;
   font-size: 1.75rem;
   font-weight: 700;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   line-height: 1.2;
 }
 
 .codes-modal-subtitle {
   margin: 0.25rem 0 0 0;
-  color: var(--text-secondary);
+  color: #ffffff;
   font-size: 0.9rem;
   font-weight: 500;
 }
@@ -269,7 +264,7 @@
 .codes-modal-folders {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem 2rem;
+  padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -372,11 +367,7 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-primary);
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
 }
 
 .codes-folder-count {
@@ -394,6 +385,32 @@
   border-top: 0.51px solid var(--border-color);
   background: var(--bg-primary);
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 175, 202, 0.5) rgba(255, 255, 255, 0.05);
+}
+
+.codes-folder-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.codes-folder-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.codes-folder-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 175, 202, 0.6);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.codes-folder-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 175, 202, 0.8);
 }
 
 .light-theme .codes-folder-content {
@@ -412,8 +429,8 @@
 }
 
 .codes-folder-codes {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(143.4px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
 }
 

@@ -222,7 +222,7 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
                                 }, 100);
                               }}
                             >
-                              <CodeCard code={code} />
+                              <CodeCard code={code} viewMode="list" />
                             </div>
                           ))}
                         </div>

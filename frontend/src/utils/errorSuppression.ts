@@ -12,10 +12,12 @@
 // Store original console methods
 const originalError = console.error;
 const originalWarn = console.warn;
+const originalLog = console.log;
 
 // Expose original methods for debugging (to avoid suppression)
 (console as any).__originalError = originalError;
 (console as any).__originalWarn = originalWarn;
+(console as any).__originalLog = originalLog;
 
 // Patterns to suppress
 const SUPPRESSED_ERROR_PATTERNS = [
@@ -176,6 +178,12 @@ const SUPPRESSED_WARN_PATTERNS = [
   /Firestore.*blocked.*non-critical/i,
 ];
 
+// Patterns to suppress console.log messages
+const SUPPRESSED_LOG_PATTERNS = [
+  /Retrying loadCodes/i,
+  /Retrying.*attempt/i,
+];
+
 /**
  * Check if an error message should be suppressed
  */
@@ -282,10 +290,26 @@ export const initErrorSuppression = () => {
     originalWarn.apply(console, args);
   };
 
+  // Override console.log for known log messages
+  console.log = (...args: any[]) => {
+    const message = args.join(' ');
+    const shouldSuppress = SUPPRESSED_LOG_PATTERNS.some(pattern => pattern.test(message));
+    if (shouldSuppress) {
+      // Suppress known log messages silently
+      return;
+    }
+    // Call original for other log messages
+    originalLog.apply(console, args);
+  };
+
   // Add global error handler for unhandled errors
   window.addEventListener('error', (event) => {
     const errorMessage = event.message || event.filename || event.target?.toString() || '';
-    const errorSource = (event.target as HTMLElement)?.src || (event.target as HTMLElement)?.href || '';
+    const target = event.target;
+    const errorSource = 
+      (target && 'src' in target ? (target as HTMLImageElement | HTMLScriptElement | HTMLSourceElement).src : '') ||
+      (target && 'href' in target ? (target as HTMLAnchorElement | HTMLLinkElement).href : '') ||
+      '';
     const fullMessage = `${errorMessage} ${errorSource}`;
     
     // Check stack trace for Firestore errors
@@ -379,7 +403,7 @@ export const initErrorSuppression = () => {
           markFirestoreBlockedFn();
         }
         // Suppress error event
-        this.dispatchEvent = () => {};
+        this.dispatchEvent = () => false;
       });
       
       // Also check for blocked status on loadend
@@ -393,7 +417,7 @@ export const initErrorSuppression = () => {
       this.addEventListener('error', function() {
         if (shouldSuppressError(errorUrl)) {
           // Suppress error event
-          this.dispatchEvent = () => {};
+          this.dispatchEvent = () => false;
         }
       });
     }
@@ -434,7 +458,7 @@ export const initErrorSuppression = () => {
     // Store URL for later reference
     (this as any)._url = errorUrl;
     
-    return originalXHRSend.apply(this, args);
+    return originalXHRSend.call(this, args[0]);
   };
   
   // Suppress network errors from Performance API
@@ -483,7 +507,7 @@ export const isCOOPBlockingPopups = (): boolean => {
     if (window.opener && window.opener !== window) {
       try {
         // Try to access a property - if COOP is blocking, this might fail
-        const test = window.opener.location;
+        void window.opener.location;
         return false;
       } catch (e) {
         // If we can't access opener location, COOP is likely blocking

@@ -13,7 +13,7 @@
   height: 246px;
   max-height: 246px;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
@@ -161,8 +161,8 @@
   margin: 0 !important;
   height: auto;
   max-height: none;
-  max-width: 100%;
-  width: 100%;
+  min-width: 100%;
+  width: max-content;
   white-space: pre;
   word-wrap: normal;
   word-break: normal;
