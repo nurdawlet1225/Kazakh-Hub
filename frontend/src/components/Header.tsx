@@ -131,7 +131,7 @@ const Header: React.FC = () => {
 
 
   return (
-    <header className="relative border-b border-border py-0.5 fixed top-0 left-0 right-0 z-[9999] backdrop-blur-[20.5px] backdrop-saturate-[180%] transition-all w-full max-w-full before:absolute before:inset-0 before:bg-bg-primary before:opacity-95 dark:before:opacity-85 before:-z-10">
+    <header className="relative border-b border-border py-0.5 sticky top-0 z-[9999] backdrop-blur-[20.5px] backdrop-saturate-[180%] transition-all w-full max-w-full before:absolute before:inset-0 before:bg-bg-primary before:opacity-95 dark:before:opacity-85 before:-z-10">
       <div className="w-full m-0 pr-4 pl-0 flex items-center justify-between gap-8 relative flex-wrap max-[491.5px]:pr-4 min-h-[45px]">
         <Link 
           to="/" 
@@ -141,8 +141,7 @@ const Header: React.FC = () => {
           <img 
             src={getLogoPath()}
             alt="Kazakh Hub" 
-            className="w-10
-             h-8 object-cover rounded-full transition-all shadow-md drop-shadow-[0_2.6px_3.8px_rgba(251,191,36,0.15)] bg-[rgba(251,191,36,0.15)] p-0.5 box-border hover:scale-110 hover:rotate-[5deg] hover:shadow-[var(--shadow-glow)]"
+            className="w-10 h-8 object-cover rounded-full transition-all shadow-md drop-shadow-[0_2.6px_3.8px_rgba(251,191,36,0.15)] bg-[rgba(251,191,36,0.15)] p-0.5 box-border hover:scale-110 hover:rotate-[5deg] hover:shadow-[var(--shadow-glow)]"
             onError={(e) => {
               // Егер логотип табылмаса, басқа нұсқаны пайдалану
               const target = e.target as HTMLImageElement;

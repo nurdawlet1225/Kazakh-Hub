@@ -74,85 +74,70 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
           }
         }}
       >
-        <div className="code-card-header">
-          <h3 className="code-card-title">{code.title}</h3>
-          <div className="code-card-header-right">
-            <span className="code-card-author"><FontAwesomeIcon icon={faUser} /> {code.author}</span>
-            <div className="code-card-stats-header">
-              <span className="code-card-likes"><FontAwesomeIcon icon={faHeart} /> {code.likes?.length || 0}</span>
-              <span className="code-card-comments"><FontAwesomeIcon icon={faComment} /> {code.comments?.length || 0}</span>
-              <span className="code-card-views"><FontAwesomeIcon icon={faEye} /> {code.views || 0}</span>
-            </div>
-            {!code.isFolder && (
-              <span
-                className="code-card-language"
-                style={{ 
-                  backgroundColor: getLanguageColor(code.language?.toLowerCase() || 'other') + '20', 
-                  color: getLanguageColor(code.language?.toLowerCase() || 'other') 
-                }}
-              >
-                {(code.language || 'other').charAt(0).toUpperCase() + (code.language || 'other').slice(1)}
-              </span>
-            )}
-            {/* Файл үшін checkbox header-да */}
-            {onToggleSelect && !code.isFolder && (
-              <div className="code-card-checkbox" onClick={handleCheckboxClick}>
-                <input
-                  type="checkbox"
-                  id={`checkbox-${code.id}`}
-                  checked={isSelected}
-                  onChange={() => {}} // Controlled by parent
-                  onClick={handleCheckboxClick}
-                  readOnly
-                />
-                <label htmlFor={`checkbox-${code.id}`} className="checkbox-label">
-                  {isSelected && <span className="checkbox-checkmark">✓</span>}
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
-
-      {viewMode === 'list' ? (
-        <div className="code-card-content">
-          <div className="code-card-description-row">
-            {code.description ? (
-              <p className="code-card-description">{code.description}</p>
-            ) : (
-              <p className="code-card-description" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                {code.isFolder ? 'Папка ақпараты' : 'Сипаттама жоқ'}
+        {/* Top section: Left (Language + Progress + Description), Center (User), Right (Stats) */}
+        <div className="code-card-top-section">
+          {/* Left side: Language title, gradient line, and description */}
+          <div className="code-card-left-section">
+            <h3 className="code-card-language-title">
+              {code.isFolder ? code.title : (code.language || 'other').toLowerCase()}
+            </h3>
+            <div className="code-card-description-row">
+              <p className="code-card-description-below">
+                {code.description ? (
+                  code.description
+                ) : !code.isFolder && !isJsonStructure(code.content) ? (
+                  truncateContent(code.content, 100)
+                ) : (
+                  <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
+                    {code.isFolder ? 'Папка ақпараты' : 'Сипаттама жоқ'}
+                  </span>
+                )}
               </p>
-            )}
-            {code.isFolder && code.folderStructure && (
-              <div className="code-card-folder-info">
-                <span className="folder-stats">
-                  {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'file').length} файл
-                  {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length > 0 && 
-                    `, ${Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length} папка`}
-                </span>
-              </div>
-            )}
+            </div>
           </div>
-          {!code.isFolder && !isJsonStructure(code.content) && (
-            <pre className="code-preview">
-              <code>{truncateContent(code.content, 100)}</code>
-            </pre>
+
+          {/* Center: User button */}
+          <div className="code-card-author-center">
+            <FontAwesomeIcon icon={faUser} />
+            <span>{code.author.toUpperCase()}</span>
+          </div>
+
+          {/* Right: Stats icons */}
+          <div className="code-card-stats-right">
+            <span className="code-card-likes"><FontAwesomeIcon icon={faHeart} /> {code.likes?.length || 0}</span>
+            <span className="code-card-comments"><FontAwesomeIcon icon={faComment} /> {code.comments?.length || 0}</span>
+            <span className="code-card-views"><FontAwesomeIcon icon={faEye} /> {code.views || 0}</span>
+          </div>
+
+          {/* Folder stats button - positioned on the right */}
+          {code.isFolder && code.folderStructure && (
+            <span className="folder-stats-button">
+              {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'file').length} файл
+              {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length > 0 && 
+                `, ${Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length} папка`}
+            </span>
           )}
-        </div>
-      ) : (
-        <>
-          {code.description && (
-            <p className="code-card-description">{code.description}</p>
-          )}
-          {!code.isFolder && !isJsonStructure(code.content) && (
-            <div className="code-card-content">
-              <pre className="code-preview">
-                <code>{truncateContent(code.content)}</code>
-              </pre>
+
+          {/* Checkbox for files */}
+          {onToggleSelect && !code.isFolder && (
+            <div className="code-card-checkbox" onClick={handleCheckboxClick}>
+              <input
+                type="checkbox"
+                id={`checkbox-${code.id}`}
+                checked={isSelected}
+                onChange={() => {}}
+                onClick={handleCheckboxClick}
+                readOnly
+              />
+              <label htmlFor={`checkbox-${code.id}`} className="checkbox-label">
+                {isSelected && <span className="checkbox-checkmark">✓</span>}
+              </label>
             </div>
           )}
-        </>
-      )}
+
+          {/* Full width horizontal divider line */}
+          <div className="code-card-gradient-line"></div>
+        </div>
 
       </Link>
     </div>

@@ -5,7 +5,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
 import Button from '../components/Button';
-import DragonAnimation from '../components/DragonAnimation';
 import Parallax from 'parallax-js';
 import './Auth.css';
 
@@ -25,7 +24,7 @@ const Login: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const parallaxRef = useRef<Parallax | null>(null);
@@ -166,83 +165,61 @@ const Login: React.FC = () => {
     <div className="landing-page">
       <div className="landing-hero" ref={heroRef}>
         <div id="parallax-scene" ref={parallaxSceneRef}>
-          {/* Deep background layer - moves slowest */}
+          {/* Deep space background */}
+          <div data-depth="0.05" className="parallax-layer">
+            <div className="meteor-deep-space"></div>
+          </div>
+          
+          {/* Stars field - background layer */}
           <div data-depth="0.1" className="parallax-layer">
-            <div className="parallax-bg-layer">
-              <div className="animated-stars"></div>
-              <div className="animated-stars"></div>
-              <div className="animated-stars"></div>
+            <div className="meteor-stars-field">
+              <div className="star-layer star-layer-1"></div>
+              <div className="star-layer star-layer-2"></div>
+              <div className="star-layer star-layer-3"></div>
             </div>
           </div>
           
-          {/* Background gradient layer */}
+          {/* Slow meteors - far background */}
           <div data-depth="0.2" className="parallax-layer">
-            <div className="parallax-gradient-layer"></div>
-          </div>
-          
-          {/* Almaty 3D Mountains Background */}
-          <div data-depth="0.15" className="parallax-layer">
-            <div className="almaty-3d-scene">
-              <div className="mountain-range mountain-back"></div>
-              <div className="mountain-range mountain-middle"></div>
-              <div className="mountain-range mountain-front"></div>
+            <div className="meteor-shower meteor-shower-1">
+              <div className="meteor meteor-1"></div>
+              <div className="meteor meteor-2"></div>
+              <div className="meteor meteor-3"></div>
             </div>
           </div>
           
-          {/* Almaty City Skyline */}
-          <div data-depth="0.25" className="parallax-layer">
-            <div className="almaty-city-skyline">
-              <div className="building building-1"></div>
-              <div className="building building-2"></div>
-              <div className="building building-3"></div>
-              <div className="building building-4"></div>
-              <div className="building building-5"></div>
-              <div className="building building-6"></div>
-            </div>
-          </div>
-          
-          {/* Geometric shapes layer */}
-          <div data-depth="0.3" className="parallax-layer">
-            <div className="geometric-shapes">
-              <div className="shape shape-1"></div>
-              <div className="shape shape-2"></div>
-              <div className="shape shape-3"></div>
-              <div className="shape shape-4"></div>
-            </div>
-          </div>
-          
-          {/* Dragon animation layer */}
+          {/* Medium speed meteors - middle layer */}
           <div data-depth="0.4" className="parallax-layer">
-            <DragonAnimation containerRef={heroRef} forceOrbit={showLoginForm} />
-          </div>
-          
-          {/* Foreground particles */}
-          <div data-depth="0.8" className="parallax-layer">
-            <div className="parallax-particles">
-              <div className="particle particle-1"></div>
-              <div className="particle particle-2"></div>
-              <div className="particle particle-3"></div>
-              <div className="particle particle-4"></div>
-              <div className="particle particle-5"></div>
+            <div className="meteor-shower meteor-shower-2">
+              <div className="meteor meteor-4"></div>
+              <div className="meteor meteor-5"></div>
+              <div className="meteor meteor-6"></div>
+              <div className="meteor meteor-7"></div>
             </div>
           </div>
           
-          {/* Foreground glow layer */}
+          {/* Fast meteors - foreground */}
+          <div data-depth="0.8" className="parallax-layer">
+            <div className="meteor-shower meteor-shower-3">
+              <div className="meteor meteor-8"></div>
+              <div className="meteor meteor-9"></div>
+              <div className="meteor meteor-10"></div>
+              <div className="meteor meteor-11"></div>
+              <div className="meteor meteor-12"></div>
+            </div>
+          </div>
+          
+          {/* Bright foreground meteors */}
           <div data-depth="1.0" className="parallax-layer">
-            <div className="parallax-foreground-layer"></div>
+            <div className="meteor-shower meteor-shower-4">
+              <div className="meteor meteor-13"></div>
+              <div className="meteor meteor-14"></div>
+              <div className="meteor meteor-15"></div>
+            </div>
           </div>
         </div>
         
         {/* Hero content - outside parallax scene, always visible */}
-        <div className={`hero-content-wrapper-fixed ${showLoginForm ? 'form-open' : ''}`}>
-          <div className="hero-content">
-            <h1 className="hero-title">
-              <span className="hero-title-main" data-text={t('header.appName')}>
-                {t('header.appName')}
-              </span>
-            </h1>
-          </div>
-        </div>
       </div>
       
       <div className="landing-auth">
@@ -273,24 +250,13 @@ const Login: React.FC = () => {
           </button>
         ) : (
           <div 
-            className="auth-card" 
-            onMouseEnter={() => {
-              if (hoverTimeoutRef.current) {
-                clearTimeout(hoverTimeoutRef.current);
-              }
-            }}
-            onMouseLeave={() => {
-              hoverTimeoutRef.current = setTimeout(() => {
-                setShowLoginForm(false);
-              }, 200); // 200ms delay before closing
-            }}
+            className="auth-card"
           >
             <h2 className="auth-title">Кіру</h2>
 
             <form onSubmit={handleSubmit} className="auth-form">
 
             <div className="form-group">
-              <label htmlFor="emailOrUsername">Ник немесе электрондық пошта</label>
               <input
                 id="emailOrUsername"
                 type="text"
@@ -302,7 +268,6 @@ const Login: React.FC = () => {
             </div>
 
             <div className="form-group password-group">
-              <label htmlFor="password">Құпия сөз</label>
               <div className="password-input-wrapper">
                 <input
                   id="password"
@@ -333,6 +298,37 @@ const Login: React.FC = () => {
               {loading ? 'Кіру...' : 'Кіру'}
             </Button>
           </form>
+          
+          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              style={{
+                background: 'white',
+                border: 'none',
+                color: 'black',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                padding: '0.25rem 1.5rem',
+                borderRadius: '8px',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                minWidth: '120px',
+                textAlign: 'center',
+                width: 'auto',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              Тіркелу
+            </button>
+          </div>
           </div>
         )}
       </div>

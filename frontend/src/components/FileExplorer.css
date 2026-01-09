@@ -158,26 +158,53 @@
   color: white;
 }
 
-.file-item.selected .file-name {
-  color: white;
-}
-
 .file-icon {
   font-size: 1rem;
   width: 10.2px;
   text-align: center;
+  color: white;
+}
+
+.file-icon svg {
+  color: white;
+}
+
+.file-icon path {
+  fill: white;
+}
+
+.file-item.selected .file-icon {
+  color: white;
+}
+
+.file-item.selected .file-icon svg {
+  color: white;
+}
+
+.file-item.selected .file-icon path {
+  fill: white;
 }
 
 .file-name {
   flex: 1;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: white;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  background: none;
+  background-image: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: white;
 }
 
 .file-item.selected .file-name {
   color: white;
+  background: none;
+  background-image: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: white;
 }
 

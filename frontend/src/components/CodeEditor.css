@@ -90,7 +90,7 @@
   height: 310px;
   max-height: 310px;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   max-width: 100%;
   width: 100%;
   transition: opacity 0.3s ease-out;
@@ -156,16 +156,17 @@
 }
 
 .code-editor.read-only .code-editor-content pre {
-  overflow-x: auto !important;
+  overflow-x: hidden !important;
   overflow-y: visible !important;
   margin: 0 !important;
   height: auto;
   max-height: none;
   min-width: 100%;
-  width: max-content;
-  white-space: pre;
-  word-wrap: normal;
-  word-break: normal;
+  width: 100%;
+  max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-all;
   box-sizing: border-box;
 }
 

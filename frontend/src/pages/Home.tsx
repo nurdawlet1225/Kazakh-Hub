@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBook, faLaptop, faUsers, faStar, faFileAlt, faList, faSearch, faTh, faThList, faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faLaptop, faUsers, faStar, faFileAlt, faList, faSearch, faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
 import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
@@ -23,10 +23,7 @@ const Home: React.FC = () => {
   const [totalCodesCount, setTotalCodesCount] = useState(0);
   const [filterLanguage, setFilterLanguage] = useState<string>('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem('homeViewMode');
-    return (saved === 'grid' || saved === 'list') ? saved : 'grid';
-  });
+  const viewMode: ViewMode = 'grid'; // Default view mode
   const [isCodesModalOpen, setIsCodesModalOpen] = useState(false);
   const [isLanguageSectionExpanded, setIsLanguageSectionExpanded] = useState(false);
   const [isSortSectionExpanded, setIsSortSectionExpanded] = useState(false);
@@ -327,15 +324,14 @@ const Home: React.FC = () => {
         {/* Сол жақ меню */}
         <aside className="w-[280px] flex-shrink-0 p-6 sticky top-5 max-h-[calc(100vh-40px)] overflow-y-auto overflow-x-hidden lg:w-[280px] w-full lg:relative lg:top-0 lg:max-h-none">
           <div className="mb-6 pb-4 border-b-[1.5px] border-border">
-            <h2 className="text-2xl m-0 bg-accent-gradient bg-clip-text text-transparent font-black tracking-[-0.32px]">
-              {t('header.appName')}
+            <h2 className="text-xm m-0 text-orange-500 font-black tracking-[0px]">
+              Алға ұмтыл, сонда өмір керемет.
             </h2>
           </div>
-          
           <div className="flex flex-col gap-2">
             {/* Статистика */}
             <div className="flex flex-col gap-4 mt-8">
-              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-[0_2px_8px_rgba(0,175,202,0.2)]">
+              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-[0_2px_8px_rgba(0,175,202,0.2)] translate-y-[9px]">
                 <div className="text-2xl text-primary flex-shrink-0">
                   <FontAwesomeIcon icon={faBook} />
                 </div>
@@ -540,39 +536,6 @@ const Home: React.FC = () => {
                   </span>
                 </div>
               </form>
-              {/* Үшінші баған: Grid/List toggle */}
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <div className="flex gap-2 bg-bg-primary p-2 rounded-[10.2px] border-[1.3px] border-border transition-all flex-shrink-0">
-                  <button
-                    className={`p-2 rounded-[5.1px] cursor-pointer text-xl text-text-primary transition-all flex items-center justify-center min-w-[25.6px] min-h-[25.6px] ${
-                      viewMode === 'grid' 
-                        ? 'bg-primary text-bg-primary' 
-                        : 'bg-bg-secondary hover:bg-bg-primary hover:text-primary'
-                    }`}
-                    onClick={() => {
-                      setViewMode('grid');
-                      localStorage.setItem('homeViewMode', 'grid');
-                    }}
-                    title={t('home.gridView')}
-                  >
-                    <FontAwesomeIcon icon={faTh} />
-                  </button>
-                  <button
-                    className={`p-2 rounded-[5.1px] cursor-pointer text-xl text-text-primary transition-all flex items-center justify-center min-w-[25.6px] min-h-[25.6px] ${
-                      viewMode === 'list' 
-                        ? 'bg-primary text-bg-primary' 
-                        : 'bg-bg-secondary hover:bg-bg-primary hover:text-primary'
-                    }`}
-                    onClick={() => {
-                      setViewMode('list');
-                      localStorage.setItem('homeViewMode', 'list');
-                    }}
-                    title={t('home.listView')}
-                  >
-                    <FontAwesomeIcon icon={faThList} />
-                  </button>
-                </div>
-              </div>
             </div>
 
             {error && (
