@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical, faEllipsis, faImage, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical, faEllipsis, faImage, faChevronDown, faChevronUp, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -79,10 +79,11 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   // Close menu when clicking outside
+  const menuRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showActionsMenu && !target.closest('.comment-actions-menu')) {
+      if (showActionsMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowActionsMenu(false);
       }
     };
@@ -98,131 +99,157 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div 
-      className={`relative flex gap-4 mb-4 p-4 pb-4 rounded-xl transition-all duration-300 overflow-hidden w-full max-w-full min-w-0 box-border shadow-[0_4px_12px_rgba(0,0,0,0.3),0_0_0_1px_rgba(0,175,202,0.1)] bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-[rgba(0,175,202,0.3)] hover:border-[var(--primary-color)] hover:shadow-[0_8px_24px_rgba(0,175,202,0.4),0_0_0_2px_rgba(0,175,202,0.3),0_0_30px_rgba(0,175,202,0.2)] hover:-translate-y-1 hover:scale-[1.01] hover:bg-[var(--bg-hover)] before:content-[''] before:absolute before:top-0 before:left-0 before:w-[3px] before:h-full before:bg-[var(--accent-gradient)] before:opacity-0 before:transition-opacity before:duration-300 hover:before:opacity-100 ${isReply ? 'comment-reply-item' : ''}`} 
+      className={`relative w-full mb-6 ${isReply ? 'ml-12 pl-6 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''} transition-all duration-300 ease-out`}
       data-comment-id={comment.id}
     >
       {isReply && parentComment && (
-        <div className="reply-to-indicator">
-          <span className="reply-arrow">↳</span>
-          <span className="reply-to-text">
-            <span className="reply-to-author">{parentComment.author}</span>
-            <span className="reply-to-content">{parentComment.content.length > 50 
-              ? parentComment.content.substring(0, 50) + '...' 
-              : parentComment.content}</span>
-          </span>
+        <div className="mb-3 pl-4 py-2 bg-[var(--primary-color)]/10 border-l-3 border-l-[var(--primary-color)] rounded-r-lg">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[var(--primary-color)] font-semibold text-sm">{parentComment.author}</span>
+          </div>
+          <p className="text-[var(--text-secondary)] text-xs italic truncate">
+            {parentComment.content.length > 60 
+              ? parentComment.content.substring(0, 60) + '...' 
+              : parentComment.content}
+          </p>
         </div>
       )}
-      <div 
-        className="w-12 h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-xl flex-shrink-0 cursor-pointer" 
-        onClick={handleAvatarClick}
-        title={`${comment.author} профилін көру`}
-      >
-        {comment.author.charAt(0).toUpperCase()}
-      </div>
-      <div className="flex-1 flex flex-col gap-0 min-w-0 w-full max-w-full overflow-hidden box-border">
-      <div className="flex justify-between items-start mb-3 gap-4 flex-wrap flex-1 w-full max-w-full box-border min-w-0">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="font-bold text-white text-base flex items-center gap-2 drop-shadow-[0_0_8px_rgba(0,175,202,0.5)]"><FontAwesomeIcon icon={faUser} className="hidden" /> {comment.author}</span>
-          <span className="text-sm text-[#94a3b8] whitespace-nowrap opacity-90 px-3 py-1 bg-[rgba(0,175,202,0.15)] rounded-lg border border-[rgba(0,175,202,0.3)] shadow-[0_0_8px_rgba(0,175,202,0.2)]">{formatDateTime(comment.createdAt, currentLanguage)}</span>
+      
+      <div className="flex gap-4 w-full">
+        {/* Avatar */}
+        <div 
+          className="w-12 h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+          onClick={handleAvatarClick}
+          title={`${comment.author} профилін көру`}
+        >
+          {comment.author.charAt(0).toUpperCase()}
         </div>
-        {currentUser && currentUser.username === comment.author && (
-          <div className="flex items-center gap-2 ml-auto relative">
-            {editingCommentId === comment.id ? (
-              <>
-                <button
-                  className="btn-comment-save"
-                  onClick={() => onSave(comment.id)}
-                >
-                  ✓ {t('common.save')}
-                </button>
-                <button
-                  className="btn-comment-cancel"
-                  onClick={onCancelEdit}
-                >
-                  ✕ {t('common.cancel')}
-                </button>
-              </>
-            ) : (
-              <div className="relative">
-                <button
-                  className="bg-[var(--bg-secondary)] text-[var(--primary-color)] flex items-center justify-center p-1 min-w-[28px] min-h-[28px] rounded border border-[var(--primary-color)] shadow-[0_0_0_1px_rgba(0,175,202,0.3),0_0_8px_rgba(0,175,202,0.2)] transition-all duration-300 cursor-pointer hover:shadow-[0_0_0_1px_rgba(0,175,202,0.5),0_0_12px_rgba(0,175,202,0.4)] hover:scale-105"
-                  onClick={() => setShowActionsMenu(!showActionsMenu)}
-                  title="Әрекеттер"
-                >
-                  <FontAwesomeIcon icon={faEllipsis} className="w-3 h-3 text-[var(--primary-color)]" />
-                </button>
-                {showActionsMenu && (
-                  <div className="absolute top-[calc(100%+0.5rem)] right-0 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.15)] min-w-[150px] z-[1000] overflow-hidden animate-[slideDown_0.2s_ease-out] flex flex-col">
+        
+        {/* Comment Body */}
+        <div className="flex-1 min-w-0">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="font-semibold text-[var(--text-primary)] text-base">
+                {comment.author}
+              </span>
+              <span className="text-xs text-[var(--text-secondary)]">
+                {formatDateTime(comment.createdAt, currentLanguage)}
+              </span>
+            </div>
+            
+            {currentUser && currentUser.username === comment.author && (
+              <div className="relative flex-shrink-0">
+                {editingCommentId === comment.id ? (
+                  <div className="flex items-center gap-2">
                     <button
-                      className="flex items-center gap-2 w-full px-4 py-3 bg-transparent border-none text-[var(--text-primary)] text-sm font-medium text-left cursor-pointer transition-all duration-200 border-b border-[var(--border-color)] whitespace-nowrap flex-shrink-0 last:border-b-0 hover:bg-[var(--bg-hover)] hover:text-[var(--primary-color)] disabled:hover:bg-transparent disabled:hover:text-[var(--text-primary)]"
-                      onClick={() => {
-                        onEdit(comment);
-                        setShowActionsMenu(false);
-                      }}
+                      className="px-3 py-1.5 bg-[var(--primary-color)] hover:opacity-90 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                      onClick={() => onSave(comment.id)}
                     >
-                      <FontAwesomeIcon icon={faEdit} /> {t('common.edit')}
+                      {t('common.save')}
                     </button>
                     <button
-                      className="flex items-center gap-2 w-full px-4 py-3 bg-transparent border-none text-[var(--error-color)] text-sm font-medium text-left cursor-pointer transition-all duration-200 border-b border-[var(--border-color)] whitespace-nowrap flex-shrink-0 last:border-b-0 hover:bg-[rgba(239,68,68,0.1)] hover:text-[var(--error-color)] disabled:hover:bg-transparent disabled:hover:text-[var(--error-color)]"
-                      onClick={() => {
-                        onDelete(comment.id);
-                        setShowActionsMenu(false);
-                      }}
+                      className="px-3 py-1.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--primary-color)]/30 text-sm font-medium rounded-lg transition-all duration-200 active:scale-95"
+                      onClick={onCancelEdit}
                     >
-                      <FontAwesomeIcon icon={faTrash} /> {t('common.delete')}
+                      {t('common.cancel')}
                     </button>
+                  </div>
+                ) : (
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-all duration-200 active:scale-95"
+                      onClick={() => setShowActionsMenu(!showActionsMenu)}
+                      title="Әрекеттер"
+                    >
+                      <FontAwesomeIcon icon={faEllipsisVertical} className="w-4 h-4" />
+                    </button>
+                    {showActionsMenu && (
+                      <div className="absolute top-full right-0 mt-2 w-40 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--primary-color)]/30 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button
+                          className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--primary-color)]/10 hover:text-[var(--primary-color)] transition-colors flex items-center gap-2"
+                          onClick={() => {
+                            onEdit(comment);
+                            setShowActionsMenu(false);
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" />
+                          <span>{t('common.edit')}</span>
+                        </button>
+                        <button
+                          className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                          onClick={() => {
+                            onDelete(comment.id);
+                            setShowActionsMenu(false);
+                          }}
+                        >
+                          <FontAwesomeIcon icon={faTrash} className="w-3.5 h-3.5" />
+                          <span>{t('common.delete')}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             )}
           </div>
-        )}
-      </div>
-      {editingCommentId === comment.id ? (
-        <textarea
-          className="comment-edit-input"
-          value={editingCommentText}
-          onChange={(e) => setEditingCommentText(e.target.value)}
-          rows={3}
-        />
-      ) : (
-        <div className="text-[#e2e8f0] leading-relaxed whitespace-pre-wrap break-words px-4 py-3 m-0 text-[0.95rem] bg-[rgba(15,23,42,0.5)] w-full max-w-full box-border overflow-wrap-break-word break-all border-l border-t border-[rgba(0,175,202,0.4)] border-b-0 border-r-0 rounded-none relative flex flex-row items-center justify-between gap-4 min-h-12 min-w-0 overflow-hidden">
-          <span className="flex-1 min-w-0 w-full max-w-full break-words overflow-hidden box-border">{comment.content}</span>
-          <div className="flex items-center gap-2 mt-0 pt-0 border-t-0 justify-end flex-shrink-0">
-            <button
-              className={`comment-reaction-btn ${isLiked ? 'liked' : ''} ${isLiking ? 'liking' : ''}`}
-              onClick={() => onLike(comment.id)}
-              disabled={!currentUser || isLiking}
-              title="Лайк"
-            >
-              👍 {likeCount}
-            </button>
-            {currentUser && (
-              <button
-                className="btn-comment-reply"
-                onClick={() => onReply(comment.id)}
-              >
-                <FontAwesomeIcon icon={faComment} /> {t('viewCode.reply')}
-              </button>
-            )}
-          </div>
+          
+          {/* Content */}
+          {editingCommentId === comment.id ? (
+            <textarea
+              className="w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200"
+              value={editingCommentText}
+              onChange={(e) => setEditingCommentText(e.target.value)}
+              rows={3}
+            />
+          ) : (
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:shadow-md transition-all duration-200">
+              <p className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-wrap break-words mb-3">
+                {comment.content}
+              </p>
+              <div className="flex items-center gap-3 pt-2 border-t border-[var(--primary-color)]/20">
+                <button
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
+                    isLiked 
+                      ? 'bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/40' 
+                      : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:text-[var(--primary-color)]'
+                  } ${isLiking ? 'opacity-70 cursor-wait' : ''}`}
+                  onClick={() => onLike(comment.id)}
+                  disabled={!currentUser || isLiking}
+                  title="Лайк"
+                >
+                  <span className="text-base">👍</span>
+                  {likeCount > 0 && <span>{likeCount}</span>}
+                </button>
+                {currentUser && (
+                  <button
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:text-[var(--primary-color)] transition-all duration-200 active:scale-95"
+                    onClick={() => onReply(comment.id)}
+                  >
+                    <FontAwesomeIcon icon={faComment} className="w-3.5 h-3.5" />
+                    <span>{t('viewCode.reply')}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+      
       {replyingToCommentId === comment.id && (
-        <div className="reply-indicator">
-          <span className="reply-indicator-text">
-            {t('viewCode.replyingTo')}: <strong>{comment.author}</strong>
+        <div className="mt-3 flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-xl">
+          <span className="text-sm text-[var(--text-primary)]">
+            {t('viewCode.replyingTo')}: <strong className="text-[var(--primary-color)]">{comment.author}</strong>
           </span>
           <button
             type="button"
-            className="btn-reply-cancel-inline"
+            className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
             onClick={onCancelReply}
           >
-            ✕
+            <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
           </button>
         </div>
       )}
-      </div>
     </div>
   );
 };
@@ -689,15 +716,15 @@ const ViewCode: React.FC = () => {
       setTimeout(() => {
         const repliesContainer = document.querySelector(`[data-parent-id="${parentId}"]`);
         if (repliesContainer) {
-          const replies = repliesContainer.querySelectorAll('.comment-item');
+          const replies = repliesContainer.querySelectorAll('[data-comment-id]');
           if (replies.length > 0) {
             const lastReply = replies[replies.length - 1] as HTMLElement;
-            lastReply.classList.add('new-reply');
+            lastReply.classList.add('animate-pulse');
             lastReply.scrollIntoView({ behavior: 'smooth', block: 'center' });
             
             // Анимациядан кейін классты алып тастау
             setTimeout(() => {
-              lastReply.classList.remove('new-reply');
+              lastReply.classList.remove('animate-pulse');
             }, 1000);
           }
         }
@@ -1103,16 +1130,16 @@ const ViewCode: React.FC = () => {
             {/* Пікірлер бөлімі */}
             <div className="flex flex-col min-h-0 overflow-hidden w-full max-w-full box-border flex-1 h-auto">
               {/* Header */}
-              <div className="flex items-center gap-4 mb-8 pb-4 border-b-2 border-[var(--border-color)] flex-shrink-0">
-                <h2 className="text-[1.75rem] text-[var(--text-primary)] m-0 font-extrabold flex items-center gap-3">
-                  <FontAwesomeIcon icon={faComment} /> 
+              <div className="flex items-center gap-4 mb-8 pb-4 border-b border-[var(--primary-color)]/20 flex-shrink-0">
+                <h2 className="text-2xl text-[var(--text-primary)] m-0 font-bold flex items-center gap-3">
+                  <FontAwesomeIcon icon={faComment} className="text-[var(--primary-color)]" /> 
                   {t('viewCode.comments')} ({code.comments?.length || 0})
                 </h2>
-                <div className="flex-1 h-[1.3px] bg-gradient-to-r from-[var(--border-color)] to-transparent"></div>
+                <div className="flex-1 h-px bg-gradient-to-r from-[var(--primary-color)]/20 to-transparent"></div>
               </div>
 
               {/* Пікірлер тізімі */}
-              <div className="flex flex-col gap-6 mb-0 min-h-0 overflow-y-auto overflow-x-hidden pb-4 pr-2 w-full max-w-full box-border flex-1">
+              <div className="flex flex-col gap-4 mb-0 min-h-0 overflow-y-auto overflow-x-hidden pb-4 pr-2 w-full max-w-full box-border flex-1 scrollbar-thin scrollbar-thumb-blue-300 dark:scrollbar-thumb-blue-700 scrollbar-track-transparent">
                 {code.comments && code.comments.length > 0 ? (
                   organizeComments(code.comments).map((comment: Comment) => (
                     <CommentItem
@@ -1140,98 +1167,100 @@ const ViewCode: React.FC = () => {
                     />
                   ))
                 ) : (
-                  <p className="text-center text-[var(--text-secondary)] py-8">{t('viewCode.noComments')}</p>
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('viewCode.noComments')}</p>
+                  </div>
                 )}
               </div>
 
               {/* Reply Indicator */}
               {replyingToCommentId && (
-                <div className="flex items-center justify-between gap-2 px-3 py-2 mb-2 bg-[rgba(0,175,202,0.1)] border border-[rgba(0,175,202,0.3)] rounded-lg flex-shrink-0">
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5 mb-3 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-xl flex-shrink-0">
                   <span className="text-sm text-[var(--text-primary)]">
-                    {t('viewCode.replyingTo')}: <strong>{code.comments?.find(c => c.id === replyingToCommentId)?.author || ''}</strong>
+                    {t('viewCode.replyingTo')}: <strong className="text-[var(--primary-color)]">{code.comments?.find(c => c.id === replyingToCommentId)?.author || ''}</strong>
                   </span>
                   <button
                     type="button"
-                    className="w-6 h-6 flex items-center justify-center rounded-full bg-[rgba(239,68,68,0.1)] text-[var(--error-color)] hover:bg-[rgba(239,68,68,0.2)] transition-colors cursor-pointer border-none text-sm font-bold"
+                    className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
                     onClick={handleCancelReply}
                   >
-                    ✕
+                    <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
                   </button>
                 </div>
               )}
 
               {/* Пікір формасы */}
-              <form 
-                onSubmit={currentUser ? (e) => { 
-                  e.preventDefault();
-                  if (replyingToCommentId) {
-                    handleSubmitReply(e, replyingToCommentId);
-                  } else {
-                    handleAddComment(e);
-                  }
-                } : (e) => { e.preventDefault(); navigate('/login'); }} 
-                className="comment-form flex flex-row gap-4 mt-6 mb-0 p-3 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg z-10 overflow-visible flex-shrink-0 visible opacity-100 w-full box-border items-end min-h-auto group focus-within:border-[var(--primary-color)] focus-within:shadow-[0_3.8px_15.4px_rgba(0,153,204,0.15)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[1.9px] before:bg-gradient-to-r before:from-[var(--primary-color)] before:to-[rgba(0,153,204,0.5)] before:scale-x-0 before:origin-left before:transition-transform before:duration-300 before:ease-[cubic-bezier(0.4,0,0.2,1)] group-focus-within:before:scale-x-100"
-              >
-                {currentUser && (
-                  <label className="w-9 h-9 rounded-md bg-[#00AFCA] flex items-center justify-center text-white font-semibold text-base flex-shrink-0 cursor-pointer transition-all duration-300 shadow-[0_0_12px_rgba(0,175,202,0.4)] border-none hover:bg-[#0099CC] hover:shadow-[0_0_16px_rgba(0,175,202,0.6)] hover:scale-105">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          console.log('Image selected:', file);
-                        }
-                      }}
-                    />
-                    <FontAwesomeIcon icon={faImage} className="w-4 h-4" />
-                  </label>
-                )}
-                <div className="relative flex items-end gap-2 flex-1">
-                  <textarea
-                    className="flex-1 px-3 py-2 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] font-inherit text-[0.95rem] resize-y min-h-[80px] focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[rgba(0,153,204,0.1)] disabled:opacity-50 disabled:cursor-not-allowed"
-                    placeholder={currentUser ? (replyingToCommentId ? t('viewCode.replyPlaceholder') : t('viewCode.commentPlaceholder')) : t('viewCode.loginToComment')}
-                    value={replyingToCommentId ? replyText : commentText}
-                    onChange={handleCommentChange}
-                    onFocus={(e) => {
-                      if (!currentUser) {
-                        e.target.blur();
-                        navigate('/login');
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (currentUser && e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        if (replyingToCommentId) {
-                          handleSubmitReply(e, replyingToCommentId);
-                        } else {
-                          handleAddComment(e);
-                        }
-                      } else if (!currentUser) {
-                        e.preventDefault();
-                        navigate('/login');
-                      }
-                    }}
-                    rows={3}
-                    disabled={!currentUser}
-                  />
-                  <button
-                    type="submit"
-                    className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#00AFCA] text-white border-none cursor-pointer transition-all duration-300 shadow-[0_2px_8px_rgba(0,175,202,0.3)] hover:bg-[#0099CC] hover:shadow-[0_4px_12px_rgba(0,175,202,0.4)] hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-[#00AFCA]"
-                    disabled={!currentUser || (replyingToCommentId ? !replyText.trim() : !commentText.trim()) || (replyingToCommentId ? isSubmittingReply : isSubmittingComment)}
-                    title={!currentUser ? t('viewCode.loginToComment') : (replyingToCommentId ? (isSubmittingReply ? t('common.loading') : t('viewCode.addReply')) : (isSubmittingComment ? t('common.loading') : t('viewCode.addComment')))}
-                    onClick={(e) => {
-                      if (!currentUser) {
-                        e.preventDefault();
-                        navigate('/login');
-                      }
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
-                  </button>
+              {currentUser ? (
+                <form 
+                  onSubmit={(e) => { 
+                    e.preventDefault();
+                    if (replyingToCommentId) {
+                      handleSubmitReply(e, replyingToCommentId);
+                    } else {
+                      handleAddComment(e);
+                    }
+                  }} 
+                  className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl shadow-lg backdrop-blur-sm flex-shrink-0 z-10 focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
+                >
+                  <div className="flex items-end gap-3">
+                    <label className="w-10 h-10 rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            console.log('Image selected:', file);
+                          }
+                        }}
+                      />
+                      <FontAwesomeIcon icon={faImage} className="w-4 h-4" />
+                    </label>
+                    <div className="relative flex-1">
+                      <textarea
+                        className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
+                        placeholder={replyingToCommentId ? t('viewCode.replyPlaceholder') : t('viewCode.commentPlaceholder')}
+                        value={replyingToCommentId ? replyText : commentText}
+                        onChange={handleCommentChange}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            if (replyingToCommentId) {
+                              handleSubmitReply(e, replyingToCommentId);
+                            } else {
+                              handleAddComment(e);
+                            }
+                          }
+                        }}
+                        rows={3}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      disabled={(replyingToCommentId ? !replyText.trim() : !commentText.trim()) || (replyingToCommentId ? isSubmittingReply : isSubmittingComment)}
+                      title={replyingToCommentId ? (isSubmittingReply ? t('common.loading') : t('viewCode.addReply')) : (isSubmittingComment ? t('common.loading') : t('viewCode.addComment'))}
+                    >
+                      <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      {t('viewCode.loginToComment')}
+                    </p>
+                    <button
+                      onClick={() => navigate('/login')}
+                      className="px-4 py-2 bg-[var(--primary-color)] hover:opacity-90 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      {t('common.login')}
+                    </button>
+                  </div>
                 </div>
-              </form>
+              )}
             </div>
           </div>
         </div>

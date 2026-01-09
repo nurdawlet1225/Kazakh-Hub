@@ -1030,10 +1030,18 @@
   }
 }
 
+/* ============================================
+   APPLE-STYLE COMMENTS SECTION
+   ============================================ */
+
 .comments-section {
   margin-top: 3rem;
   padding-top: 2rem;
-  border-top: 1.3px solid var(--border-color);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .comments-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .comments-section-separate {
