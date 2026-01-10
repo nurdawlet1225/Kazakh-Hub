@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
               <Route path="/" element={<Home />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/view/:id" element={<ViewCode />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:username?" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="*" element={

@@ -54,9 +54,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
       const dropdown = dropdownRef.current;
       dropdown.style.top = `${rect.bottom + 8}px`;
       dropdown.style.right = `${window.innerWidth - rect.right}px`;
-      // Set minimum width to ensure text is fully visible
       dropdown.style.width = 'auto';
-      dropdown.style.minWidth = '150px';
     }
   }, [isOpen, buttonRef]);
 

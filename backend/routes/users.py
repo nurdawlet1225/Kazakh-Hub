@@ -118,6 +118,26 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
     return user
 
 
+@router.get("/users/by-username/{username}")
+async def get_user_by_username(username: str, db: Session = Depends(get_db)):
+    """Get user by username"""
+    # First try SQL database
+    sql_user = db.query(User).filter(User.username == username).first()
+    if sql_user:
+        return {
+            "id": sql_user.id,
+            "username": sql_user.username,
+            "email": sql_user.email,
+            "avatar": sql_user.avatar
+        }
+    
+    # Fallback to JSON storage
+    user = UserService.find_user_by_username(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
 @router.put("/user")
 async def update_user(user_data: UserUpdate, db: Session = Depends(get_db)):
     """Update user profile"""

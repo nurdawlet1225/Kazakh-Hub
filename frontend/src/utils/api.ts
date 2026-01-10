@@ -268,6 +268,10 @@ class ApiService {
     return this.request<User>(`/users/${userId}`);
   }
 
+  async getUserByUsername(username: string): Promise<User> {
+    return this.request<User>(`/users/by-username/${username}`);
+  }
+
   async updateUserProfile(updates: Partial<User>): Promise<User> {
     return this.request<User>('/user', {
       method: 'PUT',

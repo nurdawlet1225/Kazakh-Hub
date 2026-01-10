@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash, faUpload, faHeart, faCheck, faCopy, faUser, faComment, faDownload, faPaperPlane, faEllipsisVertical, faEllipsis, faImage, faChevronDown, faChevronUp, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faTrash, faHeart, faCheck, faCopy, faComment, faDownload, faPaperPlane, faEllipsisVertical, faImage, faChevronDown, faChevronUp, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { faHeart as faRegHeartRegular } from '@fortawesome/free-regular-svg-icons';
 import { CodeFile, Comment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -36,7 +36,7 @@ interface CommentItemProps {
   onLike: (commentId: string) => void;
   allComments?: Comment[];
   currentLanguage: string;
-  likingCommentId?: string | null; // Track which comment is being liked
+  authorAvatar?: string;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -59,7 +59,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onLike,
   allComments = [],
   currentLanguage,
-  likingCommentId = null,
+  authorAvatar,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,7 +67,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
   const isLiked = currentUser ? comment.likes?.includes(currentUser.id) : false;
   const likeCount = comment.likes?.length || 0;
   const isReply = comment.parentId ? true : false;
-  const isLiking = likingCommentId === comment.id;
   
   // Find parent comment
   const parentComment = comment.parentId 
@@ -99,7 +98,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div 
-      className={`relative w-full mb-6 ${isReply ? 'ml-12 pl-6 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''} transition-all duration-300 ease-out`}
+      className={`relative w-full mb-6 ${isReply ? 'ml-12 pl-6 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''}`}
       data-comment-id={comment.id}
     >
       {isReply && parentComment && (
@@ -115,14 +114,22 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </div>
       )}
       
-      <div className="flex gap-4 w-full">
+      <div className="flex gap-4 w-full items-start">
         {/* Avatar */}
         <div 
-          className="w-12 h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+          className="w-12 h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 self-start overflow-hidden"
           onClick={handleAvatarClick}
           title={`${comment.author} профилін көру`}
         >
-          {comment.author.charAt(0).toUpperCase()}
+          {authorAvatar ? (
+            <img 
+              src={authorAvatar} 
+              alt={comment.author}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            comment.author.charAt(0).toUpperCase()
+          )}
         </div>
         
         {/* Comment Body */}
@@ -137,97 +144,93 @@ const CommentItem: React.FC<CommentItemProps> = ({
                 {formatDateTime(comment.createdAt, currentLanguage)}
               </span>
             </div>
-            
-            {currentUser && currentUser.username === comment.author && (
-              <div className="relative flex-shrink-0">
-                {editingCommentId === comment.id ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="px-3 py-1.5 bg-[var(--primary-color)] hover:opacity-90 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
-                      onClick={() => onSave(comment.id)}
-                    >
-                      {t('common.save')}
-                    </button>
-                    <button
-                      className="px-3 py-1.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--primary-color)]/30 text-sm font-medium rounded-lg transition-all duration-200 active:scale-95"
-                      onClick={onCancelEdit}
-                    >
-                      {t('common.cancel')}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative" ref={menuRef}>
-                    <button
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-all duration-200 active:scale-95"
-                      onClick={() => setShowActionsMenu(!showActionsMenu)}
-                      title="Әрекеттер"
-                    >
-                      <FontAwesomeIcon icon={faEllipsisVertical} className="w-4 h-4" />
-                    </button>
-                    {showActionsMenu && (
-                      <div className="absolute top-full right-0 mt-2 w-40 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--primary-color)]/30 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <button
-                          className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--primary-color)]/10 hover:text-[var(--primary-color)] transition-colors flex items-center gap-2"
-                          onClick={() => {
-                            onEdit(comment);
-                            setShowActionsMenu(false);
-                          }}
-                        >
-                          <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" />
-                          <span>{t('common.edit')}</span>
-                        </button>
-                        <button
-                          className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2"
-                          onClick={() => {
-                            onDelete(comment.id);
-                            setShowActionsMenu(false);
-                          }}
-                        >
-                          <FontAwesomeIcon icon={faTrash} className="w-3.5 h-3.5" />
-                          <span>{t('common.delete')}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
           
           {/* Content */}
           {editingCommentId === comment.id ? (
-            <textarea
-              className="w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200"
-              value={editingCommentText}
-              onChange={(e) => setEditingCommentText(e.target.value)}
-              rows={3}
-            />
+            <div className="relative">
+              <textarea
+                className="w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200"
+                value={editingCommentText}
+                onChange={(e) => setEditingCommentText(e.target.value)}
+                rows={3}
+              />
+              <div className="flex items-center gap-2 mt-2">
+                <button
+                  className="px-3 py-1.5 bg-[var(--primary-color)] hover:opacity-90 text-white text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                  onClick={() => onSave(comment.id)}
+                >
+                  {t('common.save')}
+                </button>
+                <button
+                  className="px-3 py-1.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--primary-color)]/30 text-sm font-medium rounded-lg transition-all duration-200 active:scale-95"
+                  onClick={onCancelEdit}
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
           ) : (
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:shadow-md transition-all duration-200">
+            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:shadow-md relative">
+              {currentUser && currentUser.username === comment.author && (
+                <div className="absolute top-2 right-2" ref={menuRef}>
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-all duration-200 active:scale-95"
+                    onClick={() => setShowActionsMenu(!showActionsMenu)}
+                    title="Әрекеттер"
+                  >
+                    <FontAwesomeIcon icon={faEllipsisVertical} className="w-4 h-4" />
+                  </button>
+                  {showActionsMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-40 bg-[var(--bg-secondary)] rounded-xl shadow-xl border border-[var(--primary-color)]/30 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <button
+                        className="w-full px-4 py-2.5 text-left text-sm text-[var(--text-primary)] hover:bg-[var(--primary-color)]/10 hover:text-[var(--primary-color)] transition-colors flex items-center gap-2"
+                        onClick={() => {
+                          onEdit(comment);
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faEdit} className="w-3.5 h-3.5" />
+                        <span>{t('common.edit')}</span>
+                      </button>
+                      <button
+                        className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                        onClick={() => {
+                          onDelete(comment.id);
+                          setShowActionsMenu(false);
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faTrash} className="w-3.5 h-3.5" />
+                        <span>{t('common.delete')}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-wrap break-words mb-3">
                 {comment.content}
               </p>
-              <div className="flex items-center gap-3 pt-2 border-t border-[var(--primary-color)]/20">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--primary-color)]/20">
                 <button
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ${
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-xs font-medium active:scale-95 w-auto ${
                     isLiked 
                       ? 'bg-[var(--primary-color)]/20 text-[var(--primary-color)] border border-[var(--primary-color)]/40' 
                       : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:text-[var(--primary-color)]'
-                  } ${isLiking ? 'opacity-70 cursor-wait' : ''}`}
+                  }`}
                   onClick={() => onLike(comment.id)}
-                  disabled={!currentUser || isLiking}
+                  disabled={!currentUser}
                   title="Лайк"
                 >
-                  <span className="text-base">👍</span>
-                  {likeCount > 0 && <span>{likeCount}</span>}
+                  <span className="text-xs">👍</span>
+                  {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
                 </button>
                 {currentUser && (
                   <button
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:text-[var(--primary-color)] transition-all duration-200 active:scale-95"
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-xs font-medium bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:text-[var(--primary-color)] active:scale-95 w-auto"
                     onClick={() => onReply(comment.id)}
                   >
-                    <FontAwesomeIcon icon={faComment} className="w-3.5 h-3.5" />
-                    <span>{t('viewCode.reply')}</span>
+                    <FontAwesomeIcon icon={faComment} className="w-2.5 h-2.5" />
+                    <span className="text-xs">{t('viewCode.reply')}</span>
                   </button>
                 )}
               </div>
@@ -236,18 +239,64 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </div>
       </div>
       
-      {replyingToCommentId === comment.id && (
-        <div className="mt-3 flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-xl">
-          <span className="text-sm text-[var(--text-primary)]">
-            {t('viewCode.replyingTo')}: <strong className="text-[var(--primary-color)]">{comment.author}</strong>
-          </span>
-          <button
-            type="button"
-            className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-            onClick={onCancelReply}
+      {replyingToCommentId === comment.id && currentUser && (
+        <div className="mt-4 ml-16">
+          <div className="mb-3 flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-xl">
+            <span className="text-sm text-[var(--text-primary)]">
+              {t('viewCode.replyingTo')}: <strong className="text-[var(--primary-color)]">{comment.author}</strong>
+            </span>
+            <button
+              type="button"
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+              onClick={onCancelReply}
+            >
+              <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
+            </button>
+          </div>
+          <form 
+            onSubmit={(e) => onSubmitReply(e, comment.id)} 
+            className="p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl shadow-lg backdrop-blur-sm focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
           >
-            <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
-          </button>
+            <div className="flex items-end gap-3">
+              <label className="w-10 h-10 rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      console.log('Image selected:', file);
+                    }
+                  }}
+                />
+                <FontAwesomeIcon icon={faImage} className="w-4 h-4" />
+              </label>
+              <div className="relative flex-1">
+                <textarea
+                  className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
+                  placeholder={t('viewCode.replyPlaceholder')}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      onSubmitReply(e, comment.id);
+                    }
+                  }}
+                  rows={3}
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                disabled={!replyText.trim() || isSubmittingReply}
+                title={isSubmittingReply ? t('common.loading') : t('viewCode.addReply')}
+              >
+                <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
@@ -270,7 +319,6 @@ const ViewCode: React.FC = () => {
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
-  const [likingCommentId, setLikingCommentId] = useState<string | null>(null); // Track which comment is being liked
   const [folderFiles, setFolderFiles] = useState<CodeFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -284,6 +332,7 @@ const ViewCode: React.FC = () => {
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const commentsContainerRef = useRef<HTMLDivElement>(null);
+  const [userAvatars, setUserAvatars] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (id) {
@@ -294,6 +343,10 @@ const ViewCode: React.FC = () => {
         id,
         (updatedCode) => {
           setCode(updatedCode);
+          // Load avatars for comment authors if comments exist
+          if (updatedCode.comments && updatedCode.comments.length > 0) {
+            loadCommentAuthorAvatars(updatedCode.comments);
+          }
           // Егер папка болса, файлдарды жүктеу
           if (updatedCode.isFolder) {
             loadFolderFiles(id);
@@ -367,6 +420,42 @@ const ViewCode: React.FC = () => {
     }
   };
 
+  const loadCommentAuthorAvatars = async (comments: Comment[]) => {
+    if (!comments || comments.length === 0) return;
+    
+    // Get unique authors
+    const uniqueAuthors = Array.from(new Set(comments.map(c => c.author)));
+    
+    // Filter out authors we already have avatars for
+    const authorsToLoad = uniqueAuthors.filter(author => !userAvatars[author]);
+    
+    if (authorsToLoad.length === 0) return;
+    
+    // Load avatars for each author
+    const avatarPromises = authorsToLoad.map(async (author) => {
+      try {
+        const user = await apiService.getUserByUsername(author);
+        return { author, avatar: user.avatar || undefined };
+      } catch (err) {
+        console.error(`Failed to load avatar for ${author}:`, err);
+        return { author, avatar: undefined };
+      }
+    });
+    
+    const avatarResults = await Promise.all(avatarPromises);
+    const newAvatars: Record<string, string> = {};
+    
+    avatarResults.forEach(({ author, avatar }) => {
+      if (avatar) {
+        newAvatars[author] = avatar;
+      }
+    });
+    
+    if (Object.keys(newAvatars).length > 0) {
+      setUserAvatars(prev => ({ ...prev, ...newAvatars }));
+    }
+  };
+
   const loadCode = async (codeId: string) => {
     try {
       setLoading(true);
@@ -377,6 +466,11 @@ const ViewCode: React.FC = () => {
       // Load current user if not already loaded
       if (!currentUser) {
         await loadCurrentUser();
+      }
+      
+      // Load avatars for comment authors
+      if (data.comments && data.comments.length > 0) {
+        loadCommentAuthorAvatars(data.comments);
       }
       
       // Increment view count (after code is loaded)
@@ -397,6 +491,10 @@ const ViewCode: React.FC = () => {
         const updatedCode = await apiService.incrementView(codeId, userId);
         if (updatedCode) {
           setCode(updatedCode);
+          // Load avatars for new comments if any
+          if (updatedCode.comments && updatedCode.comments.length > 0) {
+            loadCommentAuthorAvatars(updatedCode.comments);
+          }
         }
       } catch (viewError) {
         // Silently fail if view increment fails
@@ -431,13 +529,6 @@ const ViewCode: React.FC = () => {
       console.error('Failed to load folder files:', err);
     } finally {
       setLoadingFiles(false);
-    }
-  };
-
-
-  const handleRefreshFolder = async () => {
-    if (code && id) {
-      await loadFolderFiles(id);
     }
   };
 
@@ -625,6 +716,10 @@ const ViewCode: React.FC = () => {
         commentTextToAdd
       );
       setCode(updatedCode);
+      // Load avatars for comment authors
+      if (updatedCode.comments && updatedCode.comments.length > 0) {
+        loadCommentAuthorAvatars(updatedCode.comments);
+      }
     } catch (err) {
       console.error('Failed to add comment:', err);
       // Optimistic update-ті к geri алу
@@ -709,6 +804,10 @@ const ViewCode: React.FC = () => {
         replyText.trim()
       );
       setCode(updatedCode);
+      // Load avatars for comment authors
+      if (updatedCode.comments && updatedCode.comments.length > 0) {
+        loadCommentAuthorAvatars(updatedCode.comments);
+      }
       setReplyText('');
       setReplyingToCommentId(null);
       
@@ -737,28 +836,12 @@ const ViewCode: React.FC = () => {
     }
   };
 
-  const handleCommentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (currentUser) {
-      if (replyingToCommentId) {
-        setReplyText(e.target.value);
-      } else {
-        setCommentText(e.target.value);
-      }
-    } else {
-      navigate('/login');
-    }
-  }, [currentUser, replyingToCommentId, navigate]);
-
   const handleLikeComment = async (commentId: string) => {
-    if (!code || !currentUser || likingCommentId === commentId) return; // Prevent double-clicking
+    if (!code || !currentUser) return;
 
     // Find the comment
     const comment = code.comments?.find(c => c.id === commentId);
     if (!comment) return;
-
-    // Set loading state IMMEDIATELY before any async operations
-    // This ensures button is disabled for both like and unlike operations
-    setLikingCommentId(commentId);
 
     // Store original likes for rollback
     const originalLikes = comment.likes || [];
@@ -769,16 +852,13 @@ const ViewCode: React.FC = () => {
       ? originalLikes.filter(id => id !== currentUser.id)
       : [...originalLikes, currentUser.id];
 
-    // Update comment optimistically using requestAnimationFrame for smooth UI
-    // But keep button disabled during the operation
-    requestAnimationFrame(() => {
-      const updatedComments = (code.comments || []).map(c =>
-        c.id === commentId
-          ? { ...c, likes: newLikes }
-          : c
-      );
-      setCode({ ...code, comments: updatedComments });
-    });
+    // Update comment optimistically - update UI immediately
+    const updatedComments = (code.comments || []).map(c =>
+      c.id === commentId
+        ? { ...c, likes: newLikes }
+        : c
+    );
+    setCode({ ...code, comments: updatedComments });
 
     try {
       // Then update server
@@ -788,20 +868,12 @@ const ViewCode: React.FC = () => {
     } catch (err) {
       console.error('Failed to like comment:', err);
       // Rollback on error - revert to original state
-      requestAnimationFrame(() => {
-        const originalComments = (code.comments || []).map(c =>
-          c.id === commentId
-            ? { ...c, likes: originalLikes }
-            : c
-        );
-        setCode({ ...code, comments: originalComments });
-      });
-    } finally {
-      // Clear loading state after a small delay to prevent rapid clicking
-      // This delay ensures button stays disabled during both like and unlike operations
-      setTimeout(() => {
-        setLikingCommentId(null);
-      }, 400); // Increased delay to ensure button stays disabled
+      const originalComments = (code.comments || []).map(c =>
+        c.id === commentId
+          ? { ...c, likes: originalLikes }
+          : c
+      );
+      setCode({ ...code, comments: originalComments });
     }
   };
 
@@ -1163,7 +1235,7 @@ const ViewCode: React.FC = () => {
                       onLike={handleLikeComment}
                       allComments={code.comments || []}
                       currentLanguage={currentLanguage}
-                      likingCommentId={likingCommentId}
+                      authorAvatar={userAvatars[comment.author]}
                     />
                   ))
                 ) : (
@@ -1173,32 +1245,12 @@ const ViewCode: React.FC = () => {
                 )}
               </div>
 
-              {/* Reply Indicator */}
-              {replyingToCommentId && (
-                <div className="flex items-center justify-between gap-3 px-4 py-2.5 mb-3 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-xl flex-shrink-0">
-                  <span className="text-sm text-[var(--text-primary)]">
-                    {t('viewCode.replyingTo')}: <strong className="text-[var(--primary-color)]">{code.comments?.find(c => c.id === replyingToCommentId)?.author || ''}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
-                    onClick={handleCancelReply}
-                  >
-                    <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-
-              {/* Пікір формасы */}
-              {currentUser ? (
+              {/* Пікір формасы - тек жауап бермегенде */}
+              {currentUser && !replyingToCommentId ? (
                 <form 
                   onSubmit={(e) => { 
                     e.preventDefault();
-                    if (replyingToCommentId) {
-                      handleSubmitReply(e, replyingToCommentId);
-                    } else {
-                      handleAddComment(e);
-                    }
+                    handleAddComment(e);
                   }} 
                   className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl shadow-lg backdrop-blur-sm flex-shrink-0 z-10 focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
                 >
@@ -1220,17 +1272,13 @@ const ViewCode: React.FC = () => {
                     <div className="relative flex-1">
                       <textarea
                         className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
-                        placeholder={replyingToCommentId ? t('viewCode.replyPlaceholder') : t('viewCode.commentPlaceholder')}
-                        value={replyingToCommentId ? replyText : commentText}
-                        onChange={handleCommentChange}
+                        placeholder={t('viewCode.commentPlaceholder')}
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            if (replyingToCommentId) {
-                              handleSubmitReply(e, replyingToCommentId);
-                            } else {
-                              handleAddComment(e);
-                            }
+                            handleAddComment(e);
                           }
                         }}
                         rows={3}
@@ -1239,14 +1287,14 @@ const ViewCode: React.FC = () => {
                     <button
                       type="submit"
                       className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      disabled={(replyingToCommentId ? !replyText.trim() : !commentText.trim()) || (replyingToCommentId ? isSubmittingReply : isSubmittingComment)}
-                      title={replyingToCommentId ? (isSubmittingReply ? t('common.loading') : t('viewCode.addReply')) : (isSubmittingComment ? t('common.loading') : t('viewCode.addComment'))}
+                      disabled={!commentText.trim() || isSubmittingComment}
+                      title={isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
                     >
                       <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
                     </button>
                   </div>
                 </form>
-              ) : (
+              ) : !currentUser ? (
                 <div className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-[var(--text-secondary)]">
@@ -1260,7 +1308,7 @@ const ViewCode: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

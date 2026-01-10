@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faCalendar, faHeart, faComment, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faCalendar, faHeart, faComment, faEye, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
 import './CodeCard.css';
 
@@ -13,6 +13,7 @@ interface CodeCardProps {
 }
 
 const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected = false, onToggleSelect }) => {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const formatDateNumeric = (dateString: string): string => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -61,6 +62,20 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
     onToggleSelect?.();
   };
 
+  const handleToggleDescription = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDescriptionExpanded(!isDescriptionExpanded);
+  };
+
+  const descriptionText = code.description 
+    ? code.description 
+    : !code.isFolder && !isJsonStructure(code.content) 
+      ? truncateContent(code.content, 100) 
+      : null;
+  
+  const shouldShowToggleButton = descriptionText && descriptionText.length > 50;
+
 
   return (
     <div className={`code-card-wrapper ${viewMode === 'list' ? 'list-mode' : ''} ${isSelected ? 'selected' : ''}`}>
@@ -82,17 +97,24 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
               {code.isFolder ? code.title : (code.language || 'other').toLowerCase()}
             </h3>
             <div className="code-card-description-row">
-              <p className="code-card-description-below">
-                {code.description ? (
-                  code.description
-                ) : !code.isFolder && !isJsonStructure(code.content) ? (
-                  truncateContent(code.content, 100)
+              <p className={`code-card-description-below ${isDescriptionExpanded ? 'expanded' : ''}`}>
+                {descriptionText ? (
+                  descriptionText
                 ) : (
                   <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
                     {code.isFolder ? 'Папка ақпараты' : 'Сипаттама жоқ'}
                   </span>
                 )}
               </p>
+              {shouldShowToggleButton && (
+                <button 
+                  className="code-card-description-toggle"
+                  onClick={handleToggleDescription}
+                  type="button"
+                >
+                  <FontAwesomeIcon icon={isDescriptionExpanded ? faChevronUp : faChevronDown} />
+                </button>
+              )}
             </div>
           </div>
 

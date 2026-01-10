@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faEye, faEyeSlash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { User } from '../utils/api';
 import { apiService } from '../utils/api';
+import { imageStorage } from '../utils/imageStorage';
 import Button from './Button';
 import './EditProfileModal.css';
 
@@ -39,20 +40,41 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       // Scroll to top when modal opens
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
-      setFormData({
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar || '',
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      setAvatarPreview(user.avatar || null);
-      setError(null);
-      setPasswordError(null);
-      setIsPasswordSectionVisible(false);
+      // Load avatar from imageStorage if it exists
+      const loadAvatar = async () => {
+        let avatarToUse = user.avatar || '';
+        
+        // If avatar is 'stored' flag, load from imageStorage
+        if (user.avatar === 'stored' && user.id) {
+          try {
+            const avatarFromStorage = await imageStorage.getImage(`avatar-${user.id}`);
+            if (avatarFromStorage) {
+              avatarToUse = avatarFromStorage;
+            } else {
+              avatarToUse = '';
+            }
+          } catch (err) {
+            avatarToUse = '';
+          }
+        }
+        
+        setFormData({
+          username: user.username,
+          email: user.email,
+          avatar: avatarToUse,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setAvatarPreview(avatarToUse || null);
+        setError(null);
+        setPasswordError(null);
+        setIsPasswordSectionVisible(false);
+      };
+      
+      loadAvatar();
     }
-  }, [isOpen]); // Only depend on isOpen to prevent resetting avatar when user updates
+  }, [isOpen, user.id]); // Include user.id to reload avatar when user changes
 
   // Update username and email when user changes, but preserve avatarPreview state
   useEffect(() => {
@@ -178,6 +200,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       
       if (isPasswordChange) {
         // Validate password fields
+        if (!formData.currentPassword) {
+          setPasswordError('Ағымдағы құпия сөзді енгізіңіз');
+          setLoading(false);
+          return;
+        }
+
         if (!formData.newPassword) {
           setPasswordError('Жаңа құпия сөз енгізіңіз');
           setLoading(false);
@@ -200,7 +228,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         try {
           await apiService.changePassword(
             user.id,
-            formData.currentPassword || null,
+            formData.currentPassword,
             formData.newPassword
           );
         } catch (err) {
@@ -219,11 +247,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         currentEmail: user.email, // Send current email as backup
       };
 
-      // Always include avatar - send null if empty (to remove avatar), or the base64 string
+      // Always include avatar - send undefined if empty (to remove avatar), or the base64 string
       if (formData.avatar && formData.avatar.trim() !== '') {
         updateData.avatar = formData.avatar;
       } else {
-        updateData.avatar = null; // Explicitly set to null to remove avatar
+        updateData.avatar = undefined; // Explicitly set to undefined to remove avatar
       }
 
       console.log('Updating profile with:', { 
@@ -240,16 +268,73 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         hasAvatar: !!updatedUser.avatar 
       });
 
-      // Update localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      // Save avatar separately using imageStorage if present
+      if (formData.avatar && formData.avatar.trim() !== '') {
+        try {
+          await imageStorage.saveImage(`avatar-${updatedUser.id}`, formData.avatar);
+        } catch (err: any) {
+          console.error('Error saving avatar to imageStorage:', err);
+          // Continue even if avatar save fails
+        }
+      } else {
+        // Remove avatar if it was cleared
+        try {
+          await imageStorage.removeImage(`avatar-${updatedUser.id}`);
+        } catch (err) {
+          // Ignore errors when removing
+        }
+      }
+
+      // Update localStorage without avatar (to avoid quota issues)
+      // Remove avatar from user object before saving to localStorage
+      const { avatar, ...userWithoutAvatar } = updatedUser;
+      const userForStorage = {
+        ...userWithoutAvatar,
+        avatar: avatar ? 'stored' : undefined // Just a flag, not the actual image
+      };
+      
+      try {
+        localStorage.setItem('user', JSON.stringify(userForStorage));
+      } catch (err: any) {
+        // If still quota exceeded, try without avatar flag
+        if (err.name === 'QuotaExceededError') {
+          console.warn('Quota exceeded, trying to save user without avatar flag');
+          try {
+            const { avatar: _, ...userMinimal } = userForStorage;
+            localStorage.setItem('user', JSON.stringify(userMinimal));
+          } catch (minimalErr: any) {
+            // If still fails, show error to user
+            setError('Жад жеткіліксіз. Браузердің кэшін тазалаңыз немесе басқа деректерді жойыңыз.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          throw err;
+        }
+      }
+
+      // Load avatar from imageStorage for the updated user object
+      let finalUser = { ...updatedUser };
+      if (formData.avatar && formData.avatar.trim() !== '') {
+        finalUser.avatar = formData.avatar;
+      } else {
+        finalUser.avatar = undefined;
+      }
 
       // Dispatch custom event to notify Header component
       window.dispatchEvent(new CustomEvent('userProfileUpdated'));
 
-      onUpdate(updatedUser);
+      onUpdate(finalUser);
       onClose();
     } catch (err: any) {
       console.error('Error updating profile:', err);
+      
+      // Handle quota exceeded error
+      if (err.name === 'QuotaExceededError' || err.message?.includes('quota') || err.message?.includes('exceeded')) {
+        setError('Жад жеткіліксіз. Браузердің кэшін тазалаңыз немесе кішірек аватар суретін пайдаланыңыз.');
+        setLoading(false);
+        return;
+      }
       
       // If user not found, clear localStorage and redirect to login
       if (err?.message?.includes('User not found') || err?.message?.includes('Пайдаланушы табылмады')) {
@@ -293,7 +378,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
         <form onSubmit={handleSubmit} className="edit-profile-form">
           <div className="form-group avatar-group">
-            <label>Профиль фотосы</label>
             <div className="avatar-upload-container">
               <div 
                 className="avatar-preview"
@@ -331,7 +415,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label htmlFor="username">Пайдаланушы аты</label>
             <input
               id="username"
               type="text"
@@ -343,12 +426,11 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Электрондық пошта</label>
             <input
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              readOnly
               placeholder="email@example.com"
               required
             />
@@ -363,7 +445,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 title={isPasswordSectionVisible ? 'Жасыру' : 'Көрсету'}
               >
                 <span>Құпия сөзді өзгерту</span>
-                <span>{isPasswordSectionVisible ? 'Жасыру' : 'Көрсету'}</span>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
                   className={`chevron-icon ${isPasswordSectionVisible ? 'rotated' : ''}`}
@@ -373,28 +454,26 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             {isPasswordSectionVisible && (
               <div className="password-section-content">
             <div className="form-group">
-              <label htmlFor="currentPassword">Ағымдағы құпия сөз (міндетті емес)</label>
               <input
                 id="currentPassword"
                 type="password"
                 value={formData.currentPassword}
                 onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
                 placeholder="Ағымдағы құпия сөз"
+                required
               />
             </div>
             <div className="form-group">
-              <label htmlFor="newPassword">Жаңа құпия сөз</label>
               <input
                 id="newPassword"
                 type="password"
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                placeholder="Жаңа құпия сөз (кемінде 6 таңба)"
+                placeholder="Жаңа құпия сөз"
                 minLength={6}
               />
             </div>
             <div className="form-group">
-              <label htmlFor="confirmPassword">Жаңа құпия сөзді растау</label>
               <input
                 id="confirmPassword"
                 type="password"

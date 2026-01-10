@@ -1,36 +1,72 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faImage, faEdit, faCopy, faCheck, faTrash, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faImage, faEdit, faCopy, faCheck, faTrash, faTimes, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { User, CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
 import { ensureNumericId } from '../utils/idConverter';
+import { imageStorage } from '../utils/imageStorage';
 import CodeCard from '../components/CodeCard';
 import EditProfileModal from '../components/EditProfileModal';
+import ChangeBackgroundModal from '../components/ChangeBackgroundModal';
 import './Profile.css';
 
 const Profile: React.FC = () => {
   const { t } = useTranslation();
+  const { username: urlUsername } = useParams<{ username?: string }>();
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [userCodes, setUserCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isChangeBackgroundModalOpen, setIsChangeBackgroundModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [backgroundPosition, setBackgroundPosition] = useState({ x: 50, y: 50 });
+  const [backgroundZoom, setBackgroundZoom] = useState(100);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuDropdownRef = useRef<HTMLDivElement>(null);
-  const backgroundInputRef = useRef<HTMLInputElement>(null);
   const [stats, setStats] = useState({
     totalLikes: 0,
     totalComments: 0,
     totalViews: 0,
   });
   const [isIdCopied, setIsIdCopied] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     loadProfile();
-  }, []);
+    // Load current user from localStorage
+    const loadCurrentUser = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          // Load avatar from imageStorage if it exists
+          if (userData.id) {
+            try {
+              const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
+              if (avatarFromStorage) {
+                userData.avatar = avatarFromStorage;
+              } else if (userData.avatar === 'stored') {
+                userData.avatar = undefined;
+              }
+            } catch (err) {
+              if (userData.avatar === 'stored') {
+                userData.avatar = undefined;
+              }
+            }
+          }
+          setCurrentUser(userData);
+        } catch (err) {
+          console.error('Failed to parse stored user:', err);
+        }
+      }
+    };
+    loadCurrentUser();
+  }, [urlUsername]);
 
   // Close menu when modal opens
   useEffect(() => {
@@ -39,27 +75,118 @@ const Profile: React.FC = () => {
     }
   }, [isEditModalOpen]);
 
+  // Prevent body scroll when modal is open
   useEffect(() => {
-    // Load background image from localStorage
+    if (isEditModalOpen || isChangeBackgroundModalOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      // Disable scroll
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore scroll when modal closes
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isEditModalOpen, isChangeBackgroundModalOpen]);
+
+  useEffect(() => {
+    // Load background image and position from storage
     if (user?.id) {
-      const savedBg = localStorage.getItem(`profile-bg-${user.id}`);
-      if (savedBg) {
-        setBackgroundImage(savedBg);
-      } else {
-        setBackgroundImage(null);
-      }
+      const loadBackground = async () => {
+        try {
+          const savedBg = await imageStorage.getImage(`profile-bg-${user.id}`);
+          if (savedBg) {
+            setBackgroundImage(savedBg);
+          } else {
+            setBackgroundImage(null);
+          }
+          
+          // Load saved position
+          const savedPosition = localStorage.getItem(`profile-bg-position-${user.id}`);
+          if (savedPosition) {
+            try {
+              const position = JSON.parse(savedPosition);
+              setBackgroundPosition(position);
+            } catch (e) {
+              setBackgroundPosition({ x: 50, y: 50 });
+            }
+          } else {
+            setBackgroundPosition({ x: 50, y: 50 });
+          }
+          
+          // Load saved zoom
+          const savedZoom = localStorage.getItem(`profile-bg-zoom-${user.id}`);
+          if (savedZoom) {
+            try {
+              const zoom = parseFloat(savedZoom);
+              setBackgroundZoom(Math.max(50, Math.min(200, zoom)));
+            } catch (e) {
+              setBackgroundZoom(100);
+            }
+          } else {
+            setBackgroundZoom(100);
+          }
+        } catch (err) {
+          console.error('Failed to load background image:', err);
+          setBackgroundImage(null);
+          setBackgroundPosition({ x: 50, y: 50 });
+          setBackgroundZoom(100);
+        }
+      };
+      loadBackground();
     }
   }, [user?.id]);
 
   useEffect(() => {
     // Listen for background update events
-    const handleBackgroundUpdate = () => {
+    const handleBackgroundUpdate = async () => {
       if (user?.id) {
-        const savedBg = localStorage.getItem(`profile-bg-${user.id}`);
-        if (savedBg) {
-          setBackgroundImage(savedBg);
-        } else {
+        try {
+          const savedBg = await imageStorage.getImage(`profile-bg-${user.id}`);
+          if (savedBg) {
+            setBackgroundImage(savedBg);
+          } else {
+            setBackgroundImage(null);
+          }
+          
+          // Load saved position
+          const savedPosition = localStorage.getItem(`profile-bg-position-${user.id}`);
+          if (savedPosition) {
+            try {
+              const position = JSON.parse(savedPosition);
+              setBackgroundPosition(position);
+            } catch (e) {
+              setBackgroundPosition({ x: 50, y: 50 });
+            }
+          } else {
+            setBackgroundPosition({ x: 50, y: 50 });
+          }
+          
+          // Load saved zoom
+          const savedZoom = localStorage.getItem(`profile-bg-zoom-${user.id}`);
+          if (savedZoom) {
+            try {
+              const zoom = parseFloat(savedZoom);
+              setBackgroundZoom(Math.max(50, Math.min(200, zoom)));
+            } catch (e) {
+              setBackgroundZoom(100);
+            }
+          } else {
+            setBackgroundZoom(100);
+          }
+        } catch (err) {
+          console.error('Failed to load background image:', err);
           setBackgroundImage(null);
+          setBackgroundPosition({ x: 50, y: 50 });
+          setBackgroundZoom(100);
         }
       }
     };
@@ -105,116 +232,22 @@ const Profile: React.FC = () => {
     }
   };
 
-  const compressImage = (file: File, maxWidth: number = 1920, quality: number = 0.85): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Canvas context not available'));
-            return;
-          }
-
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          try {
-            const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-            resolve(compressedBase64);
-          } catch (err) {
-            reject(new Error('Image compression failed'));
-          }
-        };
-        img.onerror = () => reject(new Error('Image load failed'));
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => reject(new Error('File read failed'));
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleBackgroundChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      alert('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF)');
-      if (backgroundInputRef.current) {
-        backgroundInputRef.current.value = '';
-      }
-      return;
-    }
-
-    // Validate file size (max 10MB before compression)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Сурет өлшемі 10MB-тан аспауы керек');
-      if (backgroundInputRef.current) {
-        backgroundInputRef.current.value = '';
-      }
-      return;
-    }
-
-    try {
-      // Compress and convert to base64 (larger size for background)
-      const compressedBase64 = await compressImage(file, 1920, 0.85);
-      
-      // Check compressed size (max 3MB base64 for background)
-      let finalImage = compressedBase64;
-      if (compressedBase64.length > 3 * 1024 * 1024) {
-        // Try with lower quality
-        finalImage = await compressImage(file, 1600, 0.75);
-        console.log('Background image compressed to:', (finalImage.length / 1024).toFixed(2), 'KB');
-      } else {
-        console.log('Background image compressed to:', (compressedBase64.length / 1024).toFixed(2), 'KB');
-      }
-      
-      // Save background image to localStorage
-      if (user?.id) {
-        localStorage.setItem(`profile-bg-${user.id}`, finalImage);
-        setBackgroundImage(finalImage);
-        
-        // Dispatch custom event to notify Profile component
-        window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
-      }
-    } catch (err) {
-      console.error('Error processing background image:', err);
-      alert('Суретті өңдеу қатесі');
-      if (backgroundInputRef.current) {
-        backgroundInputRef.current.value = '';
-      }
-    }
-  };
-
-
   const handleChangeBackgroundClick = () => {
     setIsMenuOpen(false);
-    // Use setTimeout to ensure menu closes before opening file dialog
-    setTimeout(() => {
-      if (backgroundInputRef.current) {
-        backgroundInputRef.current.click();
-      }
-    }, 100);
+    setIsChangeBackgroundModalOpen(true);
   };
 
-  const handleRemoveBackground = () => {
+  const handleRemoveBackground = async () => {
     if (user?.id) {
-      localStorage.removeItem(`profile-bg-${user.id}`);
-      setBackgroundImage(null);
-      window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
+      try {
+        await imageStorage.removeImage(`profile-bg-${user.id}`);
+        setBackgroundImage(null);
+        window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
+      } catch (err) {
+        console.error('Failed to remove background image:', err);
+        // Still update UI even if removal fails
+        setBackgroundImage(null);
+      }
     }
   };
 
@@ -222,28 +255,59 @@ const Profile: React.FC = () => {
     try {
       setLoading(true);
       
-      // Try to get user from localStorage first
-      const storedUser = localStorage.getItem('user');
       let userData: User;
       
-      if (storedUser) {
-        userData = JSON.parse(storedUser);
-        // Always verify user exists in backend using stored email and id
-        // Never call getCurrentUser() without parameters to avoid getting wrong user
+      // If username is provided in URL, load that user's profile
+      if (urlUsername) {
         try {
-          const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
-          userData = verifiedUser;
+          userData = await apiService.getUserByUsername(urlUsername);
         } catch (err: any) {
-          // If user not found in backend, clear localStorage and redirect to login
-          console.error('Failed to verify user:', err);
-          localStorage.removeItem('user');
-          window.location.href = '/login';
+          console.error('Failed to load user by username:', err);
+          setError('Пайдаланушы табылмады');
+          setLoading(false);
           return;
         }
       } else {
-        // No stored user - redirect to login instead of trying to get random user
-        window.location.href = '/login';
-        return;
+        // Try to get user from localStorage first
+        const storedUser = localStorage.getItem('user');
+        
+        if (storedUser) {
+          userData = JSON.parse(storedUser);
+          // Always verify user exists in backend using stored email and id
+          // Never call getCurrentUser() without parameters to avoid getting wrong user
+          try {
+            const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
+            userData = verifiedUser;
+          } catch (err: any) {
+            // If user not found in backend, clear localStorage and redirect to login
+            console.error('Failed to verify user:', err);
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+            return;
+          }
+        } else {
+          // No stored user - redirect to login instead of trying to get random user
+          window.location.href = '/login';
+          return;
+        }
+      }
+      
+      // Load avatar from imageStorage if it exists
+      if (userData.id) {
+        try {
+          const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
+          if (avatarFromStorage) {
+            userData.avatar = avatarFromStorage;
+          } else if (userData.avatar === 'stored') {
+            // Avatar flag exists but image not found in storage
+            userData.avatar = undefined;
+          }
+        } catch (err) {
+          // If avatar not found or error loading, keep original avatar or set to undefined
+          if (userData.avatar === 'stored') {
+            userData.avatar = undefined;
+          }
+        }
       }
       
       const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);
@@ -304,23 +368,26 @@ const Profile: React.FC = () => {
 
   return (
     <div className="profile-container">
+      {/* Артқа қайту батырмасы - тек басқа адамның профилінде */}
+      {currentUser && user && currentUser.username !== user.username && (
+        <button
+          className="profile-back-button"
+          onClick={() => navigate(-1)}
+          title="Артқа қайту"
+        >
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+      )}
       <div 
         className="profile-header"
         style={backgroundImage ? { 
           backgroundImage: `url(${backgroundImage})`, 
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center' 
+          backgroundSize: `${backgroundZoom}%`, 
+          backgroundPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%` 
         } : {}}
       >
         {backgroundImage && <div className="profile-header-overlay"></div>}
-        <input
-          ref={backgroundInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleBackgroundChange}
-          style={{ display: 'none' }}
-          id="background-upload"
-        />
+        {currentUser && user && currentUser.username === user.username && (
         <div className="profile-menu-wrapper">
           <button 
             ref={menuButtonRef}
@@ -353,24 +420,10 @@ const Profile: React.FC = () => {
                 <FontAwesomeIcon icon={faImage} />
                 <span>Фон өзгерту</span>
               </button>
-              {backgroundImage && (
-                <>
-                  <div className="profile-menu-divider"></div>
-                  <button
-                    className="profile-menu-item"
-                    onClick={() => {
-                      handleRemoveBackground();
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                    <span>Фон алып тастау</span>
-                  </button>
-                </>
-              )}
             </div>
           )}
         </div>
+        )}
         <div className="profile-avatar-wrapper">
           <div className="profile-avatar">
             {user.avatar ? (
@@ -471,22 +524,58 @@ const Profile: React.FC = () => {
         )}
       </div>
 
-      {user && (
-        <EditProfileModal
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            // Reload profile to ensure we have latest data
-            loadProfile();
-          }}
-          user={user}
-          onUpdate={(updatedUser) => {
-            setUser(updatedUser);
-            setIsEditModalOpen(false);
-            // Reload profile to ensure consistency
-            loadProfile();
-          }}
-        />
+      {user && currentUser && currentUser.username === user.username && (
+        <>
+          <EditProfileModal
+            isOpen={isEditModalOpen}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              // Reload profile to ensure we have latest data
+              loadProfile();
+            }}
+            user={user}
+            onUpdate={(updatedUser) => {
+              setUser(updatedUser);
+              setIsEditModalOpen(false);
+              // Reload profile to ensure consistency
+              loadProfile();
+            }}
+          />
+          <ChangeBackgroundModal
+            isOpen={isChangeBackgroundModalOpen}
+            onClose={() => {
+              setIsChangeBackgroundModalOpen(false);
+            }}
+            user={user}
+            onUpdate={async () => {
+              // Reload background image and position after update
+              if (user?.id) {
+                try {
+                  const savedBg = await imageStorage.getImage(`profile-bg-${user.id}`);
+                  setBackgroundImage(savedBg || null);
+                  
+                  // Load saved position
+                  const savedPosition = localStorage.getItem(`profile-bg-position-${user.id}`);
+                  if (savedPosition) {
+                    try {
+                      const position = JSON.parse(savedPosition);
+                      setBackgroundPosition(position);
+                    } catch (e) {
+                      setBackgroundPosition({ x: 50, y: 50 });
+                    }
+                  } else {
+                    setBackgroundPosition({ x: 50, y: 50 });
+                  }
+                } catch (err) {
+                  console.error('Failed to load background image:', err);
+                  setBackgroundImage(null);
+                  setBackgroundPosition({ x: 50, y: 50 });
+                }
+              }
+              setIsChangeBackgroundModalOpen(false);
+            }}
+          />
+        </>
       )}
 
     </div>

@@ -8,6 +8,7 @@ import ProfileModal from './ProfileModal';
 import Button from './Button';
 import LinkButton from './LinkButton';
 import { apiService, User } from '../utils/api';
+import { imageStorage } from '../utils/imageStorage';
 
 // Логотипті импорттау - бірнеше нұсқаны тексеру
 const getLogoPath = () => {
@@ -27,11 +28,30 @@ const Header: React.FC = () => {
   const [incomingRequestCount, setIncomingRequestCount] = useState(0);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
 
-  const loadUser = () => {
+  const loadUser = async () => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         const userData = JSON.parse(storedUser);
+        
+        // Load avatar from imageStorage if it exists
+        if (userData.id) {
+          try {
+            const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
+            if (avatarFromStorage) {
+              userData.avatar = avatarFromStorage;
+            } else if (userData.avatar === 'stored') {
+              // Avatar flag exists but image not found in storage
+              userData.avatar = undefined;
+            }
+          } catch (err) {
+            // If avatar not found or error loading, set to undefined
+            if (userData.avatar === 'stored') {
+              userData.avatar = undefined;
+            }
+          }
+        }
+        
         setIsLoggedIn(true);
         setUser(userData);
       } catch (err) {
