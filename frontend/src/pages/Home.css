@@ -1,0 +1,145 @@
+/* Home Page Mobile Responsive Styles */
+
+/* Mobile adjustments for Home page */
+@media (max-width: 768px) {
+  /* Main container */
+  .home-container {
+    padding: 1rem !important;
+  }
+  
+  /* Sidebar adjustments */
+  aside {
+    width: 100% !important;
+    position: relative !important;
+    top: 0 !important;
+    max-height: none !important;
+    padding: 1rem !important;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Statistics cards */
+  aside .flex.flex-col.gap-4 {
+    gap: 1rem !important;
+  }
+  
+  aside .flex.items-center.gap-4 {
+    padding: 0.875rem !important;
+    gap: 0.75rem !important;
+  }
+  
+  aside .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Language filter */
+  aside button {
+    font-size: 0.875rem !important;
+    padding: 0.5rem !important;
+  }
+  
+  /* Main content area */
+  main {
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  /* Search and filters */
+  .search-container,
+  .filters-container {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* Code cards grid */
+  .codes-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container {
+    padding: 0.75rem !important;
+  }
+  
+  aside {
+    padding: 0.75rem !important;
+  }
+  
+  aside h2 {
+    font-size: 1rem !important;
+  }
+  
+  /* Statistics cards - smaller */
+  aside .flex.items-center.gap-4 {
+    padding: 0.75rem !important;
+    gap: 0.5rem !important;
+  }
+  
+  aside .text-2xl {
+    font-size: 1.25rem !important;
+  }
+  
+  aside .text-sm {
+    font-size: 0.75rem !important;
+  }
+  
+  /* Language buttons */
+  aside button[class*="flex items-center gap-2"] {
+    font-size: 0.8125rem !important;
+    padding: 0.375rem !important;
+  }
+  
+  /* Search input */
+  input[type="search"],
+  input[type="text"] {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 0.625rem !important;
+  }
+  
+  /* Code cards */
+  .code-card {
+    padding: 1rem !important;
+  }
+  
+  /* Empty state */
+  .empty-state {
+    padding: 2rem 1rem !important;
+  }
+  
+  .empty-state p {
+    font-size: 1.5rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .home-container {
+    padding: 0.5rem !important;
+  }
+  
+  aside {
+    padding: 0.5rem !important;
+  }
+  
+  aside h2 {
+    font-size: 0.9375rem !important;
+  }
+  
+  aside .text-2xl {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  aside button,
+  main button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Language filter buttons */
+  aside button[class*="flex items-center"] {
+    min-height: 40px;
+  }
+}

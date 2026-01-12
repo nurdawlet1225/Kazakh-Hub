@@ -795,15 +795,7 @@
   cursor: not-allowed;
 }
 
-.loading-spinner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 256px;
-  gap: 1rem;
-  transition: min-height 0.3s ease-out;
-}
+/* Loading spinner base styles moved to globals.css */
 
 /* Folder content loading spinner should match file-code-container height */
 .folder-content .loading-spinner {
@@ -811,21 +803,6 @@
   width: 810px;
   max-width: 810px;
   box-sizing: border-box;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 2.6px solid var(--border-color);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .error-state {

@@ -56,6 +56,18 @@ let app;
 let auth: ReturnType<typeof getAuth>;
 let db: ReturnType<typeof getFirestore>;
 
+// Track if Firestore is blocked to prevent repeated connection attempts
+let firestoreBlocked = false;
+let firestoreBlockCheckAttempts = 0;
+const MAX_FIRESTORE_CHECK_ATTEMPTS = 3;
+
+/**
+ * Mark Firestore as blocked (called when blocking is detected)
+ */
+export const markFirestoreBlocked = () => {
+  firestoreBlocked = true;
+};
+
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
@@ -97,11 +109,6 @@ export const googleProvider = new GoogleAuthProvider();
 
 // Export auth and db
 export { auth, db };
-
-// Track if Firestore is blocked to prevent repeated connection attempts
-let firestoreBlocked = false;
-let firestoreBlockCheckAttempts = 0;
-const MAX_FIRESTORE_CHECK_ATTEMPTS = 3;
 
 /**
  * Check if Firestore is blocked by ad blocker or invalid API key
@@ -160,12 +167,6 @@ export const isFirestoreBlocked = (): boolean => {
   return firestoreBlocked;
 };
 
-/**
- * Mark Firestore as blocked (called when blocking is detected)
- */
-export const markFirestoreBlocked = () => {
-  firestoreBlocked = true;
-};
 
 /**
  * Helper function to save/update user in Firestore

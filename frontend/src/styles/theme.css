@@ -54,7 +54,7 @@
   --z-tooltip: 12000;
 }
 
-/* Dark Theme - Қазақстан туының түстері (Қараңғы көк және Алтын) */
+/* Dark Theme - түстері (Қараңғы көк және сары) */
 @media (prefers-color-scheme: dark) {
   :root {
     --bg-primary: #0a1929;

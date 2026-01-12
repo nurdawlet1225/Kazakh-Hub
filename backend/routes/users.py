@@ -25,7 +25,8 @@ async def get_current_user(
                 "id": sql_user.id,
                 "username": sql_user.username,
                 "email": sql_user.email,
-                "avatar": sql_user.avatar
+                "avatar": sql_user.avatar,
+                "bio": getattr(sql_user, 'bio', None)
             }
     
     if email:
@@ -35,7 +36,8 @@ async def get_current_user(
                 "id": sql_user.id,
                 "username": sql_user.username,
                 "email": sql_user.email,
-                "avatar": sql_user.avatar
+                "avatar": sql_user.avatar,
+                "bio": getattr(sql_user, 'bio', None)
             }
     
     # Fallback to JSON storage (for backward compatibility with old users)
@@ -83,7 +85,8 @@ async def search_users(query: Optional[str] = Query(None), db: Session = Depends
             "id": user.id,
             "username": user.username,
             "email": user.email,
-            "avatar": user.avatar
+            "avatar": user.avatar,
+            "bio": getattr(user, 'bio', None)
         })
     
     # Also search in JSON storage (for backward compatibility)
@@ -108,7 +111,8 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
             "id": sql_user.id,
             "username": sql_user.username,
             "email": sql_user.email,
-            "avatar": sql_user.avatar
+            "avatar": sql_user.avatar,
+            "bio": getattr(sql_user, 'bio', None)
         }
     
     # Fallback to JSON storage
@@ -128,7 +132,8 @@ async def get_user_by_username(username: str, db: Session = Depends(get_db)):
             "id": sql_user.id,
             "username": sql_user.username,
             "email": sql_user.email,
-            "avatar": sql_user.avatar
+            "avatar": sql_user.avatar,
+            "bio": getattr(sql_user, 'bio', None)
         }
     
     # Fallback to JSON storage
@@ -181,6 +186,9 @@ async def update_user(user_data: UserUpdate, db: Session = Depends(get_db)):
                 else:
                     raise ValueError("Invalid avatar format")
             
+            if user_data.bio is not None:
+                sql_user.bio = user_data.bio.strip() if user_data.bio else None
+            
             db.commit()
             db.refresh(sql_user)
             
@@ -188,7 +196,8 @@ async def update_user(user_data: UserUpdate, db: Session = Depends(get_db)):
                 "id": sql_user.id,
                 "username": sql_user.username,
                 "email": sql_user.email,
-                "avatar": sql_user.avatar
+                "avatar": sql_user.avatar,
+                "bio": sql_user.bio
             }
         
         # Fallback to JSON storage
@@ -197,7 +206,8 @@ async def update_user(user_data: UserUpdate, db: Session = Depends(get_db)):
             current_email=user_data.currentEmail,
             username=user_data.username,
             email=user_data.email,
-            avatar=user_data.avatar
+            avatar=user_data.avatar,
+            bio=user_data.bio
         )
         return user
     except ValueError as e:

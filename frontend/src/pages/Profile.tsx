@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faIdCard, faImage, faEdit, faCopy, faCheck, faTrash, faTimes, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faLaptop, faHeart, faComment, faEye, faFileAlt, faIdCard, faImage, faEdit, faCopy, faCheck, faArrowLeft, faUser } from '@fortawesome/free-solid-svg-icons';
 import { User, CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
 import { ensureNumericId } from '../utils/idConverter';
@@ -237,20 +237,6 @@ const Profile: React.FC = () => {
     setIsChangeBackgroundModalOpen(true);
   };
 
-  const handleRemoveBackground = async () => {
-    if (user?.id) {
-      try {
-        await imageStorage.removeImage(`profile-bg-${user.id}`);
-        setBackgroundImage(null);
-        window.dispatchEvent(new CustomEvent('profileBackgroundUpdated'));
-      } catch (err) {
-        console.error('Failed to remove background image:', err);
-        // Still update UI even if removal fails
-        setBackgroundImage(null);
-      }
-    }
-  };
-
   const loadProfile = async () => {
     try {
       setLoading(true);
@@ -440,7 +426,6 @@ const Profile: React.FC = () => {
             <h1 className="profile-username">{user.username}</h1>
           </div>
           <div className="profile-contact">
-            <span className="contact-item"><FontAwesomeIcon icon={faEnvelope} /> {user.email}</span>
             <span className="contact-item contact-item-id">
               <FontAwesomeIcon icon={faIdCard} /> ID: {ensureNumericId(user.id)}
               <button 
@@ -451,6 +436,12 @@ const Profile: React.FC = () => {
                 <FontAwesomeIcon icon={isIdCopied ? faCheck : faCopy} />
               </button>
             </span>
+            {user.bio && user.bio.trim() && (
+              <span className="contact-item contact-item-bio">
+                <FontAwesomeIcon icon={faUser} />
+                <span className="bio-text">{user.bio}</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

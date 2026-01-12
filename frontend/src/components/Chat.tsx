@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faComment, faUserPlus, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faComment, faUserPlus } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest } from '../utils/api';
 import { apiService } from '../utils/api';
 import { subscribeToMessages, unsubscribe } from '../utils/realtimeService';

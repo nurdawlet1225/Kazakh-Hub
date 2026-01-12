@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-  faComment, faSearch, faTimes, faUserMinus, faUserPlus, 
+  faComment, faSearch, faTimes, faUserPlus, 
   faClock, faCheck, faCheckDouble, faCheckCircle,
-  faImage, faVideo, faFile, faMicrophone, faMapMarkerAlt, faPlay, faPause
+  faFile, faMapMarkerAlt, faEllipsisVertical, faTrash, faSearch as faSearchIcon,
+  faUser, faEdit, faVideo, faMusic
 } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest, Chat, MessageAttachment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -18,7 +19,7 @@ import '../components/Chat.css';
 
 const ChatPage: React.FC = () => {
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -29,20 +30,57 @@ const ChatPage: React.FC = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [outgoingFriendRequests, setOutgoingFriendRequests] = useState<FriendRequest[]>([]);
-  const [incomingRequestCount, setIncomingRequestCount] = useState(0);
   const [searching, setSearching] = useState(false);
   const [friendsSearchQuery, setFriendsSearchQuery] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [clickedAddButtons, setClickedAddButtons] = useState<Set<string>>(new Set());
+  const [showChatMenu, setShowChatMenu] = useState(false);
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const [messageSearchQuery, setMessageSearchQuery] = useState('');
+  const [showChatProfileModal, setShowChatProfileModal] = useState(false);
+  const [chatDisplayNames, setChatDisplayNames] = useState<Record<string, string>>({});
+  const [editingFriendId, setEditingFriendId] = useState<string | null>(null);
+  const [editDisplayName, setEditDisplayName] = useState<string>('');
+  const [showProfileNameMenu, setShowProfileNameMenu] = useState(false);
+  const profileNameMenuRef = useRef<HTMLDivElement>(null);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; filename: string } | null>(null);
+
+  // Чатта көрсетілетін атын localStorage-тан жүктеу
+  useEffect(() => {
+    if (selectedFriend?.id && currentUser?.id) {
+      const displayNameKey = `chat_display_name_${currentUser.id}_${selectedFriend.id}`;
+      const savedName = localStorage.getItem(displayNameKey);
+      if (savedName) {
+        setChatDisplayNames(prev => ({ ...prev, [selectedFriend.id]: savedName }));
+      } else {
+        // Егер сақталған аты жоқ болса, түпнұсқа атын қолдану
+        setChatDisplayNames(prev => {
+          const updated = { ...prev };
+          if (!updated[selectedFriend.id]) {
+            updated[selectedFriend.id] = selectedFriend.username;
+          }
+          return updated;
+        });
+      }
+    }
+  }, [selectedFriend?.id, selectedFriend?.username, currentUser?.id]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadChatsRef = useRef<(() => Promise<void>) | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (instant: boolean = false) => {
+    if (instant) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      messagesContainerRef.current?.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: 'auto'
+      });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const loadCurrentUser = async () => {
@@ -119,16 +157,12 @@ const ChatPage: React.FC = () => {
 
   const loadIncomingRequestCount = useCallback(async () => {
     if (!currentUser?.id) {
-      setIncomingRequestCount(0);
       return;
     }
     try {
-      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(currentUser.id);
-      setIncomingRequestCount(incomingRequestCount || 0);
+      await apiService.getIncomingFriendRequestCount(currentUser.id);
     } catch (err) {
       console.error('Failed to load incoming request count:', err);
-      // If user not found or error, set count to 0
-      setIncomingRequestCount(0);
     }
   }, [currentUser?.id]);
 
@@ -139,8 +173,28 @@ const ChatPage: React.FC = () => {
         currentUser.id,
         selectedFriend.id
       );
-      setMessages(conversationMessages);
-      scrollToBottom();
+      
+      // Тазаланған хабарламаларды фильтрлеу
+      const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
+      const existingCleared = localStorage.getItem(clearedMessagesKey);
+      let clearedIds: string[] = [];
+      
+      if (existingCleared) {
+        try {
+          clearedIds = JSON.parse(existingCleared);
+        } catch (e) {
+          console.error('Failed to parse cleared messages:', e);
+        }
+      }
+      
+      // Тазаланған хабарламаларды алып тастау
+      const filteredMessages = conversationMessages.filter(
+        msg => !clearedIds.includes(msg.id)
+      );
+      
+      setMessages(filteredMessages);
+      // Scroll to bottom instantly when loading messages
+      setTimeout(() => scrollToBottom(true), 50);
     } catch (err) {
       console.error('Failed to load messages:', err);
     }
@@ -216,7 +270,7 @@ const ChatPage: React.FC = () => {
     };
 
     const handleMessagesRead = (data: WebSocketMessage) => {
-      if (data.userId === selectedFriend?.id) {
+      if (selectedFriend && data.userId === selectedFriend.id) {
         setMessages(prev => prev.map(msg => 
           msg.fromUserId === currentUser.id && msg.toUserId === selectedFriend.id
             ? { ...msg, read: true, status: 'read' }
@@ -400,12 +454,18 @@ const ChatPage: React.FC = () => {
     if (currentUser?.id && selectedFriend?.id) {
       loadMessages();
       markConversationRead();
+      // Scroll to bottom immediately when entering conversation
+      setTimeout(() => scrollToBottom(true), 100);
     }
   }, [currentUser?.id, selectedFriend?.id, loadMessages, markConversationRead]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      // Use instant scroll for initial load, smooth for new messages
+      const isInitialLoad = messages.length === 1 || !messagesContainerRef.current?.scrollTop;
+      scrollToBottom(isInitialLoad);
+    }
   }, [messages]);
 
   // Cleanup
@@ -427,8 +487,6 @@ const ChatPage: React.FC = () => {
     metadata?: any
   ) => {
     if (!currentUser || !selectedFriend) return;
-
-    setIsTyping(false);
     
     // Clear typing indicator
     if (typingTimeoutRef.current) {
@@ -695,6 +753,134 @@ const ChatPage: React.FC = () => {
     }
   };
 
+  const handleClearMessages = () => {
+    if (!currentUser || !selectedFriend) return;
+    if (window.confirm('Осы беттегі барлық хабарламаларды тазалағыңыз келе ме?')) {
+      // Тазаланған хабарламалардың ID-лерін localStorage-та сақтау
+      const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
+      const clearedMessageIds = messages.map(msg => msg.id);
+      
+      // Барлық тазаланған хабарламаларды алу
+      const existingCleared = localStorage.getItem(clearedMessagesKey);
+      let allClearedIds: string[] = [];
+      
+      if (existingCleared) {
+        try {
+          allClearedIds = JSON.parse(existingCleared);
+        } catch (e) {
+          console.error('Failed to parse cleared messages:', e);
+        }
+      }
+      
+      // Жаңа тазаланған хабарламаларды қосу (дубликаттарды жою)
+      const updatedClearedIds = [...new Set([...allClearedIds, ...clearedMessageIds])];
+      localStorage.setItem(clearedMessagesKey, JSON.stringify(updatedClearedIds));
+      
+      setMessages([]);
+      setShowChatMenu(false);
+    }
+  };
+
+  const handleDeleteChat = async () => {
+    if (!currentUser || !selectedFriend) return;
+    if (window.confirm('Бұл чатті толығымен жойғыңыз келе ме? Дос тізімінен де алып тасталады және барлық хабарламалар жойылады.')) {
+      try {
+        // Дос алып тастау - бұл дос тізімінен де жойады
+        await apiService.removeFriend(currentUser.id, selectedFriend.id);
+        
+        // Тазаланған хабарламаларды да жою
+        const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
+        localStorage.removeItem(clearedMessagesKey);
+        
+        // Чат тізімін жаңарту - дос тізімінен жойылғандықтан, чат тізімінен де жойылады
+        await loadChats();
+        
+        // Ағымдағы чатті жабу
+        setSelectedFriend(null);
+        setMessages([]);
+        setShowChatMenu(false);
+        
+        alert('Чат жойылды және дос тізімінен алып тастылды');
+      } catch (err) {
+        console.error('Failed to delete chat:', err);
+        alert('Чат жою қатесі');
+      }
+    }
+  };
+
+  const handleSearchMessages = () => {
+    setShowMessageSearch(true);
+    setShowChatMenu(false);
+  };
+
+  const filteredMessages = messageSearchQuery
+    ? messages.filter(msg => 
+        msg.content.toLowerCase().includes(messageSearchQuery.toLowerCase())
+      )
+    : messages;
+
+  // Менюден тыс жерге басқанда менюні жабу
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowChatMenu(false);
+      }
+      if (profileNameMenuRef.current && !profileNameMenuRef.current.contains(event.target as Node)) {
+        setShowProfileNameMenu(false);
+      }
+    };
+
+    if (showChatMenu || showProfileNameMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showChatMenu, showProfileNameMenu]);
+
+  const handleSaveDisplayName = () => {
+    if (!currentUser || !selectedFriend) return;
+    const displayNameKey = `chat_display_name_${currentUser.id}_${selectedFriend.id}`;
+    const nameToSave = editDisplayName.trim() || selectedFriend.username;
+    localStorage.setItem(displayNameKey, nameToSave);
+    setChatDisplayNames(prev => ({ ...prev, [selectedFriend.id]: nameToSave }));
+    setEditingFriendId(null);
+    setEditDisplayName('');
+  };
+
+  // Медиа файлдарды алу (суреттер, видео, аудио, файлдар)
+  const getChatMedia = () => {
+    if (!selectedFriend || !currentUser) return [];
+    
+    const mediaMessages = messages.filter(msg => 
+      msg.type === 'image' || msg.type === 'video' || msg.type === 'audio' || msg.type === 'file'
+    );
+    
+    const mediaItems: Array<{ type: string; url: string; filename: string; messageId: string }> = [];
+    
+    mediaMessages.forEach(msg => {
+      if (msg.attachments && msg.attachments.length > 0) {
+        msg.attachments.forEach(att => {
+          mediaItems.push({
+            type: msg.type || 'file',
+            url: att.url,
+            filename: att.filename,
+            messageId: msg.id
+          });
+        });
+      }
+    });
+    
+    return mediaItems;
+  };
+
+  const getFullUrl = (url: string) => {
+    if (url.startsWith('http')) return url;
+    if (url.startsWith('/api')) return `${API_BASE_URL.replace('/api', '')}${url}`;
+    return `${API_BASE_URL.replace('/api', '')}/api${url}`;
+  };
+
   const getMessageStatusIcon = (message: Message) => {
     if (message.status === 'read') {
       return <FontAwesomeIcon icon={faCheckCircle} className="message-status read" />;
@@ -738,17 +924,16 @@ const ChatPage: React.FC = () => {
               {message.attachments.map((att, idx) => {
                 const imageUrl = getFullUrl(att.url);
                 return (
-                  <div key={idx} className="chat-message-image-wrapper">
-                    <img
-                      src={imageUrl}
-                      alt={att.filename}
-                      className="chat-message-image"
-                      onClick={() => {
-                        // Open image in new tab
-                        window.open(imageUrl, '_blank');
-                      }}
-                    />
-                  </div>
+                  <img
+                    key={idx}
+                    src={imageUrl}
+                    alt={att.filename}
+                    className="chat-message-image"
+                    onClick={() => {
+                      setSelectedImage({ url: imageUrl, filename: att.filename });
+                    }}
+                    loading="lazy"
+                  />
                 );
               })}
               {message.content && (
@@ -960,7 +1145,14 @@ const ChatPage: React.FC = () => {
                       className={`chat-friend-item ${selectedFriend?.id === chat.partnerId ? 'active' : ''} ${chat.unreadCount > 0 ? 'has-unread' : ''}`}
                       onClick={() => setSelectedFriend(chat.partner)}
                     >
-                      <div className="chat-friend-avatar">
+                      <div 
+                        className="chat-friend-avatar"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/profile/${chat.partner.username}`);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         {chat.partner.avatar ? (
                           <img src={chat.partner.avatar} alt={chat.partner.username} />
                         ) : (
@@ -975,11 +1167,6 @@ const ChatPage: React.FC = () => {
                       <div className="chat-friend-info">
                         <div className="chat-friend-header">
                           <div className="chat-friend-name">{chat.partner.username}</div>
-                          {chat.lastMessage && (
-                            <div className="chat-friend-time">
-                              {formatTime(chat.lastMessage.createdAt)}
-                            </div>
-                          )}
                         </div>
                         {chat.lastMessage && (
                           <div className="chat-friend-last-message">
@@ -989,14 +1176,12 @@ const ChatPage: React.FC = () => {
                               : chat.lastMessage.content}
                           </div>
                         )}
+                        {chat.lastMessage && (
+                          <div className="chat-friend-time">
+                            {formatTime(chat.lastMessage.createdAt)}
+                          </div>
+                        )}
                       </div>
-                      <button
-                        className="chat-remove-friend-btn"
-                        onClick={(e) => handleRemoveFriend(chat.partnerId, e)}
-                        title="Дос алып тастау"
-                      >
-                        <FontAwesomeIcon icon={faUserMinus} />
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -1184,6 +1369,13 @@ const ChatPage: React.FC = () => {
                           </div>
                           <div className="chat-request-actions">
                             <button
+                              className="chat-accept-btn"
+                              onClick={() => handleAcceptRequest(request.id)}
+                              title="Қабылдау"
+                            >
+                              <FontAwesomeIcon icon={faCheck} />
+                            </button>
+                            <button
                               className="chat-cancel-btn"
                               onClick={() => handleCancelRequest(request.id)}
                               title="Сұрауды жою"
@@ -1205,31 +1397,103 @@ const ChatPage: React.FC = () => {
           {selectedFriend ? (
             <>
               <div className="chat-messages-header">
-                <div className="chat-messages-friend">
-                  <div className="chat-friend-avatar small">
+                <div 
+                  className="chat-messages-friend"
+                  onClick={() => setShowChatProfileModal(true)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div 
+                    className="chat-friend-avatar small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowChatProfileModal(true);
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
                     {selectedFriend.avatar ? (
                       <img src={selectedFriend.avatar} alt={selectedFriend.username} />
                     ) : (
                       <span>{selectedFriend.username.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
-                  <span>{selectedFriend.username}</span>
+                  <span>{chatDisplayNames[selectedFriend.id] || selectedFriend.username}</span>
                   {typingUsers.has(selectedFriend.id) && (
                     <span className="typing-indicator">жазуда...</span>
                   )}
                 </div>
+                <div className="chat-menu-container" ref={menuRef}>
+                  <button
+                    className="chat-menu-btn"
+                    onClick={() => setShowChatMenu(!showChatMenu)}
+                    title="Меню"
+                  >
+                    <FontAwesomeIcon icon={faEllipsisVertical} />
+                  </button>
+                  {showChatMenu && (
+                    <div className="chat-menu-dropdown">
+                      <button
+                        className="chat-menu-item"
+                        onClick={handleSearchMessages}
+                      >
+                        <FontAwesomeIcon icon={faSearchIcon} />
+                        <span>Осы беттен жазу іздеу</span>
+                      </button>
+                      <button
+                        className="chat-menu-item"
+                        onClick={handleClearMessages}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                        <span>Осы беттегі жазуларды тазалау</span>
+                      </button>
+                      <button
+                        className="chat-menu-item chat-menu-item-danger"
+                        onClick={handleDeleteChat}
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                        <span>Чатті жою</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+              {showMessageSearch && (
+                <div className="chat-message-search">
+                  <div className="chat-message-search-box">
+                    <FontAwesomeIcon icon={faSearchIcon} className="chat-search-icon" />
+                    <input
+                      type="text"
+                      className="chat-message-search-input"
+                      placeholder="Хабарламаларды іздеу..."
+                      value={messageSearchQuery}
+                      onChange={(e) => setMessageSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                    <button
+                      className="chat-clear-search-btn"
+                      onClick={() => {
+                        setShowMessageSearch(false);
+                        setMessageSearchQuery('');
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} />
+                    </button>
+                  </div>
+                  {messageSearchQuery && (
+                    <div className="chat-search-results-info">
+                      {filteredMessages.length} хабарлама табылды
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="chat-messages-list" ref={messagesContainerRef}>
-                {messages.map((message) => {
+                {filteredMessages.map((message) => {
                   const isOwn = message.fromUserId === currentUser?.id;
                   return (
                     <div
                       key={message.id}
                       className={`chat-message ${isOwn ? 'own' : 'other'} ${message.type || 'text'}`}
                     >
-                      <div className="chat-message-content">
-                        {renderMessageContent(message)}
-                      </div>
+                      {renderMessageContent(message)}
                       <div className="chat-message-footer">
                         <div className="chat-message-time">
                           {formatTime(message.createdAt)}
@@ -1259,6 +1523,194 @@ const ChatPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Чат профилі модалы */}
+      {showChatProfileModal && selectedFriend && currentUser && (
+        <div className="chat-profile-modal-overlay" onClick={() => setShowChatProfileModal(false)}>
+          <div className="chat-profile-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="chat-profile-modal-header">
+              <h2>Чат профилі</h2>
+              <button className="chat-profile-modal-close" onClick={() => setShowChatProfileModal(false)}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="chat-profile-modal-body">
+              <div className="chat-profile-avatar-section">
+                <div className="chat-profile-avatar-large">
+                  {selectedFriend.avatar ? (
+                    <img src={selectedFriend.avatar} alt={selectedFriend.username} />
+                  ) : (
+                    <span>{selectedFriend.username.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="chat-profile-name-section">
+                  {editingFriendId === selectedFriend.id ? (
+                    <div className="chat-profile-edit-name">
+                      <input
+                        type="text"
+                        value={editDisplayName}
+                        onChange={(e) => setEditDisplayName(e.target.value)}
+                        className="chat-profile-name-input"
+                        placeholder={selectedFriend.username}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveDisplayName();
+                          } else if (e.key === 'Escape') {
+                            setEditingFriendId(null);
+                            setEditDisplayName('');
+                          }
+                        }}
+                      />
+                      <button
+                        className="chat-profile-save-btn"
+                        onClick={handleSaveDisplayName}
+                        title="Сақтау"
+                      >
+                        <FontAwesomeIcon icon={faCheck} />
+                      </button>
+                      <button
+                        className="chat-profile-cancel-btn"
+                        onClick={() => {
+                          setEditingFriendId(null);
+                          setEditDisplayName('');
+                        }}
+                        title="Болдырмау"
+                      >
+                        <FontAwesomeIcon icon={faTimes} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="chat-profile-name-display">
+                      <h3>{chatDisplayNames[selectedFriend.id] || selectedFriend.username}</h3>
+                      <div className="chat-profile-name-menu-container" ref={profileNameMenuRef}>
+                        <button
+                          className="chat-profile-name-menu-btn"
+                          onClick={() => setShowProfileNameMenu(!showProfileNameMenu)}
+                          title="Меню"
+                        >
+                          <FontAwesomeIcon icon={faEllipsisVertical} />
+                        </button>
+                        {showProfileNameMenu && (
+                          <div className="chat-profile-name-menu-dropdown">
+                            <button
+                              className="chat-profile-name-menu-item"
+                              onClick={() => {
+                                setEditingFriendId(selectedFriend.id);
+                                setEditDisplayName(chatDisplayNames[selectedFriend.id] || selectedFriend.username);
+                                setShowProfileNameMenu(false);
+                              }}
+                            >
+                              <FontAwesomeIcon icon={faEdit} />
+                              <span>Атын өзгерту</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="chat-profile-info">
+                <div className="chat-profile-info-item">
+                  <FontAwesomeIcon icon={faUser} className="chat-profile-info-icon" />
+                  <div className="chat-profile-info-content">
+                    <div className="chat-profile-info-label">Пайдаланушы аты</div>
+                    <div className="chat-profile-info-value">{selectedFriend.username}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Медиа бөлімі */}
+              <div className="chat-profile-media-section">
+                <h4 className="chat-profile-media-title">Медиа</h4>
+                {getChatMedia().length === 0 ? (
+                  <div className="chat-profile-media-empty">
+                    Медиа файлдар жоқ
+                  </div>
+                ) : (
+                  <div className="chat-profile-media-grid">
+                    {getChatMedia().map((media, index) => (
+                      <div key={`${media.messageId}-${index}`} className="chat-profile-media-item">
+                        {media.type === 'image' ? (
+                          <img
+                            src={getFullUrl(media.url)}
+                            alt={media.filename}
+                            className="chat-profile-media-image"
+                            onClick={() => window.open(getFullUrl(media.url), '_blank')}
+                          />
+                        ) : media.type === 'video' ? (
+                          <div className="chat-profile-media-video">
+                            <FontAwesomeIcon icon={faVideo} />
+                            <span>{media.filename}</span>
+                          </div>
+                        ) : media.type === 'audio' ? (
+                          <div className="chat-profile-media-audio">
+                            <FontAwesomeIcon icon={faMusic} />
+                            <span>{media.filename}</span>
+                          </div>
+                        ) : (
+                          <div className="chat-profile-media-file">
+                            <FontAwesomeIcon icon={faFile} />
+                            <span>{media.filename}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="chat-profile-actions">
+                <button
+                  className="chat-profile-action-btn"
+                  onClick={() => {
+                    setShowChatProfileModal(false);
+                    navigate(`/profile/${selectedFriend.username}`);
+                  }}
+                >
+                  Толық профильді көру
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Сурет көрсету модалы */}
+      {selectedImage && (
+        <div 
+          className="chat-image-viewer-overlay" 
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="chat-image-viewer-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="chat-image-viewer-close" 
+              onClick={() => setSelectedImage(null)}
+              title="Жабу"
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+            <img 
+              src={selectedImage.url} 
+              alt={selectedImage.filename}
+              className="chat-image-viewer-image"
+            />
+            <div className="chat-image-viewer-footer">
+              <span className="chat-image-viewer-filename">{selectedImage.filename}</span>
+              <a
+                href={selectedImage.url}
+                download={selectedImage.filename}
+                className="chat-image-viewer-download"
+                onClick={(e) => e.stopPropagation()}
+                title="Жүктеу"
+              >
+                <FontAwesomeIcon icon={faFile} />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

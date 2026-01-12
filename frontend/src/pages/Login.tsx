@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
@@ -10,7 +9,6 @@ import './Auth.css';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
   const heroRef = useRef<HTMLDivElement>(null);
   
   // Сақталған логин деректерін жүктеу

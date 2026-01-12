@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { useFileUpload } from '../hooks/useFileUpload';
+import Button from './Button';
 import './FolderUploadItem.css';
 
 interface FolderUploadItemProps {
@@ -107,7 +108,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
               <span className="folder-name">
                 {selectedFiles[0]?.webkitRelativePath?.split('/')[0] || 'Папка'}
               </span>
-              <span className="folder-size">{selectedFiles.length} файл(дар)</span>
+              <span className="folder-size">{selectedFiles.length} файл</span>
             </div>
           ) : (
             <div className="dropzone-content">
@@ -131,7 +132,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="folder-description">Сипаттама (міндетті емес)</label>
+          <label htmlFor="folder-description">Сипаттама</label>
           <textarea
             id="folder-description"
             value={description}
@@ -142,7 +143,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="folder-tags">Тегтер (міндетті емес)</label>
+          <label htmlFor="folder-tags">Тегтер</label>
           <input
             id="folder-tags"
             type="text"

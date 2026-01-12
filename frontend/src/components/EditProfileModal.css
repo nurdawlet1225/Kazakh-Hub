@@ -440,6 +440,11 @@
   z-index: 2;
 }
 
+.avatar-actions .btn-remove-avatar {
+  width: auto;
+  flex-shrink: 0;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -707,6 +712,9 @@
   box-shadow: 
     0 2px 8px rgba(239, 68, 68, 0.15),
     0 1px 3px rgba(239, 68, 68, 0.1);
+  width: auto;
+  min-width: auto;
+  max-width: fit-content;
 }
 
 .btn-remove-avatar::before {

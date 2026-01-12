@@ -109,7 +109,7 @@ class UserService:
     @staticmethod
     def update_user(user_id: Optional[str] = None, current_email: Optional[str] = None, 
                    username: Optional[str] = None, email: Optional[str] = None, 
-                   avatar: Optional[str] = None) -> Dict[str, Any]:
+                   avatar: Optional[str] = None, bio: Optional[str] = None) -> Dict[str, Any]:
         """Update user information"""
         user = None
         
@@ -148,6 +148,9 @@ class UserService:
                 user['avatar'] = avatar
             else:
                 raise ValueError("Invalid avatar format")
+        
+        if bio is not None:
+            user['bio'] = bio.strip() if bio else None
         
         save_users()
         return user

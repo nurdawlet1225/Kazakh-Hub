@@ -216,6 +216,8 @@
     "codesFoundPlural": "код табылды",
     "noCodesYet": "Әзірге кодтар жоқ. Алғашқы кодтыңызды жүктеңіз!",
     "noCodesInCategory": "Бұл категорияда кодтар жоқ",
+    "hideSection": "Бөлімді жасыру",
+    "showAllSections": "Барлық бөлімдерді көрсету",
     "categoryAI": "ЖИ бөлімі",
     "categoryWebsites": "Сайттар",
     "categoryMobile": "Мобильді қосымшалар",

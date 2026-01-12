@@ -24,6 +24,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     username: user.username,
     email: user.email,
     avatar: user.avatar || '',
+    bio: user.bio || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
@@ -62,6 +63,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           username: user.username,
           email: user.email,
           avatar: avatarToUse,
+          bio: user.bio || '',
           currentPassword: '',
           newPassword: '',
           confirmPassword: '',
@@ -243,6 +245,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       const updateData: Partial<User> & { userId?: string; currentEmail?: string } = {
         username: formData.username,
         email: formData.email,
+        bio: formData.bio || undefined,
         userId: user.id, // Send user ID to help backend find the user
         currentEmail: user.email, // Send current email as backup
       };
@@ -256,7 +259,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
       console.log('Updating profile with:', { 
         ...updateData, 
-        avatar: updateData.avatar ? 'base64 image (length: ' + updateData.avatar.length + ')' : 'null' 
+        avatar: updateData.avatar ? 'base64 image (length: ' + updateData.avatar.length + ')' : 'null',
+        bio: updateData.bio || 'empty'
       });
 
       const updatedUser = await apiService.updateUserProfile(updateData);
@@ -265,6 +269,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         id: updatedUser.id, 
         username: updatedUser.username, 
         email: updatedUser.email,
+        bio: updatedUser.bio || 'empty',
         hasAvatar: !!updatedUser.avatar 
       });
 
@@ -290,8 +295,15 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       const { avatar, ...userWithoutAvatar } = updatedUser;
       const userForStorage = {
         ...userWithoutAvatar,
+        bio: updatedUser.bio || formData.bio || undefined, // Ensure bio is included
         avatar: avatar ? 'stored' : undefined // Just a flag, not the actual image
       };
+      
+      console.log('Saving to localStorage:', {
+        id: userForStorage.id,
+        username: userForStorage.username,
+        bio: userForStorage.bio || 'empty'
+      });
       
       try {
         localStorage.setItem('user', JSON.stringify(userForStorage));
@@ -320,6 +332,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       } else {
         finalUser.avatar = undefined;
       }
+      
+      // Ensure bio is included in finalUser
+      finalUser.bio = updatedUser.bio || formData.bio || undefined;
 
       // Dispatch custom event to notify Header component
       window.dispatchEvent(new CustomEvent('userProfileUpdated'));
@@ -434,6 +449,47 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               placeholder="email@example.com"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <textarea
+              id="bio"
+              value={formData.bio}
+              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+              placeholder="Сипаттама"
+              rows={1}
+              maxLength={500}
+              style={{
+                width: '100%',
+                padding: '0.5rem 0.75rem',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontFamily: 'inherit',
+                fontSize: '0.9rem',
+                resize: 'vertical',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                minHeight: '40px',
+                maxHeight: '100px',
+                lineHeight: '1.4'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--accent-color)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border-color)';
+              }}
+            />
+            <div style={{
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
+              marginTop: '0.25rem',
+              textAlign: 'right'
+            }}>
+              {formData.bio.length} / 500
+            </div>
           </div>
 
           <div className="form-group password-change-section">

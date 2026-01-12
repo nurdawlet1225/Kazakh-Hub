@@ -412,28 +412,11 @@
   line-height: 1.6;
 }
 
+/* Loading spinner base styles moved to globals.css */
+
+/* Profile page modal specific spinner container */
 .loading-spinner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   min-height: 192px;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 25.6px;
-  height: 25.6px;
-  border: 2.6px solid var(--border-color);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .error-state {

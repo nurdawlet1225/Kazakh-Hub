@@ -19,7 +19,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'firebase-vendor': ['firebase'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'i18n-vendor': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'ui-vendor': ['@fortawesome/react-fontawesome', '@fortawesome/fontawesome-svg-core'],
         },
@@ -28,7 +28,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'firebase/app',
+      'firebase/auth',
+      'firebase/firestore',
+    ],
   },
 })
 

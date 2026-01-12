@@ -218,6 +218,8 @@
     "codesFoundPlural": "codes found",
     "noCodesYet": "No codes yet. Upload your first code!",
     "noCodesInCategory": "No codes in this category",
+    "hideSection": "Hide section",
+    "showAllSections": "Show all sections",
     "categoryAI": "AI Section",
     "categoryWebsites": "Websites",
     "categoryMobile": "Mobile Apps",

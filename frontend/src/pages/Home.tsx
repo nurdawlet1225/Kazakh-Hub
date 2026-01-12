@@ -9,6 +9,7 @@ import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
 import { isFirestoreBlocked } from '../utils/firebase';
 import CodeCard from '../components/CodeCard';
 import CodesListModal from '../components/CodesListModal';
+import './Home.css';
 
 type SortOption = 'newest' | 'oldest' | 'title' | 'author';
 type ViewMode = 'grid' | 'list';
@@ -307,19 +308,17 @@ const Home: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="w-full max-w-full m-0 p-6 animate-fade-in">
-        <div className="flex flex-col items-center justify-center min-h-[320px] gap-8 p-16">
-          <div className="w-10 h-10 border-4 border-border rounded-full border-t-primary border-r-primary animate-spin relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 border-2 border-transparent border-t-accent rounded-full animate-spin-reverse"></div>
-          </div>
-          <p className="text-text-secondary text-lg font-medium animate-pulse">{t('home.loading')}</p>
+      <div className="w-full max-w-[1400px] m-0 p-6 animate-fade-in mx-auto">
+        <div className="loading-spinner" style={{ minHeight: '320px', padding: '4rem' }}>
+          <div className="spinner"></div>
+          <p className="text-text-secondary text-lg font-medium">{t('home.loading')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-full m-0 p-6 animate-fade-in box-border">
+    <div className="w-full max-w-[1400px] m-0 p-6 animate-fade-in box-border mx-auto">
       <div className="flex gap-8 max-w-[1400px] mx-auto items-start lg:flex-row flex-col">
         {/* Сол жақ меню */}
         <aside className="w-[280px] flex-shrink-0 p-6 sticky top-5 max-h-[calc(100vh-40px)] overflow-y-auto overflow-x-hidden lg:w-[280px] w-full lg:relative lg:top-0 lg:max-h-none">

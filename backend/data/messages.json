@@ -1,1 +1,87 @@
-[]
+[
+  {
+    "id": "caf75109-363a-441a-92f0-cf9a6910411d",
+    "fromUserId": "730948837585",
+    "toUserId": "728388036309",
+    "content": "",
+    "type": "image",
+    "attachments": [
+      {
+        "filename": "ChatGPT Image 1 нояб. 2025 г., 10_34_20.png",
+        "url": "/api/uploads/images/20260111_163242_ChatGPT Image 1 нояб. 2025 г., 10_34_20.png",
+        "size": 1182865,
+        "mimeType": "image/png"
+      }
+    ],
+    "metadata": {},
+    "createdAt": "2026-01-11T16:32:42.376262",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "0419f744-e149-4f51-a02d-c1093ddf6c2a",
+    "fromUserId": "730948837585",
+    "toUserId": "728388036309",
+    "content": "😃",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-11T16:33:06.045492",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "496c742a-5187-40dc-a189-4fdb86548eb2",
+    "fromUserId": "730948837585",
+    "toUserId": "728388036309",
+    "content": "сәлем",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-11T16:39:04.743111",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "dd9b3ce0-729f-489f-b8aa-507ca36939e5",
+    "fromUserId": "730948837585",
+    "toUserId": "728388036309",
+    "content": "ывапролдждлорпавявапролджэждлорпавывапролдж№лорпавывапролджэждлорпавывапролдждлорпавывапролдждлорпавапролдлорпавывапролджлорпавапролдждлорпапролджээ",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-11T16:56:29.031348",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "c08d38be-37ea-4919-857e-c135b0a6fe38",
+    "fromUserId": "730948837585",
+    "toUserId": "728388036309",
+    "content": "ждлорпавпролдждлорпавыапролдорпавапролдлорпапролхдлорпавсмитьбдшгнпипавшоктеньрлщмшвотукеьнбодщтшиморсвпиуктеньгбшюжлзьщтишмгврыпциуткеьрдощтшигмсрвпыциуткеьнброжзтщимшсгвриуктеьрбодтщимшсгвортьпрбодщтишмовтьбпюроб",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-11T16:56:39.434548",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "f3517603-4f1e-45ad-82d0-491bca584a11",
+    "fromUserId": "730948837585",
+    "toUserId": "728388036309",
+    "content": "сәлем",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-11T17:02:15.112860",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  }
+]

@@ -25,6 +25,8 @@ interface CommentItemProps {
   replyingToCommentId: string | null;
   replyText: string;
   setReplyText: (text: string) => void;
+  replyImage: string | null;
+  setReplyImage: (image: string | null) => void;
   isSubmittingReply: boolean;
   onEdit: (comment: Comment) => void;
   onSave: (commentId: string) => void;
@@ -37,6 +39,7 @@ interface CommentItemProps {
   allComments?: Comment[];
   currentLanguage: string;
   authorAvatar?: string;
+  onReplyImageSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -48,6 +51,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
   replyingToCommentId,
   replyText,
   setReplyText,
+  replyImage,
+  setReplyImage,
   isSubmittingReply,
   onEdit,
   onSave,
@@ -60,6 +65,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   allComments = [],
   currentLanguage,
   authorAvatar,
+  onReplyImageSelect,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -207,9 +213,26 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   )}
                 </div>
               )}
-              <p className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-wrap break-words mb-3">
-                {comment.content}
-              </p>
+              <div className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-wrap break-words mb-3">
+                {comment.content.split(/(<img[^>]*>)/).map((part, index) => {
+                  if (part.startsWith('<img')) {
+                    // Extract src from img tag
+                    const srcMatch = part.match(/src="([^"]*)"/);
+                    if (srcMatch) {
+                      return (
+                        <img
+                          key={index}
+                          src={srcMatch[1]}
+                          alt="Comment image"
+                          className="max-w-full rounded-lg mt-2"
+                          style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
+                        />
+                      );
+                    }
+                  }
+                  return <span key={index}>{part}</span>;
+                })}
+              </div>
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--primary-color)]/20">
                 <button
                   className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-xs font-medium active:scale-95 w-auto ${
@@ -263,16 +286,27 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      console.log('Image selected:', file);
-                    }
-                  }}
+                  onChange={onReplyImageSelect}
                 />
                 <FontAwesomeIcon icon={faImage} className="w-4 h-4" />
               </label>
               <div className="relative flex-1">
+                {replyImage && (
+                  <div className="mb-2 relative">
+                    <img
+                      src={replyImage}
+                      alt="Preview"
+                      className="max-w-full max-h-32 rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setReplyImage(null)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
                 <textarea
                   className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
                   placeholder={t('viewCode.replyPlaceholder')}
@@ -290,7 +324,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               <button
                 type="submit"
                 className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                disabled={!replyText.trim() || isSubmittingReply}
+                disabled={(!replyText.trim() && !replyImage) || isSubmittingReply}
                 title={isSubmittingReply ? t('common.loading') : t('viewCode.addReply')}
               >
                 <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
@@ -319,6 +353,8 @@ const ViewCode: React.FC = () => {
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [commentImage, setCommentImage] = useState<string | null>(null);
+  const [replyImage, setReplyImage] = useState<string | null>(null);
   const [folderFiles, setFolderFiles] = useState<CodeFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
@@ -686,9 +722,16 @@ const ViewCode: React.FC = () => {
     if (e) {
       e.preventDefault();
     }
-    if (!code || !currentUser || !commentText.trim()) return;
+    if (!code || !currentUser || (!commentText.trim() && !commentImage)) return;
 
-    const commentTextToAdd = commentText.trim();
+    // Build comment content with image if present
+    let commentContent = commentText.trim();
+    if (commentImage) {
+      const imageTag = `<img src="${commentImage}" alt="Comment image" style="max-width: 100%; border-radius: 8px; margin-top: 8px;" />`;
+      commentContent = commentContent ? `${commentContent}\n${imageTag}` : imageTag;
+    }
+
+    const commentTextToAdd = commentContent;
     setIsSubmittingComment(true);
     
     // Optimistic UI update - пікірді бірден көрсету
@@ -708,6 +751,7 @@ const ViewCode: React.FC = () => {
       };
     });
     setCommentText('');
+    setCommentImage(null);
     
     try {
       const updatedCode = await apiService.addComment(
@@ -730,7 +774,8 @@ const ViewCode: React.FC = () => {
           comments: (prevCode.comments || []).filter(c => c.id !== optimisticComment.id)
         };
       });
-      setCommentText(commentTextToAdd);
+      setCommentText(commentText.trim());
+      setCommentImage(commentImage);
       alert('Пікір қосу қатесі');
     } finally {
       setIsSubmittingComment(false);
@@ -789,11 +834,83 @@ const ViewCode: React.FC = () => {
   const handleCancelReply = () => {
     setReplyingToCommentId(null);
     setReplyText('');
+    setReplyImage(null);
+  };
+
+  const handleCommentImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF, WEBP)');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Сурет өлшемі 10MB-тан аспауы керек');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setCommentImage(result);
+      };
+      reader.onerror = () => {
+        alert('Суретті оқу қатесі');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error reading image:', err);
+      alert('Суретті өңдеу қатесі');
+    }
+  };
+
+  const handleReplyImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF, WEBP)');
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Сурет өлшемі 10MB-тан аспауы керек');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setReplyImage(result);
+      };
+      reader.onerror = () => {
+        alert('Суретті оқу қатесі');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error reading image:', err);
+      alert('Суретті өңдеу қатесі');
+    }
   };
 
   const handleSubmitReply = async (e: React.FormEvent, parentId: string) => {
     e.preventDefault();
-    if (!code || !currentUser || !replyText.trim()) return;
+    if (!code || !currentUser || (!replyText.trim() && !replyImage)) return;
+
+    // Build reply content with image if present
+    let replyContent = replyText.trim();
+    if (replyImage) {
+      const imageTag = `<img src="${replyImage}" alt="Reply image" style="max-width: 100%; border-radius: 8px; margin-top: 8px;" />`;
+      replyContent = replyContent ? `${replyContent}\n${imageTag}` : imageTag;
+    }
 
     setIsSubmittingReply(true);
     try {
@@ -801,7 +918,7 @@ const ViewCode: React.FC = () => {
         code.id,
         parentId,
         currentUser.username,
-        replyText.trim()
+        replyContent
       );
       setCode(updatedCode);
       // Load avatars for comment authors
@@ -809,6 +926,7 @@ const ViewCode: React.FC = () => {
         loadCommentAuthorAvatars(updatedCode.comments);
       }
       setReplyText('');
+      setReplyImage(null);
       setReplyingToCommentId(null);
       
       // Жаңа жауапқа scroll жасау
@@ -1224,6 +1342,8 @@ const ViewCode: React.FC = () => {
                       replyingToCommentId={replyingToCommentId}
                       replyText={replyText}
                       setReplyText={setReplyText}
+                      replyImage={replyImage}
+                      setReplyImage={setReplyImage}
                       isSubmittingReply={isSubmittingReply}
                       onEdit={handleEditComment}
                       onSave={handleSaveComment}
@@ -1236,6 +1356,7 @@ const ViewCode: React.FC = () => {
                       allComments={code.comments || []}
                       currentLanguage={currentLanguage}
                       authorAvatar={userAvatars[comment.author]}
+                      onReplyImageSelect={handleReplyImageSelect}
                     />
                   ))
                 ) : (
@@ -1254,24 +1375,35 @@ const ViewCode: React.FC = () => {
                   }} 
                   className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl shadow-lg backdrop-blur-sm flex-shrink-0 z-10 focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
                 >
-                  <div className="flex items-end gap-3">
-                    <label className="w-10 h-10 rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
+                  <div className="flex items-center gap-3">
+                    <label className="h-[32px] w-[32px] min-h-[32px] min-w-[32px] box-border rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            console.log('Image selected:', file);
-                          }
-                        }}
+                        onChange={handleCommentImageSelect}
                       />
-                      <FontAwesomeIcon icon={faImage} className="w-4 h-4" />
+                      <FontAwesomeIcon icon={faImage} className="w-3.5 h-3.5" />
                     </label>
                     <div className="relative flex-1">
+                      {commentImage && (
+                        <div className="mb-2 relative">
+                          <img
+                            src={commentImage}
+                            alt="Preview"
+                            className="max-w-full max-h-32 rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setCommentImage(null)}
+                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
                       <textarea
-                        className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
+                        className="w-full px-4 py-1.5 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-none h-[32px] min-h-[32px] max-h-[32px] box-border focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)] overflow-y-hidden"
                         placeholder={t('viewCode.commentPlaceholder')}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
@@ -1281,16 +1413,16 @@ const ViewCode: React.FC = () => {
                             handleAddComment(e);
                           }
                         }}
-                        rows={3}
+                        rows={1}
                       />
                     </div>
                     <button
                       type="submit"
-                      className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      disabled={!commentText.trim() || isSubmittingComment}
+                      className="h-[32px] w-[32px] min-h-[32px] min-w-[32px] box-border flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      disabled={(!commentText.trim() && !commentImage) || isSubmittingComment}
                       title={isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
                     >
-                      <FontAwesomeIcon icon={faPaperPlane} className="w-4 h-4" />
+                      <FontAwesomeIcon icon={faPaperPlane} className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </form>

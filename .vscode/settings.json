@@ -6,5 +6,6 @@
     ],
     "cursorpyright.analysis.extraPaths": [
         "${workspaceFolder}/backend"
-    ]
+    ],
+    "css.lint.unknownAtRules": "ignore"
 }

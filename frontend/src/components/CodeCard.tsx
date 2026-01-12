@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faCalendar, faHeart, faComment, faEye, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faHeart, faComment, faEye, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
 import './CodeCard.css';
 
@@ -14,30 +14,8 @@ interface CodeCardProps {
 
 const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected = false, onToggleSelect }) => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
-  const formatDateNumeric = (dateString: string): string => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
-
-  const getLanguageColor = (language: string): string => {
-    const colors: Record<string, string> = {
-      javascript: '#f7df1e',
-      typescript: '#3178c6',
-      python: '#3776ab',
-      java: '#ed8b00',
-      cpp: '#00599c',
-      c: '#a8b9cc',
-      html: '#e34c26',
-      css: '#1572b6',
-      json: '#000000',
-      markdown: '#083fa1',
-      other: '#6b7280',
-    };
-    return colors[language] || colors.other;
-  };
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const cardWrapperRef = useRef<HTMLDivElement>(null);
 
   const truncateContent = (content: string, maxLength: number = 150): string => {
     if (content.length <= maxLength) return content;
@@ -65,26 +43,94 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
   const handleToggleDescription = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDescriptionExpanded(!isDescriptionExpanded);
+    const willExpand = !isDescriptionExpanded;
+    setIsDescriptionExpanded(willExpand);
+    
+    // Scroll into view when expanding - scroll card to top of scrollable container
+    if (willExpand) {
+      // Find the scrollable parent container
+      const findScrollableParent = (element: HTMLElement | null): HTMLElement | null => {
+        if (!element) return null;
+        let parent = element.parentElement;
+        
+        while (parent) {
+          const style = window.getComputedStyle(parent);
+          const hasOverflow = style.overflowY === 'auto' || style.overflowY === 'scroll';
+          const hasMaxHeight = style.maxHeight && style.maxHeight !== 'none';
+          
+          if (hasOverflow && hasMaxHeight) {
+            return parent;
+          }
+          
+          parent = parent.parentElement;
+        }
+        
+        return null;
+      };
+      
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (cardWrapperRef.current) {
+            const scrollableParent = findScrollableParent(cardWrapperRef.current);
+            
+            if (scrollableParent) {
+              // Get current positions
+              const cardRect = cardWrapperRef.current.getBoundingClientRect();
+              const parentRect = scrollableParent.getBoundingClientRect();
+              const currentScrollTop = scrollableParent.scrollTop;
+              
+              // Calculate the card's position relative to the scrollable parent's content
+              const cardTopInParent = cardRect.top - parentRect.top + currentScrollTop;
+              
+              // Scroll to position card at the top of the visible area
+              scrollableParent.scrollTo({
+                top: cardTopInParent,
+                behavior: 'smooth'
+              });
+            } else {
+              // Fallback to scrollIntoView if no scrollable parent found
+              cardWrapperRef.current.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+              });
+            }
+          }
+        }, 150);
+      });
+    }
   };
 
-  const descriptionText = code.description 
+  const fullDescriptionText = code.description 
     ? code.description 
     : !code.isFolder && !isJsonStructure(code.content) 
-      ? truncateContent(code.content, 100) 
+      ? code.content 
       : null;
   
-  const shouldShowToggleButton = descriptionText && descriptionText.length > 50;
+  const truncatedDescriptionText = fullDescriptionText 
+    ? truncateContent(fullDescriptionText, 100)
+    : null;
+  
+  const descriptionText = isDescriptionExpanded 
+    ? fullDescriptionText 
+    : truncatedDescriptionText;
+  
+  const shouldShowToggleButton = fullDescriptionText && fullDescriptionText.length > 100;
 
 
   return (
-    <div className={`code-card-wrapper ${viewMode === 'list' ? 'list-mode' : ''} ${isSelected ? 'selected' : ''}`}>
+    <div 
+      ref={cardWrapperRef}
+      className={`code-card-wrapper ${viewMode === 'list' ? 'list-mode' : ''} ${isSelected ? 'selected' : ''}`}
+    >
       <Link 
         to={`/view/${code.id}`}
         className={`code-card ${viewMode === 'list' ? 'list-mode' : ''}`}
         onClick={(e) => {
-          // If clicking on checkbox, prevent navigation
-          if ((e.target as HTMLElement).closest('.code-card-checkbox')) {
+          // If clicking on checkbox or toggle button, prevent navigation
+          if ((e.target as HTMLElement).closest('.code-card-checkbox') ||
+              (e.target as HTMLElement).closest('.code-card-description-toggle')) {
             e.preventDefault();
           }
         }}
@@ -97,7 +143,10 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
               {code.isFolder ? code.title : (code.language || 'other').toLowerCase()}
             </h3>
             <div className="code-card-description-row">
-              <p className={`code-card-description-below ${isDescriptionExpanded ? 'expanded' : ''}`}>
+              <p 
+                ref={descriptionRef}
+                className={`code-card-description-below ${isDescriptionExpanded ? 'expanded' : ''}`}
+              >
                 {descriptionText ? (
                   descriptionText
                 ) : (

@@ -369,7 +369,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
                 folderInfo.structure[path].name === fileInfo.name
               ) || fileInfo.name;
 
-              return retryUpload(fileInfo, filePath).catch(err => {
+              return retryUpload(fileInfo, filePath).catch(() => {
                 // Error already handled in retryUpload
                 return null;
               });

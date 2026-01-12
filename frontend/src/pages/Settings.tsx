@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { User } from '../utils/api';
 import { apiService } from '../utils/api';
 import Button from '../components/Button';
 import './Settings.css';
@@ -16,23 +14,20 @@ const Settings: React.FC = () => {
     notifications: true,
     emailNotifications: true,
   });
-  const [user, setUser] = useState<User | null>(null);
-
   useEffect(() => {
     // Load saved language from localStorage
     const savedLanguage = localStorage.getItem('i18nextLng') || i18n.language || 'kk';
     setSettings(prev => ({ ...prev, language: savedLanguage }));
     
-    // Load user data
-    const loadUser = async () => {
+    // Verify user authentication
+    const verifyUser = async () => {
       try {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);
           // Verify user exists in backend using stored email and id
           try {
-            const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
-            setUser(verifiedUser);
+            await apiService.getCurrentUser(userData.email, userData.id);
           } catch (err: any) {
             // If user not found, clear localStorage and redirect to login
             console.error('Failed to verify user:', err);
@@ -48,7 +43,7 @@ const Settings: React.FC = () => {
         navigate('/login');
       }
     };
-    loadUser();
+    verifyUser();
   }, [i18n.language]);
 
   const handleChange = (key: string, value: any) => {

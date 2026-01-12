@@ -90,9 +90,9 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
       return;
     }
 
-    // Validate file size (max 10MB before compression)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Сурет өлшемі 10MB-тан аспауы керек');
+    // Validate file size (max 30MB before compression)
+    if (file.size > 30 * 1024 * 1024) {
+      setError('Сурет өлшемі 30MB-тан аспауы керек');
       return;
     }
 
@@ -230,7 +230,7 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="image-tags">Тегтер (міндетті емес)</label>
+          <label htmlFor="image-tags">Тегтер</label>
           <input
             id="image-tags"
             type="text"

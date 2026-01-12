@@ -15,7 +15,7 @@ export const FILE_TYPES = {
   OTHER: 'other',
 } as const;
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
 
 export const SUPPORTED_EXTENSIONS = [
   '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h',

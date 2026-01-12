@@ -27,7 +27,7 @@ const WebTerminal: React.FC<WebTerminalProps> = ({ isOpen, onClose }) => {
         background: '#1e1e1e',
         foreground: '#d4d4d4',
         cursor: '#aeafad',
-        selection: '#264f78',
+        selectionBackground: '#264f78',
         black: '#000000',
         red: '#cd3131',
         green: '#0dbc79',

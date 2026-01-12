@@ -9,6 +9,7 @@ import Button from './Button';
 import LinkButton from './LinkButton';
 import { apiService, User } from '../utils/api';
 import { imageStorage } from '../utils/imageStorage';
+import './Header.css';
 
 // Логотипті импорттау - бірнеше нұсқаны тексеру
 const getLogoPath = () => {
@@ -152,16 +153,17 @@ const Header: React.FC = () => {
 
   return (
     <header className="relative border-b border-border py-0.5 sticky top-0 z-[9999] backdrop-blur-[20.5px] backdrop-saturate-[180%] transition-all w-full max-w-full before:absolute before:inset-0 before:bg-bg-primary before:opacity-95 dark:before:opacity-85 before:-z-10">
-      <div className="w-full m-0 pr-4 pl-0 flex items-center justify-between gap-8 relative flex-wrap max-[491.5px]:pr-4 min-h-[45px]">
+      <div className="w-full m-0 pr-4 pl-4 flex items-center justify-between gap-4 relative flex-nowrap max-[491.5px]:pr-3 max-[491.5px]:pl-3 min-h-[45px]">
+        {/* Логотип - сол жақта */}
         <Link 
           to="/" 
-          className="flex items-center gap-3 no-underline text-text-primary text-2xl font-bold transition-all p-1 rounded-[7.7px] relative flex-shrink-0 m-0 hover:translate-x-1 group h-[24px]"
+          className="flex items-center gap-2 sm:gap-3 no-underline text-text-primary text-xl sm:text-2xl font-bold transition-all p-1 rounded-[7.7px] relative flex-shrink-0 m-0 hover:translate-x-1 group h-[24px] max-[491.5px]:flex-1 max-[491.5px]:min-w-0"
         >
           <div className="absolute inset-0 rounded-[7.7px] bg-gradient-to-br from-[rgba(251,191,36,0.1)] to-[rgba(245,158,11,0.05)] opacity-0 transition-opacity group-hover:opacity-100"></div>
           <img 
             src={getLogoPath()}
             alt="Kazakh Hub" 
-            className="w-10 h-8 object-cover rounded-full transition-all shadow-md drop-shadow-[0_2.6px_3.8px_rgba(251,191,36,0.15)] bg-[rgba(251,191,36,0.15)] p-0.5 box-border hover:scale-110 hover:rotate-[5deg] hover:shadow-[var(--shadow-glow)]"
+            className="w-8 h-6 sm:w-10 sm:h-8 object-cover rounded-full transition-all shadow-md drop-shadow-[0_2.6px_3.8px_rgba(251,191,36,0.15)] bg-[rgba(251,191,36,0.15)] p-0.5 box-border hover:scale-110 hover:rotate-[5deg] hover:shadow-[var(--shadow-glow)] flex-shrink-0"
             onError={(e) => {
               // Егер логотип табылмаса, басқа нұсқаны пайдалану
               const target = e.target as HTMLImageElement;
@@ -180,15 +182,14 @@ const Header: React.FC = () => {
               }
             }}
           />
-          <span className="bg-accent-gradient bg-clip-text text-transparent font-extrabold tracking-[-0.32px] relative z-10">
+          <span className="bg-accent-gradient bg-clip-text text-transparent font-extrabold tracking-[-0.32px] relative z-10 truncate max-[491.5px]:hidden">
             {t('header.appName')}
           </span>
         </Link>
         
-        <nav className="flex gap-4 flex-1 justify-center items-center m-0 mx-auto max-[491.5px]:order-3 max-[491.5px]:w-full max-[491.5px]:flex-col max-[491.5px]:gap-3 max-[491.5px]:pt-4 max-[491.5px]:border-t max-[491.5px]:border-[0.64px] max-[491.5px]:border-border">
-        </nav>
-
-        <div className="flex gap-4 items-center flex-shrink-0 ml-auto flex-nowrap flex-row max-[491.5px]:flex-wrap max-[491.5px]:gap-2">
+        {/* Батырмалар - оң жақта */}
+        <div className="flex gap-2 sm:gap-4 items-center flex-shrink-0 flex-nowrap flex-row">
+          {/* Upload батырмасы */}
           <Button 
             variant="primary"
             onClick={() => {
@@ -196,15 +197,17 @@ const Header: React.FC = () => {
               setIsUploadModalOpen(true);
             }}
             icon={<FontAwesomeIcon icon={faUpload} />}
-            className="h-[32px] text-sm px-2 py-0.5"
+            className="h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 header-btn-upload"
           >
-            {t('common.upload')}
+            <span className="max-[360px]:hidden">{t('common.upload')}</span>
           </Button>
+          
+          {/* Chat батырмасы */}
           {isLoggedIn && (
             <LinkButton 
               to="/chat" 
               variant="secondary" 
-              className="relative h-[32px] text-sm px-2 py-0.5 min-w-[80px]" 
+              className="relative h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 min-w-[60px] sm:min-w-[80px] header-btn-chat" 
               title={t('header.chat')}
               icon={
                 <>
@@ -217,16 +220,18 @@ const Header: React.FC = () => {
                 </>
               }
             >
-              {t('header.chat')}
+              <span className="max-[360px]:hidden">{t('header.chat')}</span>
             </LinkButton>
           )}
+          
+          {/* Профиль батырмасы - ең оң жақта */}
           {isLoggedIn && (
             <button 
               ref={profileButtonRef}
               onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
-              className="flex items-center justify-center gap-0 p-0 rounded-full no-underline text-text-primary transition-all bg-transparent border-none relative overflow-visible cursor-pointer w-[32px] h-[32px] box-border font-inherit text-inherit dark:bg-gradient-to-br dark:from-[rgba(0,153,204,0.08)] dark:to-[rgba(0,175,202,0.05)] hover:-translate-y-[1.3px] max-[491.5px]:order-[-1] max-[491.5px]:w-[32px] max-[491.5px]:h-[32px]"
+              className="flex items-center justify-center gap-0 p-0 rounded-full no-underline text-text-primary transition-all bg-transparent border-none relative overflow-visible cursor-pointer w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] box-border font-inherit text-inherit dark:bg-gradient-to-br dark:from-[rgba(0,153,204,0.08)] dark:to-[rgba(0,175,202,0.05)] hover:-translate-y-[1.3px] header-btn-profile"
             >
-              <div className="w-[30px] h-[30px] rounded-full bg-accent-gradient flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-md drop-shadow-[0_0_12.8px_rgba(0,175,202,0.3)] transition-all overflow-hidden relative border-[1.3px] border-[rgba(0,175,202,0.3)] hover:shadow-lg hover:drop-shadow-[0_0_19.2px_rgba(0,175,202,0.5)] hover:border-primary hover:scale-105 max-[491.5px]:w-[30px] max-[491.5px]:h-[30px] max-[491.5px]:text-base max-[491.5px]:border-[1.3px]">
+              <div className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-full bg-accent-gradient flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-md drop-shadow-[0_0_12.8px_rgba(0,175,202,0.3)] transition-all overflow-hidden relative border-[1.3px] border-[rgba(0,175,202,0.3)] hover:shadow-lg hover:drop-shadow-[0_0_19.2px_rgba(0,175,202,0.5)] hover:border-primary hover:scale-105">
                 {user?.avatar ? (
                   <img 
                     src={user.avatar} 
@@ -241,17 +246,17 @@ const Header: React.FC = () => {
               </div>
             </button>
           )}
+          
+          {/* Login батырмасы (егер кіру жасамаған болса) */}
           {!isLoggedIn && (
-            <div className="flex justify-center flex-1">
-              <LinkButton 
-                to="/login" 
-                variant="secondary"
-                className="h-[32px] text-sm px-2 py-0.5"
-                icon={<FontAwesomeIcon icon={faLock} />}
-              >
-                {t('common.login')}
-              </LinkButton>
-            </div>
+            <LinkButton 
+              to="/login" 
+              variant="secondary"
+              className="h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 header-btn-login"
+              icon={<FontAwesomeIcon icon={faLock} />}
+            >
+              <span className="max-[360px]:hidden">{t('common.login')}</span>
+            </LinkButton>
           )}
         </div>
       </div>

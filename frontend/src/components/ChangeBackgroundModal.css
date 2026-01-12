@@ -70,6 +70,20 @@
   -webkit-touch-callout: none;
 }
 
+/* Add visible border lines on all 4 sides */
+.background-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .background-preview:hover {
   transform: scale(1.02);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);

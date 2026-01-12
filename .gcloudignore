@@ -1,0 +1,109 @@
+# Node modules (exclude all)
+node_modules/
+**/node_modules/
+frontend/node_modules/
+**/node_modules/**
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+**/*.pyc
+*.pyo
+**/*.pyo
+*.pyd
+**/*.pyd
+.Python
+**/.Python
+
+# Virtual environments
+venv/
+**/venv/
+env/
+**/env/
+ENV/
+**/ENV/
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+.next/
+**/.next/
+out/
+**/out/
+
+# IDE
+.vscode/
+**/.vscode/
+.idea/
+**/.idea/
+*.swp
+**/*.swp
+*.swo
+**/*.swo
+*~
+**/*~
+
+# OS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+**/Thumbs.db
+
+# Data files
+data/*.json
+**/data/*.json
+data/*.db
+**/data/*.db
+backend/data/*.json
+backend/data/*.db
+
+# Logs
+*.log
+**/*.log
+logs/
+**/logs/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (keep only essential)
+*.md
+!README.md
+!GOOGLE_CLOUD_DEPLOYMENT.md
+!QUICK_DEPLOY.md
+
+# Temporary files
+tmp/
+**/tmp/
+temp/
+**/temp/
+*.tmp
+**/*.tmp
+
+# Package files (keep package.json, but exclude lock files if needed)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Coverage
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+
+# Test files
+*.test.js
+**/*.test.js
+*.spec.js
+**/*.spec.js
+test/
+**/test/
+tests/
+**/tests/

@@ -45,7 +45,14 @@
     "id": "ce42c514-df0b-4384-9c64-565b97eb49e4",
     "fromUserId": "730948837585",
     "toUserId": "728388036309",
-    "status": "pending",
+    "status": "accepted",
     "createdAt": "2026-01-04T17:23:52.252709"
+  },
+  {
+    "id": "5cddd620-c51d-4bd3-b73e-0a75b809a993",
+    "fromUserId": "964641166155",
+    "toUserId": "730948837585",
+    "status": "pending",
+    "createdAt": "2026-01-11T16:30:54.897857"
   }
 ]

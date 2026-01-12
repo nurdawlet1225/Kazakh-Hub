@@ -1,10 +1,10 @@
 // File validation utilities for security
 
-// Maximum file size: 50MB per file
-export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
+// Maximum file size: 30MB per file
+export const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB in bytes
 
-// Maximum folder size: 500MB total
-export const MAX_FOLDER_SIZE = 500 * 1024 * 1024; // 500MB in bytes
+// Maximum folder size: 1000000000000000000000MB total
+export const MAX_FOLDER_SIZE = 1000000000000000000000 * 1024 * 1024; // 1000000000000000000000MB in bytes
 
 // Dangerous file extensions that should be blocked
 export const DANGEROUS_EXTENSIONS = [

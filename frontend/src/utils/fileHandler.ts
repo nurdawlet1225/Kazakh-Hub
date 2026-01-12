@@ -210,8 +210,6 @@ export const processFolder = async (files: FileList): Promise<FolderInfo> => {
     }
   } else {
     // For larger folders, use chunked processing
-    const BATCH_SIZE = 15; // Smaller batch size for better UI responsiveness
-    
     // Process files in chunks with UI yielding
     for (let i = 0; i < fileArray.length; i += FILES_PER_CHUNK) {
       const chunk = fileArray.slice(i, i + FILES_PER_CHUNK);

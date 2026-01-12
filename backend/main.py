@@ -211,5 +211,5 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         manager.disconnect(websocket, user_id)
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 3000))
+    port = int(os.getenv("PORT", 8080))  # Default to 8080 for Cloud Run compatibility
     uvicorn.run(app, host="0.0.0.0", port=port)
