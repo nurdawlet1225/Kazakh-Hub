@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { User } from '../utils/api';
@@ -34,6 +35,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isPasswordSectionVisible, setIsPasswordSectionVisible] = useState(false);
+  const [bioSaving, setBioSaving] = useState(false);
+  const [originalBio, setOriginalBio] = useState<string>(user.bio || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -68,26 +71,31 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           newPassword: '',
           confirmPassword: '',
         });
+        setOriginalBio(user.bio || '');
         setAvatarPreview(avatarToUse || null);
         setError(null);
         setPasswordError(null);
         setIsPasswordSectionVisible(false);
+        setBioSaving(false);
       };
       
       loadAvatar();
     }
   }, [isOpen, user.id]); // Include user.id to reload avatar when user changes
 
-  // Update username and email when user changes, but preserve avatarPreview state
+  // Update username, email, and bio when user changes, but preserve avatarPreview state
   useEffect(() => {
     if (isOpen) {
       setFormData((prev) => ({
         ...prev,
         username: user.username,
         email: user.email,
+        bio: user.bio || '',
       }));
+      // Update original bio when user prop changes (after save)
+      setOriginalBio(user.bio || '');
     }
-  }, [isOpen, user.username, user.email]);
+  }, [isOpen, user.username, user.email, user.bio]);
 
   const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -138,7 +146,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF)');
+      setError(t('editProfile.onlyImageFiles'));
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -147,7 +155,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     // Validate file size (max 10MB before compression)
     if (file.size > 10 * 1024 * 1024) {
-      setError('Сурет өлшемі 10MB-тан аспауы керек');
+      setError(t('editProfile.imageSizeLimit'));
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -174,7 +182,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setError(null);
     } catch (err) {
       console.error('Error processing image:', err);
-      setError(err instanceof Error ? err.message : 'Суретті өңдеу қатесі');
+      setError(err instanceof Error ? err.message : t('editProfile.imageProcessingError'));
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -189,6 +197,89 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       fileInputRef.current.value = '';
     }
   };
+
+  const handleBioSave = async () => {
+    // Only save if bio has changed
+    if (formData.bio.trim() === originalBio.trim()) {
+      return;
+    }
+
+    setBioSaving(true);
+    setError(null);
+
+    try {
+      // Only send bio field - preserve all other fields from current user
+      const updateData: Partial<User> & { userId?: string; currentEmail?: string } = {
+        username: user.username, // Keep current username (required for identification)
+        email: user.email, // Keep current email (required for identification)
+        bio: formData.bio.trim() || undefined, // ONLY update bio - this is the only field that changes
+        userId: user.id,
+        currentEmail: user.email,
+        // Don't include avatar - we're only saving bio, not changing avatar
+      };
+
+      const updatedUser = await apiService.updateUserProfile(updateData);
+      
+      // Update localStorage - only update bio, keep everything else
+      const { avatar, ...userWithoutAvatar } = updatedUser;
+      const userForStorage = {
+        ...userWithoutAvatar,
+        bio: updatedUser.bio || formData.bio || undefined,
+        avatar: avatar ? 'stored' : undefined
+      };
+      
+      try {
+        localStorage.setItem('user', JSON.stringify(userForStorage));
+      } catch (err: any) {
+        if (err.name === 'QuotaExceededError') {
+          try {
+            const { avatar: _, ...userMinimal } = userForStorage;
+            localStorage.setItem('user', JSON.stringify(userMinimal));
+          } catch (minimalErr) {
+            console.error('Failed to save user to localStorage:', minimalErr);
+          }
+        }
+      }
+
+      // Update formData immediately to reflect saved state in textarea
+      const savedBio = updatedUser.bio || formData.bio.trim() || '';
+      setFormData((prev) => ({
+        ...prev,
+        bio: savedBio
+      }));
+      
+      // Update original bio ref to reflect saved value
+      setOriginalBio(savedBio);
+      
+      // Update parent component - only update bio, preserve all other fields exactly as they were
+      const finalUser = {
+        ...user, // Start with current user data (preserves avatar, username, email, etc.)
+        bio: updatedUser.bio || formData.bio || undefined, // ONLY update bio field
+      };
+      
+      window.dispatchEvent(new CustomEvent('userProfileUpdated'));
+      onUpdate(finalUser);
+      
+      // Don't close modal - stay in profile edit section
+      // The save button will disappear since bio no longer has changes
+      // The textarea will show the saved value immediately
+    } catch (err: any) {
+      console.error('Error saving bio:', err);
+      let errorMessage = err instanceof Error ? err.message : t('editProfile.bioSaveError');
+      
+      if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('табылмады')) {
+        setError(t('editProfile.userNotFound'));
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        setError(t('editProfile.serverConnectionError'));
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setBioSaving(false);
+    }
+  };
+
+  const hasBioChanged = formData.bio.trim() !== originalBio.trim();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,7 +325,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             formData.newPassword
           );
         } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Құпия сөзді өзгерту қатесі';
+          const errorMessage = err instanceof Error ? err.message : t('editProfile.passwordChangeError');
           setPasswordError(errorMessage);
           setLoading(false);
           return;
@@ -308,21 +399,21 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       try {
         localStorage.setItem('user', JSON.stringify(userForStorage));
       } catch (err: any) {
-        // If still quota exceeded, try without avatar flag
-        if (err.name === 'QuotaExceededError') {
-          console.warn('Quota exceeded, trying to save user without avatar flag');
-          try {
-            const { avatar: _, ...userMinimal } = userForStorage;
-            localStorage.setItem('user', JSON.stringify(userMinimal));
-          } catch (minimalErr: any) {
-            // If still fails, show error to user
-            setError('Жад жеткіліксіз. Браузердің кэшін тазалаңыз немесе басқа деректерді жойыңыз.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          throw err;
-        }
+            // If still quota exceeded, try without avatar flag
+            if (err.name === 'QuotaExceededError') {
+              console.warn('Quota exceeded, trying to save user without avatar flag');
+              try {
+                const { avatar: _, ...userMinimal } = userForStorage;
+                localStorage.setItem('user', JSON.stringify(userMinimal));
+              } catch (minimalErr: any) {
+                // If still fails, show error to user
+                setError(t('editProfile.storageQuotaExceeded'));
+                setLoading(false);
+                return;
+              }
+            } else {
+              throw err;
+            }
       }
 
       // Load avatar from imageStorage for the updated user object
@@ -346,7 +437,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       
       // Handle quota exceeded error
       if (err.name === 'QuotaExceededError' || err.message?.includes('quota') || err.message?.includes('exceeded')) {
-        setError('Жад жеткіліксіз. Браузердің кэшін тазалаңыз немесе кішірек аватар суретін пайдаланыңыз.');
+        setError(t('editProfile.storageQuotaExceededAvatar'));
         setLoading(false);
         return;
       }
@@ -355,24 +446,24 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       if (err?.message?.includes('User not found') || err?.message?.includes('Пайдаланушы табылмады')) {
         localStorage.removeItem('user');
         window.dispatchEvent(new CustomEvent('userProfileUpdated'));
-        alert('Пайдаланушы табылмады. Жүйені қайта жүктеңіз немесе қайта кіріңіз.');
+        alert(t('editProfile.userNotFound'));
         window.location.reload();
         return;
       }
-      let errorMessage = err instanceof Error ? err.message : 'Профильді жаңарту қатесі';
+      let errorMessage = err instanceof Error ? err.message : t('editProfile.updateError');
       
       // Remove password-related error message for profile updates (not password changes)
       if (errorMessage.includes('Пайдаланушы табылмады немесе құпия сөз дұрыс емес')) {
-        errorMessage = 'Пайдаланушы табылмады. Жүйені қайта жүктеңіз.';
+        errorMessage = t('editProfile.userNotFound');
       }
       
       // Show more specific error messages
       if (errorMessage.includes('404') || errorMessage.includes('not found') || errorMessage.includes('табылмады')) {
-        setError('Пайдаланушы табылмады. Жүйені қайта жүктеңіз.');
+        setError(t('editProfile.userNotFound'));
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        setError('Серверге қосылу мүмкін емес. Backend-тің жұмыс істеп тұрғанын тексеріңіз.');
+        setError(t('editProfile.serverConnectionError'));
       } else if (errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
-        setError('Деректер дұрыс емес. Барлық өрістерді тексеріңіз.');
+        setError(t('editProfile.invalidData'));
       } else {
         setError(errorMessage);
       }
@@ -387,7 +478,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content edit-profile-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Профильді өзгерту</h2>
+          <h2>{t('editProfile.title')}</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
 
@@ -397,7 +488,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               <div 
                 className="avatar-preview"
                 onClick={() => fileInputRef.current?.click()}
-                title="Фото таңдау үшін басыңыз"
+                title={t('editProfile.selectPhoto')}
               >
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar preview" />
@@ -422,7 +513,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     onClick={handleRemoveAvatar}
                     className="btn-remove-avatar"
                   >
-                    <FontAwesomeIcon icon={faTrash} /> Жою
+                    <FontAwesomeIcon icon={faTrash} /> {t('editProfile.removeAvatar')}
                   </button>
                 )}
               </div>
@@ -435,7 +526,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="Пайдаланушы аты"
+              placeholder={t('editProfile.username')}
               required
             />
           </div>
@@ -451,46 +542,70 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             />
           </div>
 
-          <div className="form-group">
-            <textarea
-              id="bio"
-              value={formData.bio}
-              onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-              placeholder="Сипаттама"
-              rows={1}
-              maxLength={500}
-              style={{
-                width: '100%',
-                padding: '0.5rem 0.75rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-primary)',
-                fontFamily: 'inherit',
-                fontSize: '0.9rem',
-                resize: 'vertical',
-                outline: 'none',
-                transition: 'border-color 0.2s',
-                minHeight: '40px',
-                maxHeight: '100px',
-                lineHeight: '1.4'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = 'var(--accent-color)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'var(--border-color)';
-              }}
-            />
-            <div style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)',
-              marginTop: '0.25rem',
-              textAlign: 'right'
-            }}>
-              {formData.bio.length} / 500
+          {(user.bio || formData.bio) && (
+            <div className="form-group">
+              <textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                placeholder="Сипаттама"
+                rows={1}
+                maxLength={500}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'inherit',
+                  fontSize: '0.9rem',
+                  resize: 'vertical',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                  minHeight: '40px',
+                  maxHeight: '100px',
+                  lineHeight: '1.4'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--accent-color)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border-color)';
+                }}
+              />
+              <div style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                marginTop: '0.25rem',
+                textAlign: 'right'
+              }}>
+                {formData.bio.length} / 500 {t('editProfile.characters')}
+              </div>
+              {hasBioChanged && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleBioSave();
+                    }}
+                    variant="primary"
+                    disabled={bioSaving}
+                    style={{
+                      minWidth: '80px',
+                      height: '32px',
+                      fontSize: '0.8rem',
+                      padding: '0.25rem 0.75rem'
+                    }}
+                  >
+                    {bioSaving ? t('editProfile.saving') : t('editProfile.save')}
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           <div className="form-group password-change-section">
             <div className="password-section-header">
@@ -498,9 +613,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="button"
                 className="btn-toggle-password-section"
                 onClick={() => setIsPasswordSectionVisible(!isPasswordSectionVisible)}
-                title={isPasswordSectionVisible ? 'Жасыру' : 'Көрсету'}
+                title={isPasswordSectionVisible ? t('editProfile.hide') : t('editProfile.show')}
               >
-                <span>Құпия сөзді өзгерту</span>
+                <span>{t('editProfile.changePassword')}</span>
                 <FontAwesomeIcon 
                   icon={faChevronDown} 
                   className={`chevron-icon ${isPasswordSectionVisible ? 'rotated' : ''}`}

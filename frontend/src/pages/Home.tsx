@@ -323,14 +323,14 @@ const Home: React.FC = () => {
         {/* Сол жақ меню */}
         <aside className="w-[280px] flex-shrink-0 p-6 sticky top-5 max-h-[calc(100vh-40px)] overflow-y-auto overflow-x-hidden lg:w-[280px] w-full lg:relative lg:top-0 lg:max-h-none">
           <div className="mb-6 pb-4 border-b-[1.5px] border-border">
-            <h2 className="text-xm m-0 text-orange-500 font-black tracking-[0px]">
-              Алға ұмтыл, сонда өмір керемет.
+            <h2 className="text-xm m-0 text-primary font-black tracking-[0px]">
+              {t('home.motivationalQuote')}
             </h2>
           </div>
           <div className="flex flex-col gap-2">
             {/* Статистика */}
             <div className="flex flex-col gap-4 mt-8">
-              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-[0_2px_8px_rgba(0,175,202,0.2)] translate-y-[9px]">
+              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-glow translate-y-[9px]">
                 <div className="text-2xl text-primary flex-shrink-0">
                   <FontAwesomeIcon icon={faBook} />
                 </div>
@@ -343,7 +343,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-[0_2px_8px_rgba(0,175,202,0.2)]">
+              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-glow">
                 <div className="text-2xl text-primary flex-shrink-0">
                   <FontAwesomeIcon icon={faLaptop} />
                 </div>
@@ -356,7 +356,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-[0_2px_8px_rgba(0,175,202,0.2)]">
+              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-glow">
                 <div className="text-2xl text-primary flex-shrink-0">
                   <FontAwesomeIcon icon={faUsers} />
                 </div>
@@ -369,7 +369,7 @@ const Home: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-[0_2px_8px_rgba(0,175,202,0.2)]">
+              <div className="flex items-center gap-4 p-4 bg-bg-primary rounded-xl border border-border transition-all hover:translate-x-1 hover:border-primary hover:shadow-glow">
                 <div className="text-2xl text-primary flex-shrink-0">
                   <FontAwesomeIcon icon={faStar} />
                 </div>
@@ -427,7 +427,7 @@ const Home: React.FC = () => {
                               key={lang}
                               className={`px-4 py-3 bg-bg-primary border-[1.5px] border-border rounded-[10px] text-text-primary font-semibold text-sm cursor-pointer transition-all text-left hover:bg-bg-hover hover:border-primary hover:translate-x-1 ${
                                 filterLanguage === lang 
-                                  ? 'bg-gradient-to-br from-[rgba(0,175,202,0.15)] to-[rgba(0,153,204,0.1)] border-primary text-primary shadow-[0_2px_8px_rgba(0,175,202,0.2)]' 
+                                  ? 'bg-primary-light border-primary text-primary shadow-glow' 
                                   : ''
                               }`}
                               onClick={() => setFilterLanguage(lang)}
@@ -461,7 +461,7 @@ const Home: React.FC = () => {
                 <button
                   className={`px-4 py-3 bg-bg-primary border-[1.5px] border-border rounded-[10px] text-text-primary font-semibold text-sm cursor-pointer transition-all text-left hover:bg-bg-hover hover:border-primary hover:translate-x-1 ${
                     sortBy === 'newest' 
-                      ? 'bg-gradient-to-br from-[rgba(0,175,202,0.15)] to-[rgba(0,153,204,0.1)] border-primary text-primary shadow-[0_2px_8px_rgba(0,175,202,0.2)]' 
+                      ? 'bg-primary-light border-primary text-primary shadow-glow' 
                       : ''
                   }`}
                   onClick={() => setSortBy('newest')}
@@ -471,7 +471,7 @@ const Home: React.FC = () => {
                 <button
                   className={`px-4 py-3 bg-bg-primary border-[1.5px] border-border rounded-[10px] text-text-primary font-semibold text-sm cursor-pointer transition-all text-left hover:bg-bg-hover hover:border-primary hover:translate-x-1 ${
                     sortBy === 'oldest' 
-                      ? 'bg-gradient-to-br from-[rgba(0,175,202,0.15)] to-[rgba(0,153,204,0.1)] border-primary text-primary shadow-[0_2px_8px_rgba(0,175,202,0.2)]' 
+                      ? 'bg-primary-light border-primary text-primary shadow-glow' 
                       : ''
                   }`}
                   onClick={() => setSortBy('oldest')}
@@ -481,7 +481,7 @@ const Home: React.FC = () => {
                 <button
                   className={`px-4 py-3 bg-bg-primary border-[1.5px] border-border rounded-[10px] text-text-primary font-semibold text-sm cursor-pointer transition-all text-left hover:bg-bg-hover hover:border-primary hover:translate-x-1 ${
                     sortBy === 'title' 
-                      ? 'bg-gradient-to-br from-[rgba(0,175,202,0.15)] to-[rgba(0,153,204,0.1)] border-primary text-primary shadow-[0_2px_8px_rgba(0,175,202,0.2)]' 
+                      ? 'bg-primary-light border-primary text-primary shadow-glow' 
                       : ''
                   }`}
                   onClick={() => setSortBy('title')}
@@ -491,7 +491,7 @@ const Home: React.FC = () => {
                 <button
                   className={`px-4 py-3 bg-bg-primary border-[1.5px] border-border rounded-[10px] text-text-primary font-semibold text-sm cursor-pointer transition-all text-left hover:bg-bg-hover hover:border-primary hover:translate-x-1 ${
                     sortBy === 'author' 
-                      ? 'bg-gradient-to-br from-[rgba(0,175,202,0.15)] to-[rgba(0,153,204,0.1)] border-primary text-primary shadow-[0_2px_8px_rgba(0,175,202,0.2)]' 
+                      ? 'bg-primary-light border-primary text-primary shadow-glow' 
                       : ''
                   }`}
                   onClick={() => setSortBy('author')}
@@ -552,7 +552,7 @@ const Home: React.FC = () => {
             {loading ? (
               <div className="text-center">Жүктелуде...</div>
             ) : filteredAndSortedCodes.length === 0 ? (
-              <div className="text-center py-20 px-8 text-text-secondary bg-gradient-to-br from-[rgba(0,153,204,0.08)] via-[rgba(251,191,36,0.06)] to-[rgba(245,158,11,0.06)] rounded-[15.4px] border-[1.3px] border-dashed border-[rgba(0,153,204,0.3)] my-8 animate-fade-in shadow-[0_2.6px_10.2px_rgba(0,153,204,0.08)]">
+              <div className="text-center py-20 px-8 text-text-secondary empty-state-bg rounded-[15.4px] border-[1.3px] border-dashed border-primary my-8 animate-fade-in shadow-glow">
                 <p className="text-5xl m-0 mb-6 inline-block animate-bounce drop-shadow-[0_2.6px_5.1px_rgba(0,0,0,0.1)]">
                   <FontAwesomeIcon icon={faFileAlt} />
                 </p>

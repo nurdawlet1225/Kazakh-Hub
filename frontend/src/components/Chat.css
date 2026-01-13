@@ -1831,6 +1831,14 @@
   word-break: break-all;
 }
 
+.chat-profile-bio {
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  align-items: flex-start;
+  display: block;
+}
+
 .chat-profile-copy-btn {
   background: transparent;
   border: none;
@@ -2146,8 +2154,8 @@
 
 .chat-image-viewer-close {
   position: absolute;
-  top: -40px;
-  right: 0;
+  top: 10px;
+  left: 10px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
@@ -2173,6 +2181,7 @@
   margin-top: 1rem;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.1);
@@ -2190,20 +2199,85 @@
 }
 
 .chat-image-viewer-download {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+  border: none;
   color: white;
-  font-size: 1.2rem;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: all 0.2s;
+  font-size: 0.95rem;
+  padding: 0.65rem 1.2rem;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.6rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
+  backdrop-filter: blur(12px);
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-image-viewer-download span {
+  font-size: 0.9rem;
+  letter-spacing: 0.3px;
 }
 
 .chat-image-viewer-download:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 1), rgba(37, 99, 235, 1));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.chat-image-viewer-download:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Сурет контекст менюсі */
+.chat-image-context-menu {
+  position: fixed;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 10002;
+  min-width: 200px;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  animation: fadeIn 0.15s ease-in;
+}
+
+.chat-image-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.chat-image-context-menu-item:hover {
+  background: var(--bg-secondary);
+}
+
+.chat-image-context-menu-item svg {
+  font-size: 0.9rem;
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.chat-image-context-menu-item span {
+  flex: 1;
 }
 
 /* Touch-friendly improvements */

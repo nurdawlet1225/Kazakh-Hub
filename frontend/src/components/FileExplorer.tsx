@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faScroll, faBook, faCog, faGlobe, faPalette, faFile, faFolder, faFolderOpen, faFileCode, faFileAlt } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
@@ -17,6 +18,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   selectedFileId,
   showFolderStructure = false,
 }) => {
+  const { t } = useTranslation();
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const toggleFolder = (folder: string) => {
@@ -79,8 +81,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   return (
     <div className="file-explorer">
       <div className="file-explorer-header">
-        <h3>Файлдар</h3>
-        <span className="file-count">{files.length} файл</span>
+        <h3>{t('viewCode.files')}</h3>
+        <span className="file-count">
+          {files.length} {files.length === 1 ? t('viewCode.file') : t('viewCode.filesPlural')}
+        </span>
       </div>
 
       <div className="file-explorer-content">

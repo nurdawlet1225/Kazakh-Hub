@@ -310,7 +310,9 @@
   position: relative;
 }
 
-.footer-links li a {
+.footer-links li a,
+.footer-links li a:link,
+.footer-links li a:visited {
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.95rem;
@@ -343,7 +345,8 @@
   transform: scaleY(1);
 }
 
-.footer-links li a:hover {
+.footer-links li a:hover,
+.footer-links li a:active {
   color: var(--primary-color);
   background: linear-gradient(90deg, 
     rgba(251, 191, 36, 0.12) 0%, 

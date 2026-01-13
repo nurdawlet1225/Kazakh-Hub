@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faPaperPlane,
@@ -72,7 +73,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
     // Send location if any
     if (location) {
       onSendMessage(
-        message || '📍 Менің орналасқан жерім',
+        message || t('messageInput.myLocation'),
         'location',
         undefined,
         { latitude: location.lat, longitude: location.lng, address: location.address }
@@ -125,7 +126,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const getLocation = () => {
     if (!navigator.geolocation) {
-      alert('Геолокация қолдауы жоқ');
+      alert(t('messageInput.geolocationNotSupported'));
       return;
     }
 
@@ -148,7 +149,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         setLocation({ lat: latitude, lng: longitude, address });
       },
       (error) => {
-        alert('Орналасқан жерді алу қатесі: ' + error.message);
+        alert(t('messageInput.locationError') + ': ' + error.message);
       }
     );
   };
@@ -281,7 +282,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             onClick={stopRecording}
             type="button"
           >
-            Тоқтату
+            {t('messageInput.stopRecording')}
           </button>
         </div>
       )}
@@ -292,7 +293,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="button"
             className="message-toolbar-btn"
             onClick={() => imageInputRef.current?.click()}
-            title="Сурет"
+            title={t('messageInput.image')}
           >
             <FontAwesomeIcon icon={faImage} />
           </button>
@@ -324,7 +325,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="button"
             className="message-toolbar-btn"
             onClick={() => fileInputRef.current?.click()}
-            title="Файл"
+            title={t('messageInput.file')}
           >
             <FontAwesomeIcon icon={faPaperclip} />
           </button>
@@ -339,7 +340,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="button"
             className={`message-toolbar-btn ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
-            title="Аудио"
+            title={t('messageInput.audio')}
             onMouseDown={(e) => {
               if (!isRecording) {
                 e.preventDefault();
@@ -354,7 +355,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="button"
             className="message-toolbar-btn"
             onClick={getLocation}
-            title="Орналасқан жер"
+            title={t('messageInput.location')}
           >
             <FontAwesomeIcon icon={faMapMarkerAlt} />
           </button>
@@ -375,7 +376,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             className="message-textarea"
             value={message}
             onChange={handleInputChange}
-            placeholder={placeholder}
+            placeholder={placeholder || t('messageInput.placeholder')}
             rows={1}
             disabled={disabled}
             onKeyDown={(e) => {
@@ -389,7 +390,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="submit"
             className="message-send-btn"
             disabled={disabled || (!message.trim() && previewFiles.length === 0 && !location)}
-            title="Жіберу"
+            title={t('messageInput.send')}
           >
             <FontAwesomeIcon icon={faPaperPlane} />
           </button>

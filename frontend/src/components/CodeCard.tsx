@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faHeart, faComment, faEye, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../utils/api';
@@ -13,6 +14,7 @@ interface CodeCardProps {
 }
 
 const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected = false, onToggleSelect }) => {
+  const { t } = useTranslation();
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
   const cardWrapperRef = useRef<HTMLDivElement>(null);
@@ -151,7 +153,7 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
                   descriptionText
                 ) : (
                   <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontStyle: 'italic' }}>
-                    {code.isFolder ? 'Папка ақпараты' : 'Сипаттама жоқ'}
+                    {code.isFolder ? t('codeCard.folderInfo') : t('codeCard.noDescription')}
                   </span>
                 )}
               </p>
@@ -181,13 +183,25 @@ const CodeCard: React.FC<CodeCardProps> = ({ code, viewMode = 'grid', isSelected
           </div>
 
           {/* Folder stats button - positioned on the right */}
-          {code.isFolder && code.folderStructure && (
-            <span className="folder-stats-button">
-              {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'file').length} файл
-              {Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length > 0 && 
-                `, ${Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length} папка`}
-            </span>
-          )}
+          {code.isFolder && code.folderStructure && (() => {
+            const fileCount = Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'file').length;
+            const folderCount = Object.keys(code.folderStructure).filter(key => code.folderStructure![key].type === 'folder').length;
+            
+            // Helper function for pluralization
+            const getPlural = (count: number, singular: string, plural: string) => {
+              return count === 1 ? singular : plural;
+            };
+            
+            const fileText = getPlural(fileCount, t('viewCode.file'), t('viewCode.filesPlural'));
+            const folderText = getPlural(folderCount, t('viewCode.folder'), t('viewCode.foldersPlural'));
+            
+            return (
+              <span className="folder-stats-button">
+                {fileCount} {fileText}
+                {folderCount > 0 && `, ${folderCount} ${folderText}`}
+              </span>
+            );
+          })()}
 
           {/* Checkbox for files */}
           {onToggleSelect && !code.isFolder && (

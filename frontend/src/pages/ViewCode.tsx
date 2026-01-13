@@ -570,7 +570,7 @@ const ViewCode: React.FC = () => {
 
   const handleExportFolder = async () => {
     if (!folderFiles || folderFiles.length === 0) {
-      alert('Экспорттауға файлдар жоқ');
+      alert(t('viewCode.noFilesToExport'));
       return;
     }
 
@@ -1175,9 +1175,9 @@ const ViewCode: React.FC = () => {
             <button
               className="btn-export-folder"
               onClick={handleExportFolder}
-              title="Папканың барлығын жаздыру"
+              title={t('viewCode.exportFolderTitle')}
             >
-              <FontAwesomeIcon icon={faDownload} /> Экспорттау
+              <FontAwesomeIcon icon={faDownload} /> {t('viewCode.exportFolder')}
             </button>
           )}
         </div>
@@ -1188,7 +1188,7 @@ const ViewCode: React.FC = () => {
         <div className="folder-view">
           <div className="folder-explorer">
               <div className="folder-explorer-header">
-                <h3 className="folder-explorer-title">Файлдар ({folderFiles.length})</h3>
+                <h3 className="folder-explorer-title">{t('viewCode.files')} ({folderFiles.length})</h3>
               </div>
             <FileExplorer
               files={folderFiles}

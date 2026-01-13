@@ -62,7 +62,8 @@
     "programmingLanguages": "Programming Languages",
     "authors": "Authors",
     "lastWeek": "Last Week",
-    "globalStats": "Global Statistics"
+    "globalStats": "Global Statistics",
+    "motivationalQuote": "Strive forward, and life will be wonderful."
   },
   "upload": {
     "title": "Upload Code",
@@ -101,7 +102,15 @@
     "noFileSelected": "Select a file",
     "loadingFiles": "Loading files...",
     "404": "404 - Page Not Found",
-    "pageNotFound": "The page you are looking for does not exist."
+    "pageNotFound": "The page you are looking for does not exist.",
+    "files": "Files",
+    "exportFolder": "Export",
+    "exportFolderTitle": "Export entire folder",
+    "noFilesToExport": "No files to export",
+    "file": "file",
+    "filesPlural": "files",
+    "folder": "folder",
+    "foldersPlural": "folders"
   },
   "login": {
     "title": "Login",
@@ -227,6 +236,251 @@
     "categoryDatabase": "Database",
     "categoryAlgorithms": "Algorithms",
     "categoryOther": "Other"
+  },
+  "about": {
+    "title": "About Us",
+    "subtitle": "Code sharing and collaboration platform",
+    "whatIs": {
+      "title": "Who are we?",
+      "description": "Kazakh Hub is a code sharing and collaboration platform for Kazakhstani developers. We help develop the Kazakhstani IT community and knowledge exchange."
+    },
+    "mission": {
+      "title": "Our Mission",
+      "description": "Our mission is to create a convenient platform for Kazakhstani developers for code sharing, knowledge exchange, and collaboration. We support open source and rely on community development."
+    },
+    "features": {
+      "title": "Our Features",
+      "codeSharing": "Code sharing - easily share your code files",
+      "collaboration": "Collaboration - work with other developers",
+      "learning": "Learning - learn from others' code",
+      "community": "Community - join the Kazakhstani IT community"
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "If you have any questions, please contact us. We value your feedback and suggestions."
+    }
+  },
+  "terms": {
+    "title": "Terms of Use",
+    "lastUpdated": "Last updated: 2025",
+    "acceptance": {
+      "title": "Acceptance of Terms",
+      "description": "By using the platform, you accept these Terms of Use. If you do not agree with the terms, do not use the platform."
+    },
+    "use": {
+      "title": "Use of Platform",
+      "description": "Use the platform only for lawful purposes:",
+      "rule1": "Code and knowledge sharing",
+      "rule2": "Collaboration and project development",
+      "rule3": "Community communication",
+      "rule4": "Learning and skill development"
+    },
+    "prohibited": {
+      "title": "Prohibited Actions",
+      "description": "The following actions are prohibited:",
+      "rule1": "Distributing malicious code or viruses",
+      "rule2": "Violating other users' rights",
+      "rule3": "Distributing spam or advertising",
+      "rule4": "Using the platform for illegal purposes"
+    },
+    "intellectual": {
+      "title": "Intellectual Property",
+      "description": "All code files uploaded to the platform remain the property of users. The platform serves only for code sharing."
+    },
+    "liability": {
+      "title": "Liability",
+      "description": "The platform is provided \"as is\". We do not guarantee the correct operation of the platform."
+    },
+    "changes": {
+      "title": "Changes to Terms",
+      "description": "We may change the Terms of Use at any time. Changes will be published on the platform."
+    }
+  },
+  "privacy": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: 2025",
+    "introduction": {
+      "title": "Introduction",
+      "description": "We are committed to protecting your privacy. This Privacy Policy describes what information we collect from you and how we use it."
+    },
+    "dataCollection": {
+      "title": "Data Collection",
+      "description": "We collect the following information from you:",
+      "item1": "Username and email",
+      "item2": "Profile data (avatar, description)",
+      "item3": "Code files and comments",
+      "item4": "Technical information about platform usage"
+    },
+    "dataUse": {
+      "title": "Data Use",
+      "description": "We use the collected information for the following purposes:",
+      "item1": "Providing platform services",
+      "item2": "Facilitating communication between users",
+      "item3": "Improving and developing the platform"
+    },
+    "cookies": {
+      "title": "Cookies",
+      "description": "We use cookies for the proper functioning of the platform. You can manage cookies in your browser."
+    },
+    "security": {
+      "title": "Security",
+      "description": "We use security measures to protect your data. However, no transmission over the Internet is 100% secure."
+    },
+    "rights": {
+      "title": "Your Rights",
+      "description": "You have the following rights:",
+      "item1": "Access to your data",
+      "item2": "Correction of your data",
+      "item3": "Deletion of your data"
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "If you have any questions about the Privacy Policy, please contact us."
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "friends": "Friends",
+    "addFriend": "Add Friend",
+    "requests": "Requests",
+    "noFriends": "No friends",
+    "noFriendsDescription": "Use the search panel to add friends",
+    "searchUsers": "Search users...",
+    "noSearchResults": "No results found",
+    "sendFriendRequest": "Send friend request",
+    "friendRequestSent": "Friend request sent",
+    "friendRequestAlreadySent": "Friend request already sent",
+    "alreadyFriends": "You are already friends with this user",
+    "acceptRequest": "Accept",
+    "rejectRequest": "Reject",
+    "cancelRequest": "Cancel",
+    "removeFriend": "Remove friend",
+    "removeFriendConfirm": "Are you sure you want to remove this friend from the list?",
+    "friendRemoved": "Friend removed",
+    "noMessages": "No messages",
+    "noMessagesDescription": "Send the first message!",
+    "typing": "typing...",
+    "searchMessages": "Search messages...",
+    "clearMessages": "Clear messages",
+    "clearMessagesConfirm": "Are you sure you want to clear all messages on this page?",
+    "deleteChat": "Delete chat",
+    "deleteChatConfirm": "Are you sure you want to completely delete this chat? It will also be removed from the friends list and all messages will be deleted.",
+    "chatDeleted": "Chat deleted and removed from friends list",
+    "editDisplayName": "Change name",
+    "saveDisplayName": "Save",
+    "cancelDisplayName": "Cancel",
+    "media": "Media",
+    "download": "Download",
+    "searchError": "Search error",
+    "sendMessageError": "Error sending message",
+    "uploadFileError": "Error uploading file",
+    "acceptRequestError": "Error accepting friend request",
+    "rejectRequestError": "Error rejecting friend request",
+    "cancelRequestError": "Error canceling friend request",
+    "removeFriendError": "Error removing friend",
+    "deleteChatError": "Error deleting chat",
+    "requestAccepted": "Friend request accepted",
+    "requestRejected": "Friend request rejected",
+    "requestCancelled": "Friend request cancelled",
+    "incomingRequests": "Incoming requests",
+    "outgoingRequests": "Outgoing requests",
+    "noIncomingRequests": "No incoming requests",
+    "noOutgoingRequests": "No outgoing requests"
+  },
+  "messageInput": {
+    "placeholder": "Write a message...",
+    "send": "Send",
+    "image": "Image",
+    "video": "Video",
+    "file": "File",
+    "audio": "Audio",
+    "location": "Location",
+    "emoji": "Emoji",
+    "stopRecording": "Stop",
+    "geolocationNotSupported": "Geolocation not supported",
+    "locationError": "Error getting location",
+    "microphonePermissionRequired": "Microphone access permission required",
+    "myLocation": "📍 My location"
+  },
+  "codeEditor": {
+    "copy": "Copy",
+    "enterCode": "Enter your code..."
+  },
+  "codeCard": {
+    "folderInfo": "Folder information",
+    "noDescription": "No description"
+  },
+  "editProfile": {
+    "title": "Edit Profile",
+    "username": "Username",
+    "email": "Email",
+    "bio": "Bio",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "removeAvatar": "Remove",
+    "selectPhoto": "Click to select photo",
+    "onlyImageFiles": "Select only image files (JPG, PNG, GIF)",
+    "imageSizeLimit": "Image size must not exceed 10MB",
+    "imageProcessingError": "Image processing error",
+    "enterCurrentPassword": "Enter current password",
+    "enterNewPassword": "Enter new password",
+    "passwordMinLength": "New password must be at least 6 characters",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordChangeError": "Password change error",
+    "bioSaveError": "Bio save error",
+    "userNotFound": "User not found. Reload the system or log in again.",
+    "updateError": "Profile update error",
+    "storageQuotaExceeded": "Insufficient storage. Clear browser cache or delete other data.",
+    "storageQuotaExceededAvatar": "Insufficient storage. Clear browser cache or use a smaller avatar image.",
+    "serverConnectionError": "Cannot connect to server. Check if backend is running.",
+    "invalidData": "Invalid data. Check all fields.",
+    "show": "Show",
+    "hide": "Hide",
+    "characters": "characters"
+  },
+  "uploadModal": {
+    "terminalTitle": "💻 Open web terminal:",
+    "terminalDescription": "Click the button below to open the terminal in the browser",
+    "openTerminal": "Open Terminal",
+    "orStartTerminal": "Or start terminal:",
+    "windowsCmd": "Windows (Command Prompt):",
+    "windowsPowerShell": "Windows (PowerShell):",
+    "copy": "Copy",
+    "commandCopied": "Command copied!",
+    "uploadCommand": "2. Code upload command:",
+    "examples": "Examples:",
+    "requirements": "Required requirements:",
+    "requirement1": "Terminal is located in the <code>nairee_cli</code> folder",
+    "requirement2": "Backend server must be running at <code>http://127.0.0.1:3000</code>",
+    "requirement3": "The <code>curl</code> tool must be installed on the system",
+    "requirement4": "C++ compiler (CMake, g++ or cl) is required for building",
+    "selectCategory": "Select category",
+    "description": "Description",
+    "enterDescription": "Enter project description...",
+    "understood": "Got it",
+    "categoryAI": "AI",
+    "categoryAIOption1": "AI Training",
+    "categoryAIOption2": "Natural Language Processing",
+    "categoryAIOption3": "Computer Vision",
+    "categoryAIOption4": "AI Applications",
+    "categoryMobile": "Mobile App",
+    "categoryMobileOption1": "iOS App",
+    "categoryMobileOption2": "Android App",
+    "categoryMobileOption3": "Cross-platform App",
+    "categoryMobileOption4": "Mobile Game",
+    "categoryOther": "Other",
+    "categoryOtherOption1": "Web App",
+    "categoryOtherOption2": "Desktop App",
+    "categoryOtherOption3": "Game",
+    "categoryOtherOption4": "API",
+    "categoryOtherOption5": "Database",
+    "categoryOtherOption6": "DevOps",
+    "categoryOtherOption7": "Other"
   }
 }
 

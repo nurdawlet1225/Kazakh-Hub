@@ -6,7 +6,7 @@ import {
   faComment, faSearch, faTimes, faUserPlus, 
   faClock, faCheck, faCheckDouble, faCheckCircle,
   faFile, faMapMarkerAlt, faEllipsisVertical, faTrash, faSearch as faSearchIcon,
-  faUser, faEdit, faVideo, faMusic
+  faUser, faEdit, faVideo, faMusic, faDownload, faAlignLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest, Chat, MessageAttachment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -19,7 +19,7 @@ import '../components/Chat.css';
 
 const ChatPage: React.FC = () => {
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -44,6 +44,7 @@ const ChatPage: React.FC = () => {
   const [showProfileNameMenu, setShowProfileNameMenu] = useState(false);
   const profileNameMenuRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; filename: string } | null>(null);
+  const [imageContextMenu, setImageContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   // Чатта көрсетілетін атын localStorage-тан жүктеу
   useEffect(() => {
@@ -552,7 +553,7 @@ const ChatPage: React.FC = () => {
       loadChats();
     } catch (err: any) {
       console.error('Failed to upload file:', err);
-      alert(err.message || 'Файл жүктеу қатесі');
+      alert(err.message || t('chat.uploadFileError'));
     }
   };
 
@@ -660,7 +661,7 @@ const ChatPage: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to search users:', err);
       // Show error message to user
-      const errorMsg = err.message || 'Іздеу қатесі';
+      const errorMsg = err.message || t('chat.searchError');
       if (!errorMsg.includes('Failed to fetch') && !errorMsg.includes('NetworkError')) {
         console.error('Search error:', errorMsg);
       }
@@ -678,15 +679,15 @@ const ChatPage: React.FC = () => {
       await apiService.sendFriendRequest(currentUser.id, toUserId);
       await loadIncomingRequestCount();
       await loadChats();
-      alert('Достық сұрауы жіберілді');
+      alert(t('chat.friendRequestSent'));
     } catch (err: any) {
       console.error('Failed to send friend request:', err);
-      const errorMsg = err.message || 'Достық сұрауы жіберу қатесі';
+      const errorMsg = err.message || t('chat.sendMessageError');
       if (errorMsg.includes('already exists') || errorMsg.includes('уже существует')) {
-        alert('Достық сұрауы қазірдің өзінде жіберілген');
+        alert(t('chat.friendRequestAlreadySent'));
       } else if (errorMsg.includes('Already friends')) {
         await loadChats();
-        alert('Сіз бұл пайдаланушымен қазірдің өзінде доссыз');
+        alert(t('chat.alreadyFriends'));
       } else {
         alert(errorMsg);
       }
@@ -699,10 +700,10 @@ const ChatPage: React.FC = () => {
       await loadFriendRequests();
       await loadIncomingRequestCount();
       await loadChats();
-      alert('Достық сұрауы қабылданды');
+      alert(t('chat.requestAccepted'));
     } catch (err) {
       console.error('Failed to accept friend request:', err);
-      alert('Достық сұрауы қабылдау қатесі');
+      alert(t('chat.acceptRequestError'));
     }
   };
 
@@ -711,10 +712,10 @@ const ChatPage: React.FC = () => {
       await apiService.rejectFriendRequest(requestId);
       await loadFriendRequests();
       await loadIncomingRequestCount();
-      alert('Достық сұрауы бас тартылды');
+      alert(t('chat.requestRejected'));
     } catch (err) {
       console.error('Failed to reject friend request:', err);
-      alert('Достық сұрауы бас тарту қатесі');
+      alert(t('chat.rejectRequestError'));
     }
   };
 
@@ -724,10 +725,10 @@ const ChatPage: React.FC = () => {
       await apiService.cancelFriendRequest(requestId, currentUser.id);
       await loadFriendRequests();
       await loadIncomingRequestCount();
-      alert('Достық сұрауы жойылды');
+      alert(t('chat.requestCancelled'));
     } catch (err) {
       console.error('Failed to cancel friend request:', err);
-      alert('Достық сұрауы жою қатесі');
+      alert(t('chat.cancelRequestError'));
     }
   };
 
@@ -735,7 +736,7 @@ const ChatPage: React.FC = () => {
     e.stopPropagation();
     if (!currentUser) return;
     
-    if (!window.confirm('Бұл досыңызды тізімнен алып тастағыңыз келе ме?')) {
+    if (!window.confirm(t('chat.removeFriendConfirm'))) {
       return;
     }
     
@@ -746,16 +747,16 @@ const ChatPage: React.FC = () => {
         setSelectedFriend(null);
         setMessages([]);
       }
-      alert('Дос алып тастылды');
+      alert(t('chat.friendRemoved'));
     } catch (err) {
       console.error('Failed to remove friend:', err);
-      alert('Дос алып тастау қатесі');
+      alert(t('chat.removeFriendError'));
     }
   };
 
   const handleClearMessages = () => {
     if (!currentUser || !selectedFriend) return;
-    if (window.confirm('Осы беттегі барлық хабарламаларды тазалағыңыз келе ме?')) {
+    if (window.confirm(t('chat.clearMessagesConfirm'))) {
       // Тазаланған хабарламалардың ID-лерін localStorage-та сақтау
       const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
       const clearedMessageIds = messages.map(msg => msg.id);
@@ -783,7 +784,7 @@ const ChatPage: React.FC = () => {
 
   const handleDeleteChat = async () => {
     if (!currentUser || !selectedFriend) return;
-    if (window.confirm('Бұл чатті толығымен жойғыңыз келе ме? Дос тізімінен де алып тасталады және барлық хабарламалар жойылады.')) {
+    if (window.confirm(t('chat.deleteChatConfirm'))) {
       try {
         // Дос алып тастау - бұл дос тізімінен де жойады
         await apiService.removeFriend(currentUser.id, selectedFriend.id);
@@ -800,10 +801,10 @@ const ChatPage: React.FC = () => {
         setMessages([]);
         setShowChatMenu(false);
         
-        alert('Чат жойылды және дос тізімінен алып тастылды');
+        alert(t('chat.chatDeleted'));
       } catch (err) {
         console.error('Failed to delete chat:', err);
-        alert('Чат жою қатесі');
+        alert(t('chat.deleteChatError'));
       }
     }
   };
@@ -828,16 +829,20 @@ const ChatPage: React.FC = () => {
       if (profileNameMenuRef.current && !profileNameMenuRef.current.contains(event.target as Node)) {
         setShowProfileNameMenu(false);
       }
+      // Контекст менюсін жабу
+      if (imageContextMenu) {
+        setImageContextMenu(null);
+      }
     };
 
-    if (showChatMenu || showProfileNameMenu) {
+    if (showChatMenu || showProfileNameMenu || imageContextMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showChatMenu, showProfileNameMenu]);
+  }, [showChatMenu, showProfileNameMenu, imageContextMenu]);
 
   const handleSaveDisplayName = () => {
     if (!currentUser || !selectedFriend) return;
@@ -879,6 +884,134 @@ const ChatPage: React.FC = () => {
     if (url.startsWith('http')) return url;
     if (url.startsWith('/api')) return `${API_BASE_URL.replace('/api', '')}${url}`;
     return `${API_BASE_URL.replace('/api', '')}/api${url}`;
+  };
+
+  const handleDownloadImage = async (url: string, filename: string) => {
+    // Helper function to clean filename while preserving extension
+    const cleanFilename = (name: string) => {
+      // Extract extension
+      const extensionMatch = name.match(/\.([^.]+)$/);
+      const extension = extensionMatch ? extensionMatch[1] : 'png';
+      const baseName = name.replace(/\.[^/.]+$/, '').replace(/[<>:"/\\|?*]/g, '_').trim() || 'image';
+      return `${baseName}.${extension}`;
+    };
+    
+    const cleanName = cleanFilename(filename);
+    const fullUrl = getFullUrl(url);
+    
+    // Helper function to trigger download
+    const triggerDownload = (blob: Blob, downloadFilename: string) => {
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = downloadFilename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+        window.URL.revokeObjectURL(blobUrl);
+      }, 200);
+    };
+    
+    // Helper function for direct download fallback
+    const directDownload = () => {
+      const link = document.createElement('a');
+      link.href = fullUrl;
+      link.download = cleanName;
+      link.target = '_blank';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link);
+        }
+      }, 200);
+    };
+    
+    try {
+      // Method 1: Try fetch API first (most reliable and preserves original format)
+      try {
+        const response = await fetch(fullUrl, {
+          method: 'GET',
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          triggerDownload(blob, cleanName);
+          return;
+        }
+      } catch (fetchError) {
+        console.log('Fetch method failed, trying canvas method...', fetchError);
+      }
+      
+      // Method 2: Canvas approach (for CORS-restricted images)
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+              throw new Error('Could not get canvas context');
+            }
+            
+            ctx.drawImage(img, 0, 0);
+            
+            // Determine MIME type from filename extension
+            const extension = cleanName.split('.').pop()?.toLowerCase() || 'png';
+            const mimeType = extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' :
+                            extension === 'png' ? 'image/png' :
+                            extension === 'webp' ? 'image/webp' :
+                            extension === 'gif' ? 'image/gif' : 'image/png';
+            
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                // If canvas fails, try direct download
+                directDownload();
+                resolve();
+                return;
+              }
+              
+              triggerDownload(blob, cleanName);
+              resolve();
+            }, mimeType);
+          } catch (error: any) {
+            console.error('Canvas method failed:', error);
+            directDownload();
+            resolve();
+          }
+        };
+        
+        img.onerror = () => {
+          // If CORS fails, try direct download link
+          console.log('Image load failed, trying direct download...');
+          directDownload();
+          resolve();
+        };
+        
+        img.src = fullUrl;
+      });
+    } catch (error: any) {
+      console.error('Failed to download image:', error);
+      // Final fallback: try direct link
+      try {
+        directDownload();
+      } catch (fallbackError) {
+        alert('Суретті жүктеу қатесі. Суретті оң жақ батырмамен "Суретті басқа атаумен сақтау" арқылы сақтаңыз.');
+      }
+    }
   };
 
   const getMessageStatusIcon = (message: Message) => {
@@ -1080,10 +1213,24 @@ const ChatPage: React.FC = () => {
     chat.partner.email.toLowerCase().includes(friendsSearchQuery.toLowerCase())
   );
 
+  const handleChatHeaderClick = () => {
+    setSelectedFriend(null);
+    setMessages([]);
+    setShowChatProfileModal(false);
+    setShowMessageSearch(false);
+    setMessageSearchQuery('');
+  };
+
   return (
     <div className="chat-page-container">
       <div className="chat-header">
-        <h3><FontAwesomeIcon icon={faComment} /> Чат</h3>
+        <h3 
+          onClick={handleChatHeaderClick}
+          style={{ cursor: 'pointer' }}
+          title="Чаттың бастапқы бетіне қайту"
+        >
+          <FontAwesomeIcon icon={faComment} /> Чат
+        </h3>
       </div>
 
       <div className="chat-content">
@@ -1619,6 +1766,15 @@ const ChatPage: React.FC = () => {
                     <div className="chat-profile-info-value">{selectedFriend.username}</div>
                   </div>
                 </div>
+                {selectedFriend.bio && (
+                  <div className="chat-profile-info-item">
+                    <FontAwesomeIcon icon={faAlignLeft} className="chat-profile-info-icon" />
+                    <div className="chat-profile-info-content">
+                      <div className="chat-profile-info-label">Сипаттама</div>
+                      <div className="chat-profile-info-value chat-profile-bio">{selectedFriend.bio}</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Медиа бөлімі */}
@@ -1660,18 +1816,6 @@ const ChatPage: React.FC = () => {
                   </div>
                 )}
               </div>
-
-              <div className="chat-profile-actions">
-                <button
-                  className="chat-profile-action-btn"
-                  onClick={() => {
-                    setShowChatProfileModal(false);
-                    navigate(`/profile/${selectedFriend.username}`);
-                  }}
-                >
-                  Толық профильді көру
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1681,33 +1825,73 @@ const ChatPage: React.FC = () => {
       {selectedImage && (
         <div 
           className="chat-image-viewer-overlay" 
-          onClick={() => setSelectedImage(null)}
+          onClick={() => {
+            setSelectedImage(null);
+            setImageContextMenu(null);
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setImageContextMenu({ x: e.clientX, y: e.clientY });
+          }}
         >
           <div className="chat-image-viewer-content" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="chat-image-viewer-close" 
-              onClick={() => setSelectedImage(null)}
-              title="Жабу"
+            <button
+              className="chat-image-viewer-download"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadImage(selectedImage.url, selectedImage.filename);
+              }}
+              title="Сақтау"
             >
-              <FontAwesomeIcon icon={faTimes} />
+              <FontAwesomeIcon icon={faDownload} />
+              <span>Сақтау</span>
             </button>
             <img 
               src={selectedImage.url} 
               alt={selectedImage.filename}
               className="chat-image-viewer-image"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setImageContextMenu({ x: e.clientX, y: e.clientY });
+              }}
             />
-            <div className="chat-image-viewer-footer">
-              <span className="chat-image-viewer-filename">{selectedImage.filename}</span>
-              <a
-                href={selectedImage.url}
-                download={selectedImage.filename}
-                className="chat-image-viewer-download"
+            {imageContextMenu && (
+              <div
+                className="chat-image-context-menu"
+                style={{
+                  position: 'fixed',
+                  top: `${imageContextMenu.y}px`,
+                  left: `${imageContextMenu.x}px`,
+                }}
                 onClick={(e) => e.stopPropagation()}
-                title="Жүктеу"
               >
-                <FontAwesomeIcon icon={faFile} />
-              </a>
-            </div>
+                <button
+                  className="chat-image-context-menu-item"
+                  onClick={() => {
+                    handleDownloadImage(selectedImage.url, selectedImage.filename);
+                    setImageContextMenu(null);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faDownload} />
+                  <span>Суретті сақтау</span>
+                </button>
+                <button
+                  className="chat-image-context-menu-item"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedImage.url).then(() => {
+                      alert('Сурет сілтемесі алмасу буферіне көшірілді');
+                    }).catch(() => {
+                      alert('Көшіру қатесі');
+                    });
+                    setImageContextMenu(null);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faFile} />
+                  <span>Сілтемені көшіру</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

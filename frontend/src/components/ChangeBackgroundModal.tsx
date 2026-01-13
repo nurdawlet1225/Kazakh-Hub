@@ -419,7 +419,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                           e.stopPropagation();
                         }}
                         className="btn-zoom btn-zoom-out"
-                        title="Алыстату"
+                        title={t('changeBackground.zoomOut')}
                       >
                         <FontAwesomeIcon icon={faSearchMinus} />
                       </button>

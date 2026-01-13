@@ -359,7 +359,7 @@ const Profile: React.FC = () => {
         <button
           className="profile-back-button"
           onClick={() => navigate(-1)}
-          title="Артқа қайту"
+          title={t('profile.back')}
         >
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>

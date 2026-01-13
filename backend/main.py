@@ -2,7 +2,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 import uvicorn
@@ -100,7 +100,24 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request, call_next):
     print(f"{datetime.now().isoformat()} - {request.method} {request.url.path}")
+    
+    # Handle OPTIONS requests for CORS preflight
+    if request.method == "OPTIONS":
+        response = JSONResponse(content={})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
     response = await call_next(request)
+    
+    # Add CORS headers for static files (uploads)
+    if request.url.path.startswith("/api/uploads"):
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
     
     # Add caching headers for GET requests
     if request.method == "GET" and request.url.path.startswith("/api/codes"):
@@ -167,9 +184,61 @@ async def health_check():
 # Include API routes
 app.include_router(api_router)
 
-# Mount static files for uploads
-if os.path.exists("uploads"):
-    app.mount("/api/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Handle OPTIONS for uploads endpoint
+@app.options("/api/uploads/{file_path:path}")
+async def serve_upload_options(file_path: str):
+    """Handle CORS preflight for uploads"""
+    return Response(
+        content="",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true",
+        }
+    )
+
+# Custom endpoint for serving uploads with CORS headers
+@app.get("/api/uploads/{file_path:path}")
+async def serve_upload(file_path: str):
+    """Serve uploaded files with CORS headers"""
+    upload_dir = "uploads"
+    file_full_path = os.path.join(upload_dir, file_path)
+    
+    # Security check: prevent directory traversal
+    if ".." in file_path or not os.path.exists(file_full_path):
+        response = JSONResponse(
+            content={"error": "File not found"},
+            status_code=404
+        )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+    
+    # Determine content type
+    content_type = "application/octet-stream"
+    if file_path.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+        content_type = f"image/{file_path.split('.')[-1].lower()}"
+    elif file_path.endswith((".mp4", ".webm", ".mov")):
+        content_type = f"video/{file_path.split('.')[-1].lower()}"
+    elif file_path.endswith((".mp3", ".wav", ".ogg")):
+        content_type = f"audio/{file_path.split('.')[-1].lower()}"
+    
+    # Read file and create response with CORS headers
+    with open(file_full_path, "rb") as f:
+        file_content = f.read()
+    
+    response = Response(
+        content=file_content,
+        media_type=content_type,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true",
+            "Content-Disposition": f'inline; filename="{os.path.basename(file_path)}"',
+        }
+    )
+    return response
 
 # Include WebSocket endpoint directly (WebSocket doesn't work well with APIRouter)
 from fastapi import WebSocket, WebSocketDisconnect
@@ -211,5 +280,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         manager.disconnect(websocket, user_id)
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8080))  # Default to 8080 for Cloud Run compatibility
+    # Default to 3000 for local development, 8080 for Cloud Run
+    port = int(os.getenv("PORT", 3000))
     uvicorn.run(app, host="0.0.0.0", port=port)

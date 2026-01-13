@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCopy } from '@fortawesome/free-solid-svg-icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -20,6 +21,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   onChange,
   lineNumbers = true,
 }) => {
+  const { t } = useTranslation();
   const [content, setContent] = useState(code);
 
   useEffect(() => {
@@ -94,7 +96,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         value={content}
         onChange={handleChange}
         spellCheck={false}
-        placeholder="Кодыңызды енгізіңіз..."
+        placeholder={t('codeEditor.enterCode')}
       />
     </div>
   );

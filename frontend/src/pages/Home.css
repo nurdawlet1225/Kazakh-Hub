@@ -143,3 +143,17 @@
     min-height: 40px;
   }
 }
+
+/* Theme-aware utility classes for Home page */
+.bg-primary-light {
+  background-color: var(--primary-light) !important;
+}
+
+.shadow-glow {
+  box-shadow: var(--shadow-glow) !important;
+}
+
+.empty-state-bg {
+  background: var(--primary-light);
+  opacity: 0.6;
+}

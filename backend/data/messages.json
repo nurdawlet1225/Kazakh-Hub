@@ -83,5 +83,38 @@
     "status": "delivered",
     "read": false,
     "readAt": null
+  },
+  {
+    "id": "5b8fe2a5-75bd-4593-b0e4-769bd63ee701",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "",
+    "type": "image",
+    "attachments": [
+      {
+        "filename": "ChatGPT Image 18 окт. 2025 г., 08_21_00.png",
+        "url": "/api/uploads/images/20260112_183433_ChatGPT Image 18 окт. 2025 г., 08_21_00.png",
+        "size": 2124501,
+        "mimeType": "image/png"
+      }
+    ],
+    "metadata": {},
+    "createdAt": "2026-01-12T18:34:33.576293",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "fd3d2eb3-85ab-4b2f-9f3e-0210f5486321",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "😀",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-12T18:36:01.255696",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
   }
 ]

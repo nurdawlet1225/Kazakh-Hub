@@ -15,7 +15,7 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [friends, setFriends] = useState<User[]>([]);
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
@@ -143,7 +143,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
       await loadMessages();
     } catch (err) {
       console.error('Failed to send message:', err);
-      alert('Хабарлама жіберу қатесі');
+      alert(t('chat.sendMessageError'));
     }
   };
 
@@ -239,7 +239,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
     } catch (err: any) {
       console.error('Failed to search users:', err);
       // Show error message to user
-      const errorMsg = err.message || 'Іздеу қатесі';
+      const errorMsg = err.message || t('chat.searchError');
       if (!errorMsg.includes('Failed to fetch') && !errorMsg.includes('NetworkError')) {
         console.error('Search error:', errorMsg);
       }
@@ -255,10 +255,10 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
       await apiService.sendFriendRequest(currentUser.id, toUserId);
       setSearchQuery('');
       setSearchResults([]);
-      alert('Достық сұрауы жіберілді');
+      alert(t('chat.friendRequestSent'));
     } catch (err: any) {
       console.error('Failed to send friend request:', err);
-      alert(err.message || 'Достық сұрауы жіберу қатесі');
+      alert(err.message || t('chat.sendMessageError'));
     }
   };
 
@@ -267,10 +267,10 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
       await apiService.acceptFriendRequest(requestId);
       await loadFriendRequests();
       await loadFriends();
-      alert('Достық сұрауы қабылданды');
+      alert(t('chat.requestAccepted'));
     } catch (err) {
       console.error('Failed to accept friend request:', err);
-      alert('Достық сұрауы қабылдау қатесі');
+      alert(t('chat.acceptRequestError'));
     }
   };
 
@@ -278,10 +278,10 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
     try {
       await apiService.rejectFriendRequest(requestId);
       await loadFriendRequests();
-      alert('Достық сұрауы бас тартылды');
+      alert(t('chat.requestRejected'));
     } catch (err) {
       console.error('Failed to reject friend request:', err);
-      alert('Достық сұрауы бас тарту қатесі');
+      alert(t('chat.rejectRequestError'));
     }
   };
 
@@ -366,7 +366,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   className="chat-search-input"
-                  placeholder="Пайдаланушыны іздеу (аты, email немесе ID)..."
+                  placeholder={t('chat.searchUsers')}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -397,7 +397,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                       <button
                         className="chat-add-btn"
                         onClick={() => handleSendFriendRequest(user.id)}
-                        title="Достық сұрауы жіберу"
+                        title={t('chat.sendFriendRequest')}
                       >
                         <FontAwesomeIcon icon={faUserPlus} className="chat-btn-icon" />
                       </button>
@@ -411,7 +411,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
           {activeTab === 'requests' && (
             <div className="chat-requests">
               {friendRequests.length === 0 ? (
-                <div className="chat-empty">Сұраулар жоқ</div>
+                <div className="chat-empty">{t('chat.noIncomingRequests')}</div>
               ) : (
                 <div className="chat-requests-items">
                   {friendRequests.map((request) => (

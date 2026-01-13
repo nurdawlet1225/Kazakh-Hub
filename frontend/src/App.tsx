@@ -17,6 +17,9 @@ const Settings = lazy(() => import('./pages/Settings'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 
 // Loading component
 const PageLoader: React.FC = () => (
@@ -55,6 +58,9 @@ const AppContent: React.FC = () => {
               <Route path="/profile/:username?" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="*" element={
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                   <h1>{t('viewCode.404')}</h1>

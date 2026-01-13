@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle, faFolderOpen, faBook, faList, faLock, faRocket, faLaptop } from '@fortawesome/free-solid-svg-icons';
@@ -43,22 +44,22 @@ const Footer: React.FC = () => {
             </h4>
             <ul className="footer-links">
               <li>
-                <a href="/about">
+                <Link to="/about">
                   <span className="link-icon"><FontAwesomeIcon icon={faBook} /></span>
                   {t('footer.about')}
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/terms">
+                <Link to="/terms">
                   <span className="link-icon"><FontAwesomeIcon icon={faList} /></span>
                   {t('footer.terms')}
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="/privacy">
+                <Link to="/privacy">
                   <span className="link-icon"><FontAwesomeIcon icon={faLock} /></span>
                   {t('footer.privacy')}
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
