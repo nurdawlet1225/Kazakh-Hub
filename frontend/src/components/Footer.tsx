@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle, faFolderOpen, faBook, faList, faLock, faRocket, faLaptop } from '@fortawesome/free-solid-svg-icons';
@@ -7,6 +7,7 @@ import './Footer.css';
 
 const Footer: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -19,6 +20,14 @@ const Footer: React.FC = () => {
               <p className="footer-description">
                 {t('footer.description')}
               </p>
+            </div>
+            <div className="footer-features">
+              <button 
+                className="footer-features-title"
+                onClick={() => navigate('/features')}
+              >
+                {t('footer.features')}
+              </button>
             </div>
           </div>
 

@@ -25,6 +25,8 @@ const ChatPage: React.FC = () => {
   const [selectedFriend, setSelectedFriend] = useState<User | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'friends' | 'add' | 'requests'>('friends');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
@@ -72,7 +74,7 @@ const ChatPage: React.FC = () => {
   const loadChatsRef = useRef<(() => Promise<void>) | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = (instant: boolean = false) => {
+  const scrollToBottom = useCallback((instant: boolean = false) => {
     if (instant) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       messagesContainerRef.current?.scrollTo({
@@ -82,7 +84,7 @@ const ChatPage: React.FC = () => {
     } else {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  };
+  }, []);
 
   const loadCurrentUser = async () => {
     try {
@@ -168,12 +170,42 @@ const ChatPage: React.FC = () => {
   }, [currentUser?.id]);
 
   const loadMessages = useCallback(async () => {
-    if (!currentUser?.id || !selectedFriend?.id) return;
+    if (!currentUser?.id || !selectedFriend?.id) {
+      console.log('loadMessages: Missing currentUser or selectedFriend', { 
+        currentUserId: currentUser?.id, 
+        selectedFriendId: selectedFriend?.id 
+      });
+      setMessages([]);
+      setMessagesError(null);
+      setLoadingMessages(false);
+      return;
+    }
+    
+    setLoadingMessages(true);
+    setMessagesError(null);
+    
     try {
+      console.log('loadMessages: Loading messages for', {
+        currentUserId: currentUser.id,
+        selectedFriendId: selectedFriend.id
+      });
       const conversationMessages = await apiService.getConversation(
         currentUser.id,
         selectedFriend.id
       );
+      
+      console.log('loadMessages: Received messages from API', {
+        total: conversationMessages.length,
+        messages: conversationMessages
+      });
+      
+      if (!Array.isArray(conversationMessages)) {
+        console.error('loadMessages: API returned non-array response:', conversationMessages);
+        setMessages([]);
+        setMessagesError('API дұрыс жауап қайтармады');
+        setLoadingMessages(false);
+        return;
+      }
       
       // Тазаланған хабарламаларды фильтрлеу
       const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
@@ -183,8 +215,11 @@ const ChatPage: React.FC = () => {
       if (existingCleared) {
         try {
           clearedIds = JSON.parse(existingCleared);
+          console.log('loadMessages: Found cleared messages in localStorage', clearedIds.length);
         } catch (e) {
           console.error('Failed to parse cleared messages:', e);
+          // Clear invalid localStorage data
+          localStorage.removeItem(clearedMessagesKey);
         }
       }
       
@@ -193,11 +228,30 @@ const ChatPage: React.FC = () => {
         msg => !clearedIds.includes(msg.id)
       );
       
+      console.log('loadMessages: Filtered messages', {
+        beforeFilter: conversationMessages.length,
+        clearedCount: clearedIds.length,
+        afterFilter: filteredMessages.length,
+        finalMessages: filteredMessages
+      });
+      
       setMessages(filteredMessages);
+      setMessagesError(null);
       // Scroll to bottom instantly when loading messages
       setTimeout(() => scrollToBottom(true), 50);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load messages:', err);
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        response: err.response
+      });
+      const errorMessage = err.message || 'Хабарламаларды жүктеу қатесі';
+      setMessagesError(errorMessage);
+      // Set empty messages array on error to show "no messages" state
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
     }
   }, [currentUser?.id, selectedFriend?.id]);
 
@@ -453,10 +507,25 @@ const ChatPage: React.FC = () => {
   // Load messages when friend is selected
   useEffect(() => {
     if (currentUser?.id && selectedFriend?.id) {
+      console.log('useEffect: Friend selected, loading messages', {
+        currentUserId: currentUser.id,
+        selectedFriendId: selectedFriend.id,
+        selectedFriendUsername: selectedFriend.username
+      });
+      setMessagesError(null); // Clear any previous errors
       loadMessages();
       markConversationRead();
       // Scroll to bottom immediately when entering conversation
       setTimeout(() => scrollToBottom(true), 100);
+    } else {
+      console.log('useEffect: Not loading messages', {
+        currentUserId: currentUser?.id,
+        selectedFriendId: selectedFriend?.id
+      });
+      // Clear messages when no friend is selected
+      setMessages([]);
+      setMessagesError(null);
+      setLoadingMessages(false);
     }
   }, [currentUser?.id, selectedFriend?.id, loadMessages, markConversationRead]);
 
@@ -467,7 +536,7 @@ const ChatPage: React.FC = () => {
       const isInitialLoad = messages.length === 1 || !messagesContainerRef.current?.scrollTop;
       scrollToBottom(isInitialLoad);
     }
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   // Cleanup
   useEffect(() => {
@@ -1290,7 +1359,15 @@ const ChatPage: React.FC = () => {
                     <div
                       key={chat.partnerId}
                       className={`chat-friend-item ${selectedFriend?.id === chat.partnerId ? 'active' : ''} ${chat.unreadCount > 0 ? 'has-unread' : ''}`}
-                      onClick={() => setSelectedFriend(chat.partner)}
+                      onClick={() => {
+                        console.log('Chat item clicked:', { chat, partner: chat.partner });
+                        if (chat.partner && chat.partner.id) {
+                          console.log('Setting selectedFriend:', chat.partner);
+                          setSelectedFriend(chat.partner);
+                        } else {
+                          console.error('chat.partner is missing or invalid:', chat);
+                        }
+                      }}
                     >
                       <div 
                         className="chat-friend-avatar"
@@ -1633,27 +1710,60 @@ const ChatPage: React.FC = () => {
                 </div>
               )}
               <div className="chat-messages-list" ref={messagesContainerRef}>
-                {filteredMessages.map((message) => {
-                  const isOwn = message.fromUserId === currentUser?.id;
-                  return (
-                    <div
-                      key={message.id}
-                      className={`chat-message ${isOwn ? 'own' : 'other'} ${message.type || 'text'}`}
+                {loadingMessages ? (
+                  <div className="chat-no-messages">
+                    <div className="chat-no-messages-icon"><FontAwesomeIcon icon={faComment} /></div>
+                    <p>Хабарламалар жүктелуде...</p>
+                  </div>
+                ) : messagesError ? (
+                  <div className="chat-no-messages">
+                    <div className="chat-no-messages-icon"><FontAwesomeIcon icon={faComment} /></div>
+                    <p>Қате: {messagesError}</p>
+                    <button 
+                      onClick={() => loadMessages()}
+                      className="chat-retry-btn"
+                      style={{
+                        marginTop: '1rem',
+                        padding: '0.5rem 1rem',
+                        background: 'var(--accent-color)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer'
+                      }}
                     >
-                      {renderMessageContent(message)}
-                      <div className="chat-message-footer">
-                        <div className="chat-message-time">
-                          {formatTime(message.createdAt)}
-                        </div>
-                        {isOwn && (
-                          <div className="chat-message-status">
-                            {getMessageStatusIcon(message)}
+                      Қайталау
+                    </button>
+                  </div>
+                ) : filteredMessages.length === 0 ? (
+                  <div className="chat-no-messages">
+                    <div className="chat-no-messages-icon"><FontAwesomeIcon icon={faComment} /></div>
+                    <p>Хабарламалар жоқ</p>
+                    <p className="chat-no-messages-hint">Бірінші хабарламаны жіберіңіз</p>
+                  </div>
+                ) : (
+                  filteredMessages.map((message) => {
+                    const isOwn = message.fromUserId === currentUser?.id;
+                    return (
+                      <div
+                        key={message.id}
+                        className={`chat-message ${isOwn ? 'own' : 'other'} ${message.type || 'text'}`}
+                      >
+                        {renderMessageContent(message)}
+                        <div className="chat-message-footer">
+                          <div className="chat-message-time">
+                            {formatTime(message.createdAt)}
                           </div>
-                        )}
+                          {isOwn && (
+                            <div className="chat-message-status">
+                              {getMessageStatusIcon(message)}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
                 <div ref={messagesEndRef} />
               </div>
               <MessageInput

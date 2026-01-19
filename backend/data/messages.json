@@ -116,5 +116,18 @@
     "status": "delivered",
     "read": false,
     "readAt": null
+  },
+  {
+    "id": "85a619c2-6ce1-4d7d-afa3-26296d30e14c",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "😀",
+    "type": "text",
+    "attachments": [],
+    "metadata": {},
+    "createdAt": "2026-01-19T12:47:23.016449",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
   }
 ]

@@ -18,6 +18,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ChatPage = lazy(() => import('./pages/ChatPage'));
 const AboutPage = lazy(() => import('./pages/AboutPage'));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 
@@ -59,6 +60,7 @@ const AppContent: React.FC = () => {
               <Route path="/settings" element={<Settings />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/features" element={<FeaturesPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="*" element={

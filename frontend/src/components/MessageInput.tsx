@@ -27,6 +27,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   disabled = false,
   placeholder = "Хабарлама жазыңыз..."
 }) => {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isRecording, setIsRecording] = useState(false);

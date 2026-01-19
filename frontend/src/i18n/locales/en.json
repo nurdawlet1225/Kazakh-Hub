@@ -161,10 +161,17 @@
   },
   "footer": {
     "description": "Code sharing and collaboration platform",
+    "features": "Special Features",
     "codeSharing": "Code Sharing",
     "collaboration": "Collaboration",
     "learning": "Learning",
     "fastDevelopment": "Fast Development",
+    "friendsSystem": "Friends System",
+    "messaging": "Messaging",
+    "commentsLikes": "Comments & Likes",
+    "userProfiles": "User Profiles",
+    "searchFilter": "Search & Filter",
+    "showAllFeatures": "Show All Features",
     "links": "Links",
     "info": "Information",
     "about": "About Us",
@@ -259,6 +266,19 @@
       "title": "Contact",
       "description": "If you have any questions, please contact us. We value your feedback and suggestions."
     }
+  },
+  "features": {
+    "codeSharingDesc": "Easily share your code files with other developers",
+    "collaborationDesc": "Work together with other developers on projects",
+    "learningDesc": "Learn from others' code and develop your skills",
+    "friendsSystemDesc": "Add friends and stay connected with them",
+    "messagingDesc": "Exchange messages with friends and stay connected",
+    "commentsLikesDesc": "Leave comments and like codes",
+    "userProfilesDesc": "Customize your profile and view statistics",
+    "searchFilterDesc": "Search and filter codes by language, tags, or name"
+  },
+  "common": {
+    "back": "Back"
   },
   "terms": {
     "title": "Terms of Use",
