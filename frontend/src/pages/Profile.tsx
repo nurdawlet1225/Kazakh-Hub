@@ -8,8 +8,8 @@ import { apiService } from '../utils/api';
 import { ensureNumericId } from '../utils/idConverter';
 import { imageStorage } from '../utils/imageStorage';
 import CodeCard from '../components/CodeCard';
-import EditProfileModal from '../components/EditProfileModal';
-import ChangeBackgroundModal from '../components/ChangeBackgroundModal';
+import EditProfileModal from '../components/modals/EditProfileModal';
+import ChangeBackgroundModal from '../components/modals/ChangeBackgroundModal';
 import './Profile.css';
 
 const Profile: React.FC = () => {

@@ -71,7 +71,7 @@ async def upload_file(
         # Verify friendship
         are_friends = FriendService.are_friends(fromUserId, toUserId)
         if not are_friends:
-            raise HTTPException(status_code=403, detail="You can only message friends")
+            raise HTTPException(status_code=403, detail="Тек достарға хабарлама жіберуге болады. Алдымен дос болыңыз.")
         
         # Determine upload directory based on message type
         upload_subdir = {

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { useFileUpload } from '../hooks/useFileUpload';
-import Button from './Button';
+import Button from './ui/Button';
 import './FolderUploadItem.css';
 
 interface FolderUploadItemProps {
@@ -177,4 +177,3 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
 };
 
 export default FolderUploadItem;
-

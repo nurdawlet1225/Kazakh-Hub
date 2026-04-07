@@ -622,7 +622,16 @@ const ChatPage: React.FC = () => {
       loadChats();
     } catch (err: any) {
       console.error('Failed to upload file:', err);
-      alert(err.message || t('chat.uploadFileError'));
+      let errorMessage = err.message || t('chat.uploadFileError');
+      
+      // Translate common error messages
+      if (errorMessage.includes('You can only message friends') || errorMessage.includes('Тек достарға')) {
+        errorMessage = 'Тек достарға хабарлама жіберуге болады. Алдымен дос болыңыз.';
+      } else if (errorMessage.includes('403')) {
+        errorMessage = 'Хабарлама жіберуге рұқсат жоқ. Дос болыңыз.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -798,28 +807,6 @@ const ChatPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to cancel friend request:', err);
       alert(t('chat.cancelRequestError'));
-    }
-  };
-
-  const handleRemoveFriend = async (friendId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!currentUser) return;
-    
-    if (!window.confirm(t('chat.removeFriendConfirm'))) {
-      return;
-    }
-    
-    try {
-      await apiService.removeFriend(currentUser.id, friendId);
-      await loadChats();
-      if (selectedFriend?.id === friendId) {
-        setSelectedFriend(null);
-        setMessages([]);
-      }
-      alert(t('chat.friendRemoved'));
-    } catch (err) {
-      console.error('Failed to remove friend:', err);
-      alert(t('chat.removeFriendError'));
     }
   };
 
@@ -1113,34 +1100,44 @@ const ChatPage: React.FC = () => {
     const getFullUrl = (url: string) => {
       if (url.startsWith('http')) return url;
       // If URL already starts with /api, use API_BASE_URL directly
+      // Browser will automatically encode special characters in the URL
       if (url.startsWith('/api')) return `${API_BASE_URL.replace('/api', '')}${url}`;
       // Otherwise, assume it's relative to /api/uploads
       return `${API_BASE_URL.replace('/api', '')}/api${url}`;
+    };
+
+    // Helper to check if URL is an image
+    const isImageUrl = (url: string) => {
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+      const lowerUrl = url.toLowerCase();
+      return imageExtensions.some(ext => lowerUrl.includes(ext)) || lowerUrl.includes('/images/');
     };
 
     switch (messageType) {
       case 'image':
         if (message.attachments && message.attachments.length > 0) {
           return (
-            <div className="chat-message-media">
-              {message.attachments.map((att, idx) => {
-                const imageUrl = getFullUrl(att.url);
-                return (
-                  <img
-                    key={idx}
-                    src={imageUrl}
-                    alt={att.filename}
-                    className="chat-message-image"
-                    onClick={() => {
-                      setSelectedImage({ url: imageUrl, filename: att.filename });
-                    }}
-                    loading="lazy"
-                  />
-                );
-              })}
-              {message.content && (
-                <div className="chat-message-text">{message.content}</div>
-              )}
+            <div className="chat-message-content has-image">
+              <div className="chat-message-media">
+                {message.attachments.map((att, idx) => {
+                  const imageUrl = getFullUrl(att.url);
+                  return (
+                    <img
+                      key={idx}
+                      src={imageUrl}
+                      alt={att.filename}
+                      className="chat-message-image"
+                      onClick={() => {
+                        setSelectedImage({ url: imageUrl, filename: att.filename });
+                      }}
+                      loading="lazy"
+                    />
+                  );
+                })}
+                {message.content && (
+                  <div className="chat-message-text">{message.content}</div>
+                )}
+              </div>
             </div>
           );
         }
@@ -1149,19 +1146,21 @@ const ChatPage: React.FC = () => {
       case 'video':
         if (message.attachments && message.attachments.length > 0) {
           return (
-            <div className="chat-message-media">
-              {message.attachments.map((att, idx) => (
-                <div key={idx} className="chat-message-video-wrapper">
-                  <video
-                    src={getFullUrl(att.url)}
-                    controls
-                    className="chat-message-video"
-                  />
-                </div>
-              ))}
-              {message.content && (
-                <div className="chat-message-text">{message.content}</div>
-              )}
+            <div className="chat-message-content has-video">
+              <div className="chat-message-media">
+                {message.attachments.map((att, idx) => (
+                  <div key={idx} className="chat-message-video-wrapper">
+                    <video
+                      src={getFullUrl(att.url)}
+                      controls
+                      className="chat-message-video"
+                    />
+                  </div>
+                ))}
+                {message.content && (
+                  <div className="chat-message-text">{message.content}</div>
+                )}
+              </div>
             </div>
           );
         }
@@ -1170,19 +1169,21 @@ const ChatPage: React.FC = () => {
       case 'audio':
         if (message.attachments && message.attachments.length > 0) {
           return (
-            <div className="chat-message-media">
-              {message.attachments.map((att, idx) => (
-                <div key={idx} className="chat-message-audio-wrapper">
-                  <audio
-                    src={getFullUrl(att.url)}
-                    controls
-                    className="chat-message-audio"
-                  />
-                </div>
-              ))}
-              {message.content && (
-                <div className="chat-message-text">{message.content}</div>
-              )}
+            <div className="chat-message-content has-audio">
+              <div className="chat-message-media">
+                {message.attachments.map((att, idx) => (
+                  <div key={idx} className="chat-message-audio-wrapper">
+                    <audio
+                      src={getFullUrl(att.url)}
+                      controls
+                      className="chat-message-audio"
+                    />
+                  </div>
+                ))}
+                {message.content && (
+                  <div className="chat-message-text">{message.content}</div>
+                )}
+              </div>
             </div>
           );
         }
@@ -1191,28 +1192,30 @@ const ChatPage: React.FC = () => {
       case 'file':
         if (message.attachments && message.attachments.length > 0) {
           return (
-            <div className="chat-message-media">
-              {message.attachments.map((att, idx) => (
-                <a
-                  key={idx}
-                  href={getFullUrl(att.url)}
-                  download={att.filename}
-                  className="chat-message-file"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <FontAwesomeIcon icon={faFile} />
-                  <div className="chat-message-file-info">
-                    <div className="chat-message-file-name">{att.filename}</div>
-                    <div className="chat-message-file-size">
-                      {(att.size / 1024).toFixed(1)} KB
+            <div className="chat-message-content">
+              <div className="chat-message-media">
+                {message.attachments.map((att, idx) => (
+                  <a
+                    key={idx}
+                    href={getFullUrl(att.url)}
+                    download={att.filename}
+                    className="chat-message-file"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FontAwesomeIcon icon={faFile} />
+                    <div className="chat-message-file-info">
+                      <div className="chat-message-file-name">{att.filename}</div>
+                      <div className="chat-message-file-size">
+                        {(att.size / 1024).toFixed(1)} KB
+                      </div>
                     </div>
-                  </div>
-                </a>
-              ))}
-              {message.content && (
-                <div className="chat-message-text">{message.content}</div>
-              )}
+                  </a>
+                ))}
+                {message.content && (
+                  <div className="chat-message-text">{message.content}</div>
+                )}
+              </div>
             </div>
           );
         }
@@ -1224,26 +1227,28 @@ const ChatPage: React.FC = () => {
           const mapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=15`;
           
           return (
-            <div className="chat-message-location">
-              <a
-                href={mapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="chat-location-link"
-              >
-                <FontAwesomeIcon icon={faMapMarkerAlt} />
-                <div className="chat-location-info">
-                  <div className="chat-location-address">
-                    {address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+            <div className="chat-message-content">
+              <div className="chat-message-location">
+                <a
+                  href={mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="chat-location-link"
+                >
+                  <FontAwesomeIcon icon={faMapMarkerAlt} />
+                  <div className="chat-location-info">
+                    <div className="chat-location-address">
+                      {address || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+                    </div>
+                    <div className="chat-location-coords">
+                      {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                    </div>
                   </div>
-                  <div className="chat-location-coords">
-                    {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                  </div>
-                </div>
-              </a>
-              {message.content && (
-                <div className="chat-message-text">{message.content}</div>
-              )}
+                </a>
+                {message.content && (
+                  <div className="chat-message-text">{message.content}</div>
+                )}
+              </div>
             </div>
           );
         }
@@ -1251,30 +1256,83 @@ const ChatPage: React.FC = () => {
 
       case 'emoji':
         return (
-          <div className="chat-message-emoji">
-            {message.metadata?.emoji || message.content}
+          <div className="chat-message-content">
+            <div className="chat-message-emoji">
+              {message.metadata?.emoji || message.content}
+            </div>
           </div>
         );
 
       case 'sticker':
         return (
-          <div className="chat-message-sticker">
-            {message.metadata?.stickerId ? (
-              <div className="sticker-placeholder">
-                Sticker: {message.metadata.stickerId}
-              </div>
-            ) : (
-              message.content
-            )}
+          <div className="chat-message-content">
+            <div className="chat-message-sticker">
+              {message.metadata?.stickerId ? (
+                <div className="sticker-placeholder">
+                  Sticker: {message.metadata.stickerId}
+                </div>
+              ) : (
+                message.content
+              )}
+            </div>
           </div>
         );
 
       default:
-        return <div className="chat-message-text">{message.content}</div>;
+        // Check if message has attachments that are images
+        if (message.attachments && message.attachments.length > 0) {
+          const imageAttachments = message.attachments.filter(att => isImageUrl(att.url));
+          if (imageAttachments.length > 0) {
+            return (
+              <div className="chat-message-content has-image">
+                <div className="chat-message-media">
+                  {imageAttachments.map((att, idx) => {
+                    const imageUrl = getFullUrl(att.url);
+                    return (
+                      <img
+                        key={idx}
+                        src={imageUrl}
+                        alt={att.filename}
+                        className="chat-message-image"
+                        onClick={() => {
+                          setSelectedImage({ url: imageUrl, filename: att.filename });
+                        }}
+                        loading="lazy"
+                      />
+                    );
+                  })}
+                  {message.content && (
+                    <div className="chat-message-text">{message.content}</div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+        }
+        // Check if content contains image URL
+        if (message.content && isImageUrl(message.content)) {
+          const imageUrl = getFullUrl(message.content);
+          return (
+            <div className="chat-message-content has-image">
+              <div className="chat-message-media">
+                <img
+                  src={imageUrl}
+                  alt="Image"
+                  className="chat-message-image"
+                  onClick={() => {
+                    setSelectedImage({ url: imageUrl, filename: 'image' });
+                  }}
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          );
+        }
+        return <span className="chat-message-text-content">{message.content}</span>;
     }
 
     // Fallback to text
-    return <div className="chat-message-text">{message.content || ''}</div>;
+    return <span className="chat-message-text-content">{message.content || ''}</span>;
   };
 
   const filteredChats = chats.filter(chat =>

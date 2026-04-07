@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiService } from '../utils/api';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import './Settings.css';
 
 const Settings: React.FC = () => {

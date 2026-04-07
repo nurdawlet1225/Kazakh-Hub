@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
-import Button from '../components/Button';
+import Button from '../components/ui/Button';
 import Parallax from 'parallax-js';
 import { imageStorage } from '../utils/imageStorage';
 import './Auth.css';

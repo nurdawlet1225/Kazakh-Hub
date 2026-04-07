@@ -91,23 +91,58 @@ const MessageInput: React.FC<MessageInputProps> = ({
     adjustTextareaHeight();
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewFiles(prev => [...prev, {
-          file,
-          type,
-          preview: type === 'image' ? reader.result as string : undefined
-        }]);
-      };
-      if (type === 'image') {
-        reader.readAsDataURL(file);
-      }
-    });
+    // For images, send immediately without preview
+    if (type === 'image') {
+      Array.from(files).forEach(async (file) => {
+        try {
+          // Send image immediately
+          await onUploadFile(file, type, message || undefined);
+          // Clear message after sending
+          if (message) {
+            setMessage('');
+            adjustTextareaHeight();
+          }
+        } catch (error) {
+          console.error('Failed to upload image:', error);
+          // If upload fails, add to preview for manual retry
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setPreviewFiles(prev => [...prev, {
+              file,
+              type,
+              preview: reader.result as string
+            }]);
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    } else {
+      // For other file types, add to preview
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewFiles(prev => [...prev, {
+            file,
+            type,
+            preview: type === 'video' ? undefined : reader.result as string
+          }]);
+        };
+        if (type === 'video') {
+          // For videos, just add to preview without reading
+          setPreviewFiles(prev => [...prev, {
+            file,
+            type,
+            preview: undefined
+          }]);
+        } else {
+          reader.readAsDataURL(file);
+        }
+      });
+    }
 
     // Reset input
     if (e.target) {
@@ -402,4 +437,3 @@ const MessageInput: React.FC<MessageInputProps> = ({
 };
 
 export default MessageInput;
-

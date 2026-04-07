@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
-import Button from './Button';
+import Button from './ui/Button';
 import './ImageUploadItem.css';
 
 interface ImageUploadItemProps {
@@ -264,4 +264,3 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
 };
 
 export default ImageUploadItem;
-

@@ -8,7 +8,7 @@ import { apiService } from '../utils/api';
 import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
 import { isFirestoreBlocked } from '../utils/firebase';
 import CodeCard from '../components/CodeCard';
-import CodesListModal from '../components/CodesListModal';
+import CodesListModal from '../components/modals/CodesListModal';
 import './Home.css';
 
 type SortOption = 'newest' | 'oldest' | 'title' | 'author';
@@ -588,4 +588,3 @@ const Home: React.FC = () => {
 };
 
 export default Home;
-

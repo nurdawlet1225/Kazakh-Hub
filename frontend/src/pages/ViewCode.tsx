@@ -9,8 +9,8 @@ import { apiService } from '../utils/api';
 import { subscribeToCode, unsubscribe } from '../utils/realtimeService';
 import CodeEditor from '../components/CodeEditor';
 import FileExplorer from '../components/FileExplorer';
-import UploadModal from '../components/UploadModal';
-import Button from '../components/Button';
+import UploadModal from '../components/modals/UploadModal';
+import Button from '../components/ui/Button';
 import { isImageFile } from '../utils/fileHandler';
 import { formatDate as formatDateUtil, formatDateTime } from '../utils/dateFormatter';
 import JSZip from 'jszip';
@@ -1509,4 +1509,3 @@ const ViewCode: React.FC = () => {
 };
 
 export default ViewCode;
-

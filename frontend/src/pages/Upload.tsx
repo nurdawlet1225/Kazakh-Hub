@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import UploadModal from '../components/UploadModal';
+import UploadModal from '../components/modals/UploadModal';
 import './Upload.css';
 
 const Upload: React.FC = () => {

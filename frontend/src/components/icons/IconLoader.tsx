@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import SvgIcon from '../SvgIcon';
+import SvgIcon from '../ui/SvgIcon';
 
 interface IconLoaderProps {
   src: string; // URL to SVG icon (e.g., from oyji.org)

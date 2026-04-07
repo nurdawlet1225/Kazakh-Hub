@@ -177,15 +177,14 @@
     "about": "О нас",
     "terms": "Условия использования",
     "privacy": "Политика конфиденциальности",
+    "contact": "Связаться с нами",
     "copyright": "Все права защищены",
     "kazakhstan": "Казахстан",
     "openSource": "Open Source"
   },
   "settings": {
-    "title": "Настройки",
     "general": "Общие",
     "language": "Язык",
-    "selectLanguage": "Выберите язык",
     "theme": "Тема",
     "themeAuto": "Автоматически",
     "themeLight": "День",
@@ -276,9 +275,6 @@
     "commentsLikesDesc": "Оставляйте комментарии и ставьте лайки кодам",
     "userProfilesDesc": "Настройте свой профиль и просматривайте статистику",
     "searchFilterDesc": "Ищите и фильтруйте коды по языку, тегам или названию"
-  },
-  "common": {
-    "back": "Назад"
   },
   "terms": {
     "title": "Условия использования",
@@ -476,7 +472,7 @@
     "examples": "Примеры:",
     "requirements": "Необходимые требования:",
     "requirement1": "Терминал находится в папке <code>nairee_cli</code>",
-    "requirement2": "Backend сервер должен работать по адресу <code>http://127.0.0.1:3000</code>",
+    "requirement2": "Backend сервер должен работать по адресу <code>{{url}}</code>",
     "requirement3": "Инструмент <code>curl</code> должен быть установлен в системе",
     "requirement4": "Требуется компилятор C++ (CMake, g++ или cl) для сборки",
     "selectCategory": "Выберите категорию",

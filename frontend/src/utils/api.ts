@@ -86,11 +86,67 @@ export interface Chat {
   lastMessageTime: string;
 }
 
+export interface SiteConfig {
+  appName: string;
+  contact: {
+    email: string;
+    phone: string;
+    address: string;
+    addressEn?: string;
+  };
+  externalLinks: Array<{
+    name: string;
+    url: string;
+    iconUrl?: string;
+  }>;
+  fileConfig?: {
+    maxFileSizeBytes: number;
+    maxFileSizeMB: number;
+    supportedExtensions: string[];
+  };
+  apiDisplayUrl?: string;
+}
+
 class ApiService {
   private baseUrl: string;
+  private connectionChecked: boolean = false;
 
   constructor() {
     this.baseUrl = API_BASE_URL;
+  }
+
+  /**
+   * Check if backend server is reachable
+   */
+  async checkConnection(): Promise<boolean> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for health check
+      
+      const healthUrl = `${this.baseUrl.replace('/api', '')}/api/health`;
+      const response = await fetch(healthUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      clearTimeout(timeoutId);
+      this.connectionChecked = true;
+      return response.ok;
+    } catch (error) {
+      this.connectionChecked = true;
+      console.warn('Backend connection check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Reset connection check flag (useful after reconnecting)
+   */
+  resetConnectionCheck(): void {
+    this.connectionChecked = false;
   }
 
   private async request<T>(
@@ -98,12 +154,21 @@ class ApiService {
     options?: RequestInit
   ): Promise<T> {
     try {
+      // Check connection first if not already checked (only for first request)
+      if (!this.connectionChecked && endpoint !== '/health') {
+        const isConnected = await this.checkConnection();
+        if (!isConnected) {
+          const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
+          throw new Error(`Backend серверіне қосылу мүмкін емес. Сервердің ${serverUrl} адресінде жұмыс істеп тұрғанын тексеріңіз.`);
+        }
+      }
+      
       const url = `${this.baseUrl}${endpoint}`;
       console.log(`API Request: ${options?.method || 'GET'} ${url}`);
       
-      // Add timeout to prevent hanging (10 seconds)
+      // Add timeout to prevent hanging (30 seconds for better reliability)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       
       const response = await fetch(url, {
         ...options,
@@ -143,6 +208,10 @@ class ApiService {
           errorMessage = 'Кіру рұқсаты жоқ. Электрондық пошта немесе құпия сөзді тексеріңіз.';
         } else if (response.status === 404) {
           errorMessage = 'Пайдаланушы табылмады.';
+        } else if (response.status === 500) {
+          errorMessage = 'Сервер қатесі. Backend серверінің дұрыс жұмыс істеп тұрғанын тексеріңіз.';
+        } else if (response.status === 503) {
+          errorMessage = 'Сервер уақытша қолжетімсіз. Кейінірек қайталаңыз.';
         }
         
         throw new Error(errorMessage);
@@ -153,11 +222,13 @@ class ApiService {
       if (error instanceof Error) {
         // Check if it's an abort error (timeout)
         if (error.name === 'AbortError' || error.message.includes('aborted')) {
-          throw new Error('Серверге қосылу уақыты асқынып кетті. Интернет байланысын тексеріңіз.');
+          const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
+          throw new Error(`Серверге қосылу уақыты асқынып кетті. Backend серверінің жұмыс істеп тұрғанын тексеріңіз (${serverUrl}).`);
         }
         // Network error or other fetch errors
-        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error('Серверге қосылу мүмкін емес. Backend-тің http://127.0.0.1:3000-де жұмыс істеп тұрғанын тексеріңіз');
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('ERR_NETWORK')) {
+          const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
+          throw new Error(`Серверге қосылу мүмкін емес. Backend серверінің ${serverUrl} адресінде жұмыс істеп тұрғанын тексеріңіз. Серверді қайта бастаңыз.`);
         }
         throw error;
       }
@@ -451,22 +522,49 @@ class ApiService {
 
     try {
       const url = `${this.baseUrl}/messages/upload`;
+      
+      // For file uploads, use longer timeout (60 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || 'File upload failed');
+        let errorMessage = errorData.detail || 'Файлды жүктеу сәтсіз аяқталды';
+        
+        // Handle 403 Forbidden - friendship required
+        if (response.status === 403) {
+          if (errorMessage.includes('You can only message friends') || errorMessage.includes('Тек достарға')) {
+            errorMessage = 'Тек достарға хабарлама жіберуге болады. Алдымен дос болыңыз.';
+          } else {
+            errorMessage = 'Хабарлама жіберуге рұқсат жоқ. Дос болыңыз.';
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       return response.json();
     } catch (error) {
       if (error instanceof Error) {
+        // Check if it's a timeout error
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
+          throw new Error('Файлды жүктеу уақыты асқынып кетті. Файлдың өлшемін тексеріңіз немесе интернет байланысын тексеріңіз.');
+        }
+        // Network error
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          throw new Error('Серверге қосылу мүмкін емес. Backend серверінің жұмыс істеп тұрғанын тексеріңіз.');
+        }
         throw error;
       }
-      throw new Error('File upload failed');
+      throw new Error('Файлды жүктеу сәтсіз аяқталды');
     }
   }
 
@@ -535,6 +633,28 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify({ userId }),
     });
+  }
+
+  /**
+   * Get site configuration (app name, contact, external links, file limits) from backend.
+   */
+  async getConfig(): Promise<SiteConfig> {
+    try {
+      return await this.request<SiteConfig>('/config');
+    } catch (error) {
+      console.warn('Failed to load site config, using defaults:', error);
+      return {
+        appName: 'Kazakh Hub',
+        contact: { email: '', phone: '', address: '', addressEn: 'Kazakhstan' },
+        externalLinks: [],
+        fileConfig: {
+          maxFileSizeBytes: 30 * 1024 * 1024,
+          maxFileSizeMB: 30,
+          supportedExtensions: ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.html', '.css', '.json', '.md', '.xml', '.yaml', '.yml']
+        },
+        apiDisplayUrl: API_BASE_URL.replace(/\/api$/, '') + '/api'
+      };
+    }
   }
 
   // User Search - Using Backend API (Firebase fallback removed for reliability)

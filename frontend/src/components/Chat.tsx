@@ -509,4 +509,3 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
 };
 
 export default Chat;
-

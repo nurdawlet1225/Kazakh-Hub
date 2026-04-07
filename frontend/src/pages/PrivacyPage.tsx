@@ -13,7 +13,6 @@ const PrivacyPage: React.FC = () => {
         <div className="privacy-header">
           <FontAwesomeIcon icon={faLock} className="privacy-icon" />
           <h1>{t('privacy.title')}</h1>
-          <p className="privacy-subtitle">{t('privacy.lastUpdated')}</p>
         </div>
 
         <div className="privacy-content">

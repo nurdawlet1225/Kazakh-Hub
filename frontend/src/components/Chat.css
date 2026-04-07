@@ -622,6 +622,21 @@
   word-break: break-word;
 }
 
+.chat-message-text-content {
+  padding: 0.75rem 1rem;
+  border-radius: 7.7px;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.4;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
 .chat-message.own {
   align-self: flex-end;
 }
@@ -636,6 +651,7 @@
   word-wrap: break-word;
   word-break: break-word;
   overflow-wrap: break-word;
+  white-space: pre-wrap;
   line-height: 1.4;
   min-width: 0;
   max-width: 100%;
@@ -672,7 +688,8 @@
 
 .chat-message-image {
   max-width: 100%;
-  max-height: 300px;
+  max-height: 400px;
+  min-height: 100px;
   width: auto;
   height: auto;
   display: block;
@@ -832,6 +849,20 @@
 }
 
 .chat-message.other .chat-message-content {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 0.64px solid var(--border-color);
+  border-bottom-left-radius: 2.6px;
+}
+
+.chat-message.text.own .chat-message-text-content {
+  background: white;
+  color: black;
+  border-bottom-right-radius: 2.6px;
+  border: 0.64px solid var(--border-color);
+}
+
+.chat-message.text.other .chat-message-text-content {
   background: var(--bg-primary);
   color: var(--text-primary);
   border: 0.64px solid var(--border-color);
@@ -1220,10 +1251,21 @@
   border: none;
 }
 
+.chat-message-content.has-image .chat-message-media {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .chat-message-content.has-image .chat-message-image {
   margin-left: 0;
   margin-right: 0;
   margin-top: 0;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 .chat-message-content.has-image > div:not(.chat-message-image) {

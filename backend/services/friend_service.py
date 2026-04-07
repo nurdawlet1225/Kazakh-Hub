@@ -58,9 +58,21 @@ class FriendService:
     
     @staticmethod
     def are_friends(user_id: str, friend_id: str) -> bool:
-        """Check if two users are friends"""
+        """Check if two users are friends or have messages (can message each other)"""
+        # Check if they are friends
         user_friends = friends.get(user_id, [])
-        return friend_id in user_friends
+        if friend_id in user_friends:
+            return True
+        
+        # Check if they have any messages (if they have chatted before, allow messaging)
+        from database import messages
+        has_messages = any(
+            (msg.get('fromUserId') == user_id and msg.get('toUserId') == friend_id) or
+            (msg.get('fromUserId') == friend_id and msg.get('toUserId') == user_id)
+            for msg in messages
+        )
+        
+        return has_messages
     
     @staticmethod
     def create_friend_request(from_user_id: str, to_user_id: str) -> Dict[str, Any]:

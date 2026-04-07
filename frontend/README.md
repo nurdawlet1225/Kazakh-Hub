@@ -1,140 +1,129 @@
-# Kazakh Hub
+﻿# Kazakh Hub
 
-A modern code sharing and collaboration platform built with React and TypeScript.
+Kazakh Hub — React пен TypeScript негізінде жасалған код бөлісу және ынтымақтастық платформасы.
 
-## Features
+## Жоба туралы
 
-- 📤 **Upload Code Files** - Share your code files with the community
-- 🔍 **Search & Filter** - Find code by language, tags, or keywords
-- 👁️ **View Code** - Syntax-highlighted code viewing with copy/download options
-- 👤 **User Profiles** - Track your uploaded files and statistics
-- 🎨 **Modern UI** - Beautiful, responsive design with dark mode support
-- 📱 **Mobile Friendly** - Works seamlessly on all devices
+Бұл фронтенд қосымша пайдаланушыларға код файлдарын көруге, іздеуге, бөлісуге және жеке профильдерін басқаруға мүмкіндік береді. Жоба мобильді құрылғыларға сай, заманауи интерфейс пен жылдам реактивтілік ұсынады.
 
-## Tech Stack
+## Негізгі мүмкіндіктер
 
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool and dev server
-- **React Router** - Client-side routing
-- **React Syntax Highlighter** - Code syntax highlighting
+- 📤 Код файлын жүктеу және бөлісу
+- 🔎 Тақырып, тіл немесе кілт сөз бойынша іздеу
+- 👁️ Синтаксис бөлектелген код қарау
+- 👤 Пайдаланушы профилі және қоғамдық статистика
+- 🌓 Көрініс режимі мен адаптив интерфейс
+- 💬 Хабарламалар, достар және достық өтініштер жүйесі
 
-### Backend
-- **Node.js** - Runtime environment
-- **Express** - Web framework
-- **CORS** - Cross-origin resource sharing
+## Технологиялар
 
-## Getting Started
+- **React 18**
+- **TypeScript**
+- **Vite**
+- **React Router**
+- **Tailwind CSS**
+- **React Syntax Highlighter**
+- **Firebase / OAuth** (Google аутентификациясы үшін)
 
-### Prerequisites
+## Орнату және іске қосу
 
-- Node.js 18+ and npm/yarn/pnpm
+### Талаптар
 
-### Installation
+- Node.js 18+ және npm/yarn/pnpm
+- Python 3.11+ (backend үшін)
 
-1. Clone the repository:
+### Қалай бастау керек
+
+1. Репозиторийді көшіріңіз:
 ```bash
 git clone <repository-url>
-cd kazakh-hub
+cd "Kazakh Hub"
 ```
 
-2. Install frontend dependencies:
+2. Фронтенд тәуелділіктерін орнатыңыз:
 ```bash
+cd frontend
 npm install
 ```
 
-3. Install backend dependencies:
+3. Backend тәуелділіктерін орнатыңыз:
 ```bash
-cd backend
-npm install
-cd ..
+cd ../backend
+pip install -r requirements.txt
 ```
 
-4. Start the backend server (in one terminal):
+4. Backend серверін іске қосыңыз:
 ```bash
-cd backend
+uvicorn main:app --reload --port 3000
+```
+
+5. Фронтенд серверін басқа терминалда іске қосыңыз:
+```bash
+cd ../frontend
 npm run dev
 ```
 
-5. Start the frontend development server (in another terminal):
-```bash
-npm run dev
-```
+6. Браузерде ашыңыз:
 
-6. Open your browser and navigate to `http://localhost:5173`
+`http://localhost:5173`
 
-**Note:** Backend сервері `http://localhost:3000` адресінде жұмыс істеуі керек.
-
-## Project Structure
+## Жоба құрылымы
 
 ```
-kazakh-hub/
-├── backend/         # Backend API server
-│   ├── server.js    # Express server
-│   └── package.json
-├── public/          # Static assets
+frontend/
+├── public/
 ├── src/
-│   ├── components/   # Reusable UI components
-│   ├── pages/       # Page components
-│   ├── utils/       # Utility functions and API
-│   ├── hooks/       # Custom React hooks
-│   └── styles/      # Global styles and themes
+│   ├── components/
+│   │   ├── icons/
+│   │   ├── layout/
+│   │   ├── modals/
+│   │   ├── ui/
+│   │   └── ...
+│   ├── contexts/
+│   ├── hooks/
+│   ├── i18n/
+│   ├── pages/
+│   ├── styles/
+│   └── utils/
 ├── package.json
 └── README.md
+
+backend/
+├── models/
+├── routes/
+├── services/
+├── utils/
+├── websocket/
+├── requirements.txt
+└── main.py
 ```
 
-## Available Scripts
+## Қолданылатын npm скрипттер
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
+- `npm run dev` — Жергілікті дамыту серверін іске қосады
+- `npm run build` — Өндіріске арналған құрастырады
+- `npm run preview` — Өндірістік жинақты алдын ала шолуды іске қосады
+- `npm run lint` — ESLint арқылы код сапасын тексереді
+- `npm run clean` — Құрастырылған қаптамалар мен уақытша файлдарды жояды
 
-## Configuration
+## API конфигурациясы
 
-### API Configuration
-
-Frontend үшін `.env` файлын құрып, API URL-ін көрсетіңіз:
+Фронтенд `.env` файлын жасап, API базалық URL-ін орнатыңыз:
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
-**Ескерту:** Егер `.env` файлын құрмасаңыз, frontend әдепкі мән ретінде `http://localhost:3000/api` пайдаланады.
+Егер `.env` файл болмаса, фронтенд әдепкі бойынша `http://localhost:3000/api` пайдаланады.
 
-### Backend Configuration
+## Әкімшілік түсініктеме
 
-Backend сервері әдепкі түрде `3000` портында жұмыс істейді. Портты өзгерту үшін:
+Backend сервер FastAPI негізінде жұмыс істейді және әдепкі түрде `http://localhost:3000` портында ашылады. Сайт пен API арасында байланыс орнату үшін фронтенд пен бэкенд бір уақытта қосулы болуы керек.
 
-```bash
-PORT=4000 npm run dev
-```
+## Қатысу
 
-## Features in Detail
+Өзгерістер мен үлестерге ашықпыз. Pull Request жіберіңіз немесе мәселелерді (issues) тіркеңіз.
 
-### Code Upload
-- Drag and drop file upload
-- Support for multiple programming languages
-- Add titles, descriptions, and tags
-- File size validation
-
-### Code Viewing
-- Syntax highlighting for multiple languages
-- Line numbers
-- Copy to clipboard
-- Download code files
-- Responsive code editor
-
-### Search & Filter
-- Real-time search across titles, content, and descriptions
-- Filter by programming language
-- Tag-based filtering
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
+## Лицензия
 
 MIT License

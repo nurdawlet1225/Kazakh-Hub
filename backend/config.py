@@ -9,6 +9,7 @@ PASSWORDS_FILE = os.path.join(DATA_DIR, "passwords.json")
 FRIENDS_FILE = os.path.join(DATA_DIR, "friends.json")
 MESSAGES_FILE = os.path.join(DATA_DIR, "messages.json")
 FRIEND_REQUESTS_FILE = os.path.join(DATA_DIR, "friendRequests.json")
+SITE_CONFIG_FILE = os.path.join(DATA_DIR, "site_config.json")
 
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)

@@ -1,5 +1,5 @@
 // Icon exports
-export { default as SvgIcon } from '../SvgIcon';
+export { default as SvgIcon } from '../ui/SvgIcon';
 
 // Icon loader for external SVG sources (e.g., oyji.org)
 export { default as IconLoader } from './IconLoader';

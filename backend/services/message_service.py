@@ -37,7 +37,7 @@ class MessageService:
                            metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Create a new message"""
         if not are_friends:
-            raise ValueError("You can only message friends")
+            raise ValueError("Тек достарға хабарлама жіберуге болады. Алдымен дос болыңыз.")
         
         new_message = {
             'id': str(uuid.uuid4()),

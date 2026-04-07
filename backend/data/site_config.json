@@ -1,0 +1,22 @@
+{
+  "appName": "Kazakh Hub",
+  "contact": {
+    "email": "info.kazakhhub@gmail.com",
+    "phone": "+7 (705) 504-57-13",
+    "address": "Қазақстан",
+    "addressEn": "Kazakhstan"
+  },
+  "externalLinks": [
+    {
+      "name": "OyJI",
+      "url": "https://oyji.org",
+      "iconUrl": "https://oyji.org/favicon.ico"
+    }
+  ],
+  "fileConfig": {
+    "maxFileSizeBytes": 31457280,
+    "maxFileSizeMB": 30,
+    "supportedExtensions": [".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".cpp", ".c", ".h", ".html", ".css", ".json", ".md", ".xml", ".yaml", ".yml"]
+  },
+  "apiDisplayUrl": "http://127.0.0.1:3000/api"
+}

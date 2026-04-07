@@ -2,9 +2,9 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from './contexts/ThemeContext';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import ScrollToTop from './components/layout/ScrollToTop';
 import './styles/globals.css';
 import './styles/theme.css';
 
@@ -21,6 +21,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 // Loading component
 const PageLoader: React.FC = () => (
@@ -42,9 +43,10 @@ const AppContent: React.FC = () => {
   
   // Hide header and sidebar on login/register pages
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  // Hide footer on chat page and view code page
+  // Hide footer on chat page, view code page, and profile page
   const isChatPage = location.pathname === '/chat';
   const isViewCodePage = location.pathname.startsWith('/view/');
+  const isProfilePage = location.pathname.startsWith('/profile');
   
   return (
     <div className="app">
@@ -63,6 +65,7 @@ const AppContent: React.FC = () => {
               <Route path="/features" element={<FeaturesPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/contact" element={<ContactPage />} />
               <Route path="*" element={
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                   <h1>{t('viewCode.404')}</h1>
@@ -82,7 +85,7 @@ const AppContent: React.FC = () => {
           </Suspense>
         </main>
       )}
-      {!isAuthPage && !isChatPage && !isViewCodePage && <Footer />}
+      {!isAuthPage && !isChatPage && !isViewCodePage && !isProfilePage && <Footer />}
     </div>
   );
 };

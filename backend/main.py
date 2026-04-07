@@ -202,11 +202,26 @@ async def serve_upload_options(file_path: str):
 @app.get("/api/uploads/{file_path:path}")
 async def serve_upload(file_path: str):
     """Serve uploaded files with CORS headers"""
+    import urllib.parse
+    
+    # URL decode the file path to handle special characters and spaces
+    try:
+        decoded_path = urllib.parse.unquote(file_path)
+    except Exception:
+        decoded_path = file_path
+    
     upload_dir = "uploads"
-    file_full_path = os.path.join(upload_dir, file_path)
+    file_full_path = os.path.join(upload_dir, decoded_path)
+    
+    # Normalize the path to handle any path separators
+    file_full_path = os.path.normpath(file_full_path)
     
     # Security check: prevent directory traversal
-    if ".." in file_path or not os.path.exists(file_full_path):
+    # Ensure the resolved path is still within upload_dir
+    upload_dir_abs = os.path.abspath(upload_dir)
+    file_full_path_abs = os.path.abspath(file_full_path)
+    
+    if not file_full_path_abs.startswith(upload_dir_abs) or ".." in decoded_path:
         response = JSONResponse(
             content={"error": "File not found"},
             status_code=404
@@ -214,18 +229,39 @@ async def serve_upload(file_path: str):
         response.headers["Access-Control-Allow-Origin"] = "*"
         return response
     
-    # Determine content type
+    # Check if file exists
+    if not os.path.exists(file_full_path) or not os.path.isfile(file_full_path):
+        response = JSONResponse(
+            content={"error": "File not found"},
+            status_code=404
+        )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+    
+    # Determine content type based on decoded path
     content_type = "application/octet-stream"
-    if file_path.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
-        content_type = f"image/{file_path.split('.')[-1].lower()}"
-    elif file_path.endswith((".mp4", ".webm", ".mov")):
-        content_type = f"video/{file_path.split('.')[-1].lower()}"
-    elif file_path.endswith((".mp3", ".wav", ".ogg")):
-        content_type = f"audio/{file_path.split('.')[-1].lower()}"
+    if decoded_path.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
+        content_type = f"image/{decoded_path.split('.')[-1].lower()}"
+    elif decoded_path.endswith((".mp4", ".webm", ".mov")):
+        content_type = f"video/{decoded_path.split('.')[-1].lower()}"
+    elif decoded_path.endswith((".mp3", ".wav", ".ogg")):
+        content_type = f"audio/{decoded_path.split('.')[-1].lower()}"
     
     # Read file and create response with CORS headers
-    with open(file_full_path, "rb") as f:
-        file_content = f.read()
+    try:
+        with open(file_full_path, "rb") as f:
+            file_content = f.read()
+    except Exception as e:
+        print(f"Error reading file {file_full_path}: {e}")
+        response = JSONResponse(
+            content={"error": "Error reading file"},
+            status_code=500
+        )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+    
+    # Get filename for Content-Disposition header
+    filename = os.path.basename(decoded_path)
     
     response = Response(
         content=file_content,
@@ -235,7 +271,8 @@ async def serve_upload(file_path: str):
             "Access-Control-Allow-Methods": "GET, OPTIONS",
             "Access-Control-Allow-Headers": "*",
             "Access-Control-Allow-Credentials": "true",
-            "Content-Disposition": f'inline; filename="{os.path.basename(file_path)}"',
+            "Content-Disposition": f'inline; filename="{filename}"',
+            "Cache-Control": "public, max-age=31536000",  # Cache for 1 year
         }
     )
     return response
@@ -282,4 +319,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 if __name__ == "__main__":
     # Default to 3000 for local development, 8080 for Cloud Run
     port = int(os.getenv("PORT", 3000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=port,
+        timeout_keep_alive=75,  # Keep connections alive for 75 seconds
+        timeout_graceful_shutdown=10,  # Graceful shutdown timeout
+        access_log=True  # Enable access logging for debugging
+    )
