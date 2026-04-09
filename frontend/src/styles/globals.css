@@ -257,6 +257,7 @@ button[class*="hamburger"],
 .btn-delete,
 .btn-header-list,
 .btn-logout,
+.chat-mobile-back-btn,
 .comment-reaction-btn,
 .btn-comment-reply,
 .btn-reply-submit,
@@ -286,9 +287,19 @@ select {
 
 /* Mobile Responsive Utilities */
 @media (max-width: 768px) {
-  /* Prevent horizontal scroll */
-  * {
+  /* Horizontal scroll: clip at viewport without forcing every node to max-width 100% */
+  html {
+    overflow-x: clip;
+  }
+  body {
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  iframe {
     max-width: 100%;
+    height: auto;
   }
   
   /* Improve touch targets */

@@ -159,3 +159,10 @@ async def get_total_unread_count(user_id: str):
     total_count = MessageService.get_total_unread_count(user_id)
     return {'totalUnreadCount': total_count}
 
+
+@router.delete("/messages/{user_id}/{friend_id}")
+async def clear_conversation(user_id: str, friend_id: str):
+    """Delete all messages in a conversation"""
+    deleted_count = MessageService.clear_conversation(user_id, friend_id)
+    return {'message': 'Conversation cleared', 'deletedCount': deleted_count}
+

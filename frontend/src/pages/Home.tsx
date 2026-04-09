@@ -14,8 +14,15 @@ import './Home.css';
 type SortOption = 'newest' | 'oldest' | 'title' | 'author';
 type ViewMode = 'grid' | 'list';
 
+/** Local calendar day → stable index for rotating daily quotes */
+function dayIndexForDailyQuote(): number {
+  const d = new Date();
+  const localMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate()).valueOf();
+  return Math.floor(localMidnight / 86400000);
+}
+
 const Home: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,10 +312,19 @@ const Home: React.FC = () => {
       }));
   }, [allLanguages]);
 
+  const dailyMotivationalQuote = useMemo(() => {
+    const raw = t('home.motivationalQuotes', { returnObjects: true }) as unknown;
+    const quotes = Array.isArray(raw)
+      ? raw.filter((q): q is string => typeof q === 'string' && q.length > 0)
+      : [];
+    if (quotes.length === 0) return '';
+    const idx = Math.abs(dayIndexForDailyQuote()) % quotes.length;
+    return quotes[idx] ?? quotes[0];
+  }, [t, i18n.language]);
 
   if (loading) {
     return (
-      <div className="w-full max-w-[1400px] m-0 p-6 animate-fade-in mx-auto">
+      <div className="w-full max-w-[1400px] m-0 px-3 py-4 sm:p-6 animate-fade-in mx-auto">
         <div className="loading-spinner" style={{ minHeight: '320px', padding: '4rem' }}>
           <div className="spinner"></div>
           <p className="text-text-secondary text-lg font-medium">{t('home.loading')}</p>
@@ -318,13 +334,13 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="w-full max-w-[1400px] m-0 p-6 animate-fade-in box-border mx-auto">
-      <div className="flex gap-8 max-w-[1400px] mx-auto items-start lg:flex-row flex-col">
+    <div className="w-full max-w-[1400px] m-0 px-3 py-4 sm:p-6 animate-fade-in box-border mx-auto">
+      <div className="flex gap-4 sm:gap-8 max-w-[1400px] mx-auto items-start lg:flex-row flex-col">
         {/* Сол жақ меню */}
         <aside className="w-[280px] flex-shrink-0 p-6 sticky top-5 max-h-[calc(100vh-40px)] overflow-y-auto overflow-x-hidden lg:w-[280px] w-full lg:relative lg:top-0 lg:max-h-none">
           <div className="mb-6 pb-4 border-b-[1.5px] border-border">
             <h2 className="text-xm m-0 text-primary font-black tracking-[0px]">
-              {t('home.motivationalQuote')}
+              {dailyMotivationalQuote}
             </h2>
           </div>
           <div className="flex flex-col gap-2">
@@ -508,20 +524,20 @@ const Home: React.FC = () => {
         <main className="flex-1 min-w-0 flex flex-col gap-8 max-h-[calc(100vh-40px)] overflow-y-auto overflow-x-hidden lg:max-h-none">
 
           {/* Іздеу және басқару элементтері */}
-          <div className="flex flex-col gap-6 mb-8 p-8 pt-2 overflow-visible w-full max-w-none box-border">
-            <div className="sticky top-[1px] z-10 bg-bg-secondary mx-auto px-8 pt-2 pb-4 mb-2 flex flex-row items-center gap-4 flex-wrap flex-shrink-0   w-auto max-w-fit relative rounded-2xl overflow-visible border border-border justify-center">
+          <div className="flex flex-col gap-6 mb-8 p-3 sm:p-6 md:p-8 pt-2 overflow-visible w-full max-w-none box-border">
+            <div className="sticky top-[1px] z-10 bg-bg-secondary mx-auto px-3 sm:px-6 lg:px-8 pt-2 pb-4 mb-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 flex-shrink-0 w-full max-w-full sm:w-auto sm:max-w-fit relative rounded-2xl overflow-visible border border-border sm:justify-center">
               {/* Бірінші баған: Кодтар тізімі батырмасы */}
-              <div className="flex items-center gap-4 flex-shrink-0 overflow-visible">
+              <div className="flex items-center gap-4 flex-shrink-0 overflow-visible w-full sm:w-auto justify-center sm:justify-start">
                 <button
                   onClick={() => setIsCodesModalOpen(true)}
-                  className="px-6 h-[44px] rounded-[10.2px] bg-bg-primary border-[1.3px] border-border text-text-primary font-semibold text-base flex items-center gap-2 hover:bg-bg-secondary hover:border-primary hover:-translate-y-[1.3px] hover:shadow-md transition-all whitespace-nowrap w-auto min-w-fit pr-7"
+                  className="px-4 sm:px-6 h-[44px] rounded-[10.2px] bg-bg-primary border-[1.3px] border-border text-text-primary font-semibold text-sm sm:text-base flex items-center gap-2 hover:bg-bg-secondary hover:border-primary hover:-translate-y-[1.3px] hover:shadow-md transition-all whitespace-nowrap w-full sm:w-auto min-w-0 sm:min-w-fit sm:pr-7 justify-center"
                 >
                   <FontAwesomeIcon icon={faList} className="flex-shrink-0" />
                   <span className="whitespace-nowrap">{t('settings.codesList')}</span>
                 </button>
               </div>
               {/* Екінші баған: Іздеу */}
-              <form onSubmit={handleSearchSubmit} className="flex-1 min-w-[160px] relative max-w-[400px] flex items-center">
+              <form onSubmit={handleSearchSubmit} className="flex-1 min-w-0 w-full sm:min-w-[160px] relative sm:max-w-[400px] flex items-center">
                 <div className="relative w-full">
                   <input
                     type="text"

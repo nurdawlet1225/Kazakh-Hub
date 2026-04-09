@@ -6,7 +6,7 @@ import {
   faComment, faSearch, faTimes, faUserPlus, 
   faClock, faCheck, faCheckDouble, faCheckCircle,
   faFile, faMapMarkerAlt, faEllipsisVertical, faTrash, faSearch as faSearchIcon,
-  faUser, faEdit, faVideo, faMusic, faDownload, faAlignLeft
+  faUser, faEdit, faVideo, faMusic, faDownload, faAlignLeft, faChevronLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { User, Message, FriendRequest, Chat, MessageAttachment } from '../utils/api';
 import { apiService } from '../utils/api';
@@ -207,35 +207,7 @@ const ChatPage: React.FC = () => {
         return;
       }
       
-      // Тазаланған хабарламаларды фильтрлеу
-      const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
-      const existingCleared = localStorage.getItem(clearedMessagesKey);
-      let clearedIds: string[] = [];
-      
-      if (existingCleared) {
-        try {
-          clearedIds = JSON.parse(existingCleared);
-          console.log('loadMessages: Found cleared messages in localStorage', clearedIds.length);
-        } catch (e) {
-          console.error('Failed to parse cleared messages:', e);
-          // Clear invalid localStorage data
-          localStorage.removeItem(clearedMessagesKey);
-        }
-      }
-      
-      // Тазаланған хабарламаларды алып тастау
-      const filteredMessages = conversationMessages.filter(
-        msg => !clearedIds.includes(msg.id)
-      );
-      
-      console.log('loadMessages: Filtered messages', {
-        beforeFilter: conversationMessages.length,
-        clearedCount: clearedIds.length,
-        afterFilter: filteredMessages.length,
-        finalMessages: filteredMessages
-      });
-      
-      setMessages(filteredMessages);
+      setMessages(conversationMessages);
       setMessagesError(null);
       // Scroll to bottom instantly when loading messages
       setTimeout(() => scrollToBottom(true), 50);
@@ -810,31 +782,18 @@ const ChatPage: React.FC = () => {
     }
   };
 
-  const handleClearMessages = () => {
+  const handleClearMessages = async () => {
     if (!currentUser || !selectedFriend) return;
     if (window.confirm(t('chat.clearMessagesConfirm'))) {
-      // Тазаланған хабарламалардың ID-лерін localStorage-та сақтау
-      const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
-      const clearedMessageIds = messages.map(msg => msg.id);
-      
-      // Барлық тазаланған хабарламаларды алу
-      const existingCleared = localStorage.getItem(clearedMessagesKey);
-      let allClearedIds: string[] = [];
-      
-      if (existingCleared) {
-        try {
-          allClearedIds = JSON.parse(existingCleared);
-        } catch (e) {
-          console.error('Failed to parse cleared messages:', e);
-        }
+      try {
+        await apiService.clearConversation(currentUser.id, selectedFriend.id);
+        setMessages([]);
+        setShowChatMenu(false);
+        await loadChats();
+      } catch (err: any) {
+        console.error('Failed to clear messages:', err);
+        alert(err.message || 'Хабарламаларды тазалау қатесі');
       }
-      
-      // Жаңа тазаланған хабарламаларды қосу (дубликаттарды жою)
-      const updatedClearedIds = [...new Set([...allClearedIds, ...clearedMessageIds])];
-      localStorage.setItem(clearedMessagesKey, JSON.stringify(updatedClearedIds));
-      
-      setMessages([]);
-      setShowChatMenu(false);
     }
   };
 
@@ -844,10 +803,6 @@ const ChatPage: React.FC = () => {
       try {
         // Дос алып тастау - бұл дос тізімінен де жойады
         await apiService.removeFriend(currentUser.id, selectedFriend.id);
-        
-        // Тазаланған хабарламаларды да жою
-        const clearedMessagesKey = `cleared_messages_${currentUser.id}_${selectedFriend.id}`;
-        localStorage.removeItem(clearedMessagesKey);
         
         // Чат тізімін жаңарту - дос тізімінен жойылғандықтан, чат тізімінен де жойылады
         await loadChats();
@@ -1679,6 +1634,15 @@ const ChatPage: React.FC = () => {
           {selectedFriend ? (
             <>
               <div className="chat-messages-header">
+                <button
+                  type="button"
+                  className="chat-mobile-back-btn"
+                  onClick={handleChatHeaderClick}
+                  title={t('common.back')}
+                  aria-label={t('common.back')}
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
                 <div 
                   className="chat-messages-friend"
                   onClick={() => setShowChatProfileModal(true)}

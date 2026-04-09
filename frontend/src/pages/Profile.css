@@ -66,7 +66,7 @@
     /* background-position устанавливается через inline style */
   }
   
-  .profile-header[style*="background-image"] {
+  .profile-header.profile-header--has-bg {
     background-size: cover !important;
     /* background-position устанавливается через inline style */
   }
@@ -80,7 +80,7 @@
     border-radius: 10px;
   }
   
-  .profile-header[style*="background-image"] {
+  .profile-header.profile-header--has-bg {
     background-size: cover !important;
     /* background-position устанавливается через inline style */
   }
@@ -99,7 +99,7 @@
 }
 
 /* When background image is applied */
-.profile-header[style*="background-image"] {
+.profile-header.profile-header--has-bg {
   background-size: cover !important;
   /* background-position устанавливается через inline style */
   background-repeat: no-repeat !important;
@@ -219,7 +219,7 @@
   z-index: 1002;
 }
 
-.profile-header[style*="background-image"] .profile-menu-button {
+.profile-header.profile-header--has-bg .profile-menu-button {
   background: rgba(0, 0, 0, 0.75);
   color: white;
   border-color: rgba(255, 255, 255, 0.35);
@@ -239,7 +239,7 @@
   box-shadow: 0 2.6px 7.7px rgba(0, 0, 0, 0.15);
 }
 
-.profile-header[style*="background-image"] .profile-menu-button:hover {
+.profile-header.profile-header--has-bg .profile-menu-button:hover {
   background: rgba(0, 0, 0, 0.85);
   border-color: rgba(255, 255, 255, 0.6);
   box-shadow: 
@@ -273,7 +273,7 @@
   opacity: 1;
 }
 
-.profile-header[style*="background-image"] .profile-menu-button .menu-line {
+.profile-header.profile-header--has-bg .profile-menu-button .menu-line {
   background: white;
 }
 
@@ -760,14 +760,13 @@ body:has(.modal-overlay[style*="display: flex"]) .profile-menu-dropdown,
   line-height: 1.2;
 }
 
-.profile-header[style*="background-image"] .profile-username {
+.profile-header.profile-header--has-bg .profile-username {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
   color: white;
   -webkit-text-fill-color: white;
-  text-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.7),
-    0 4px 16px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .profile-badge {
@@ -781,7 +780,7 @@ body:has(.modal-overlay[style*="display: flex"]) .profile-menu-dropdown,
   border: 0.64px solid var(--border-color);
 }
 
-.profile-header[style*="background-image"] .profile-badge {
+.profile-header.profile-header--has-bg .profile-badge {
   background: rgba(255, 255, 255, 0.25);
   color: white;
   border-color: rgba(255, 255, 255, 0.4);
@@ -858,7 +857,7 @@ body:has(.modal-overlay[style*="display: flex"]) .profile-menu-dropdown,
   transform: scale(0.95);
 }
 
-.profile-header[style*="background-image"] .contact-item {
+.profile-header.profile-header--has-bg .contact-item {
   color: rgba(255, 255, 255, 0.98);
   text-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.6),
@@ -866,12 +865,12 @@ body:has(.modal-overlay[style*="display: flex"]) .profile-menu-dropdown,
   font-weight: 500;
 }
 
-.profile-header[style*="background-image"] .contact-item svg {
+.profile-header.profile-header--has-bg .contact-item svg {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
   color: rgba(255, 255, 255, 0.95);
 }
 
-.profile-header[style*="background-image"] .contact-item-bio {
+.profile-header.profile-header--has-bg .contact-item-bio {
   color: rgba(255, 255, 255, 0.95);
   text-shadow: 
     0 1px 3px rgba(0, 0, 0, 0.7),
@@ -889,11 +888,11 @@ body:has(.modal-overlay[style*="display: flex"]) .profile-menu-dropdown,
   font-style: italic;
 }
 
-.profile-header[style*="background-image"] .copy-id-btn {
+.profile-header.profile-header--has-bg .copy-id-btn {
   color: rgba(255, 255, 255, 0.8);
 }
 
-.profile-header[style*="background-image"] .copy-id-btn:hover {
+.profile-header.profile-header--has-bg .copy-id-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   opacity: 1;
@@ -1880,14 +1879,13 @@ body:has(.modal-overlay[style*="display: flex"]) .profile-menu-dropdown,
 }
 
 .background-preview-info .profile-username {
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
   color: white;
   -webkit-text-fill-color: white;
   font-size: 1.5rem;
-  text-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.7),
-    0 4px 16px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(0, 0, 0, 0.3);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   line-height: 1.2;
   margin: 0;
 }

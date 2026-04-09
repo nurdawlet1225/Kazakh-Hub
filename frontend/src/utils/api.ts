@@ -1,4 +1,9 @@
 import { API_BASE_URL } from './constants';
+import i18n from '../i18n/config';
+
+function tApi(key: string, options?: Record<string, string>): string {
+  return String(i18n.t(key, options));
+}
 
 export interface Comment {
   id: string;
@@ -159,7 +164,7 @@ class ApiService {
         const isConnected = await this.checkConnection();
         if (!isConnected) {
           const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
-          throw new Error(`Backend серверіне қосылу мүмкін емес. Сервердің ${serverUrl} адресінде жұмыс істеп тұрғанын тексеріңіз.`);
+          throw new Error(tApi('apiErrors.backendUnreachable', { serverUrl }));
         }
       }
       
@@ -198,22 +203,39 @@ class ApiService {
         }
         
         let errorMessage = errorData.detail || errorData.error || `API Error: ${response.statusText}`;
-        
-        // Translate common error messages to Kazakh
-        if (errorMessage.includes('Invalid credentials') || errorMessage.includes('User not found')) {
-          errorMessage = 'Пайдаланушы табылмады немесе құпия сөз дұрыс емес';
+
+        if (errorMessage.includes('Username already in use by another user')) {
+          errorMessage = tApi('apiErrors.usernameInUse');
+        } else if (
+          errorMessage.includes('User with username') &&
+          errorMessage.includes('already exists')
+        ) {
+          errorMessage = tApi('apiErrors.usernameInUse');
+        } else if (errorMessage.includes('Email already in use by another user')) {
+          errorMessage = tApi('apiErrors.emailInUse');
+        } else if (
+          errorMessage.includes('User with email') &&
+          errorMessage.includes('already exists')
+        ) {
+          errorMessage = tApi('apiErrors.emailInUse');
+        } else if (errorMessage.includes('Invalid avatar format')) {
+          errorMessage = tApi('apiErrors.invalidAvatarFormat');
+        } else if (errorMessage.includes('Internal server error while updating profile')) {
+          errorMessage = tApi('apiErrors.profileUpdateFailed');
+        } else if (errorMessage.includes('Invalid credentials') || errorMessage.includes('User not found')) {
+          errorMessage = tApi('apiErrors.invalidCredentials');
         } else if (errorMessage.includes('Something went wrong')) {
-          errorMessage = 'Қате орын алды! Сервер қатесі.';
+          errorMessage = tApi('apiErrors.genericServerError');
         } else if (response.status === 401) {
-          errorMessage = 'Кіру рұқсаты жоқ. Электрондық пошта немесе құпия сөзді тексеріңіз.';
+          errorMessage = tApi('apiErrors.unauthorized');
         } else if (response.status === 404) {
-          errorMessage = 'Пайдаланушы табылмады.';
+          errorMessage = tApi('apiErrors.userNotFoundShort');
         } else if (response.status === 500) {
-          errorMessage = 'Сервер қатесі. Backend серверінің дұрыс жұмыс істеп тұрғанын тексеріңіз.';
+          errorMessage = tApi('apiErrors.serverError');
         } else if (response.status === 503) {
-          errorMessage = 'Сервер уақытша қолжетімсіз. Кейінірек қайталаңыз.';
+          errorMessage = tApi('apiErrors.serviceUnavailable');
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -223,16 +245,16 @@ class ApiService {
         // Check if it's an abort error (timeout)
         if (error.name === 'AbortError' || error.message.includes('aborted')) {
           const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
-          throw new Error(`Серверге қосылу уақыты асқынып кетті. Backend серверінің жұмыс істеп тұрғанын тексеріңіз (${serverUrl}).`);
+          throw new Error(tApi('apiErrors.requestTimeout', { serverUrl }));
         }
         // Network error or other fetch errors
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('ERR_NETWORK')) {
           const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
-          throw new Error(`Серверге қосылу мүмкін емес. Backend серверінің ${serverUrl} адресінде жұмыс істеп тұрғанын тексеріңіз. Серверді қайта бастаңыз.`);
+          throw new Error(tApi('apiErrors.networkError', { serverUrl }));
         }
         throw error;
       }
-      throw new Error('Белгісіз қате орын алды');
+      throw new Error(tApi('apiErrors.unknownError'));
     }
   }
 
@@ -324,13 +346,16 @@ class ApiService {
     try {
       return await this.request<User>(url);
     } catch (error: any) {
-      // If user not found (404), clear localStorage and reload
-      if (error?.message?.includes('404') || error?.message?.includes('not found') || error?.message?.includes('табылмады')) {
+      const msg = String(error?.message || '');
+      const notFoundHint =
+        msg.includes('404') ||
+        /not found|табылмады|не найден/i.test(msg) ||
+        msg === tApi('apiErrors.userNotFoundShort') ||
+        msg === tApi('apiErrors.invalidCredentials');
+      if (notFoundHint) {
         console.warn('User not found in backend, clearing localStorage');
         localStorage.removeItem('user');
-        // Only reload if we're not already handling the error elsewhere
-        // Don't reload immediately to avoid infinite loops
-        throw new Error('Пайдаланушы табылмады. Жүйені қайта жүктеңіз немесе қайта кіріңіз.');
+        throw new Error(tApi('editProfile.userNotFound'));
       }
       throw error;
     }
@@ -379,13 +404,6 @@ class ApiService {
         body: JSON.stringify(body),
       });
     } catch (error: any) {
-      // For email logins, backend errors are expected - Firebase will be tried
-      // Only log if it's a username (can't try Firebase) or if it's a non-401 error
-      if (!isEmail || (error.message && !error.message.includes('Пайдаланушы табылмады') && !error.message.includes('құпия сөз'))) {
-        // Re-throw to let Login.tsx handle it
-        throw error;
-      }
-      // For email 401 errors, silently re-throw - Firebase will be tried
       throw error;
     }
   }
@@ -483,6 +501,12 @@ class ApiService {
     return this.request<Message[]>(`/messages/${userId}/${friendId}`);
   }
 
+  async clearConversation(userId: string, friendId: string): Promise<{ message: string; deletedCount: number }> {
+    return this.request<{ message: string; deletedCount: number }>(`/messages/${userId}/${friendId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async sendMessage(
     fromUserId: string, 
     toUserId: string, 
@@ -537,17 +561,16 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        let errorMessage = errorData.detail || 'Файлды жүктеу сәтсіз аяқталды';
-        
-        // Handle 403 Forbidden - friendship required
+        let errorMessage = errorData.detail || tApi('apiErrors.uploadFailed');
+
         if (response.status === 403) {
           if (errorMessage.includes('You can only message friends') || errorMessage.includes('Тек достарға')) {
-            errorMessage = 'Тек достарға хабарлама жіберуге болады. Алдымен дос болыңыз.';
+            errorMessage = tApi('apiErrors.messageFriendsOnly');
           } else {
-            errorMessage = 'Хабарлама жіберуге рұқсат жоқ. Дос болыңыз.';
+            errorMessage = tApi('apiErrors.messageForbidden');
           }
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -556,15 +579,14 @@ class ApiService {
       if (error instanceof Error) {
         // Check if it's a timeout error
         if (error.name === 'AbortError' || error.message.includes('aborted')) {
-          throw new Error('Файлды жүктеу уақыты асқынып кетті. Файлдың өлшемін тексеріңіз немесе интернет байланысын тексеріңіз.');
+          throw new Error(tApi('apiErrors.uploadTimeout'));
         }
-        // Network error
         if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error('Серверге қосылу мүмкін емес. Backend серверінің жұмыс істеп тұрғанын тексеріңіз.');
+          throw new Error(tApi('apiErrors.uploadConnectionFailed'));
         }
         throw error;
       }
-      throw new Error('Файлды жүктеу сәтсіз аяқталды');
+      throw new Error(tApi('apiErrors.uploadFailed'));
     }
   }
 

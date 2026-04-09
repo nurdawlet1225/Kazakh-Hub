@@ -156,3 +156,21 @@ class MessageService:
         ]
         return len(unread_messages)
 
+    @staticmethod
+    def clear_conversation(user_id: str, friend_id: str) -> int:
+        """Delete all messages in a conversation for both users"""
+        original_count = len(messages)
+        messages[:] = [
+            msg for msg in messages
+            if not (
+                (msg.get('fromUserId') == user_id and msg.get('toUserId') == friend_id) or
+                (msg.get('fromUserId') == friend_id and msg.get('toUserId') == user_id)
+            )
+        ]
+        deleted_count = original_count - len(messages)
+
+        if deleted_count > 0:
+            save_messages()
+
+        return deleted_count
+

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
@@ -9,6 +10,7 @@ import { imageStorage } from '../utils/imageStorage';
 import './Auth.css';
 
 const Login: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
   
@@ -117,12 +119,12 @@ const Login: React.FC = () => {
 
     // Validation
     if (!formData.emailOrUsername.trim()) {
-      setError('Ник немесе электрондық поштаны енгізіңіз');
+      setError(t('login.enterIdentifier'));
       return;
     }
 
     if (!formData.password.trim()) {
-      setError('Құпия сөзді енгізіңіз');
+      setError(t('login.enterPassword'));
       return;
     }
 
@@ -164,7 +166,7 @@ const Login: React.FC = () => {
             localStorage.setItem('user', JSON.stringify(userMinimal));
           } catch (minimalErr: any) {
             // If still fails, show error to user
-            setError('Жад шегінен асып кетті. Браузердің кэшін тазалап көріңіз.');
+            setError(t('editProfile.storageQuotaExceeded'));
             setLoading(false);
             return;
           }
@@ -181,13 +183,18 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       
-      let errorMessage = 'Кіру қатесі';
-      
+      let errorMessage = t('login.error');
+      const invalidCred = t('apiErrors.invalidCredentials');
+
       if (err.message) {
-        if (err.message.includes('Invalid credentials') || err.message.includes('Пайдаланушы табылмады') || err.message.includes('құпия сөз дұрыс емес')) {
-          errorMessage = 'Пайдаланушы табылмады немесе құпия сөз дұрыс емес';
+        if (
+          err.message === invalidCred ||
+          err.message.includes('Invalid credentials') ||
+          err.message.includes('User not found')
+        ) {
+          errorMessage = invalidCred;
         } else if (err.message.includes('QuotaExceededError') || err.message.includes('quota')) {
-          errorMessage = 'Жад шегінен асып кетті. Браузердің кэшін тазалап көріңіз.';
+          errorMessage = t('editProfile.storageQuotaExceeded');
         } else {
           errorMessage = err.message;
         }
@@ -284,13 +291,13 @@ const Login: React.FC = () => {
               setShowLoginForm(true);
             }}
           >
-            Кіру
+            {t('login.title')}
           </button>
         ) : (
           <div 
             className="auth-card"
           >
-            <h2 className="auth-title">Кіру</h2>
+            <h2 className="auth-title">{t('login.title')}</h2>
 
             <form onSubmit={handleSubmit} className="auth-form">
 
@@ -300,7 +307,7 @@ const Login: React.FC = () => {
                 type="text"
                 value={formData.emailOrUsername}
                 onChange={(e) => setFormData({ ...formData, emailOrUsername: e.target.value })}
-                placeholder="Ник немесе email@example.com"
+                placeholder={t('login.identifierPlaceholder')}
                 required
               />
             </div>
@@ -312,14 +319,14 @@ const Login: React.FC = () => {
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Құпия сөзіңізді енгізіңіз"
+                  placeholder={t('login.passwordPlaceholder')}
                   required
                 />
                 <button
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Парольді жасыру" : "Парольді көрсету"}
+                  aria-label={showPassword ? t('login.passwordHide') : t('login.passwordShow')}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEye : faEyeSlash} />
                 </button>
@@ -333,7 +340,7 @@ const Login: React.FC = () => {
             )}
 
             <Button type="submit" variant="primary" fullWidth disabled={loading}>
-              {loading ? 'Кіру...' : 'Кіру'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </Button>
           </form>
           
@@ -364,7 +371,7 @@ const Login: React.FC = () => {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              Тіркелу
+              {t('register.submit')}
             </button>
           </div>
           </div>

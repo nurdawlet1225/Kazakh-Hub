@@ -63,7 +63,18 @@
     "authors": "Authors",
     "lastWeek": "Last Week",
     "globalStats": "Global Statistics",
-    "motivationalQuote": "Strive forward, and life will be wonderful."
+    "motivationalQuotes": [
+      "Strive forward, and life will be wonderful.",
+      "One day — one new thing learned.",
+      "Writing code is creativity plus persistence.",
+      "Don't fear mistakes; they're teachers.",
+      "Small steps add up to big results.",
+      "It's never too late to learn.",
+      "Today's work lays the path to tomorrow's goals.",
+      "Think hard, code carefully, test often.",
+      "Start before the idea feels perfect; clarity follows action.",
+      "Every fix is a stair step to the next level."
+    ]
   },
   "upload": {
     "title": "Upload Code",
@@ -119,7 +130,14 @@
     "submit": "Login",
     "noAccount": "Don't have an account?",
     "register": "Register",
-    "error": "Login error"
+    "error": "Login error",
+    "identifierPlaceholder": "Username or email@example.com",
+    "passwordPlaceholder": "Enter your password",
+    "enterIdentifier": "Enter username or email",
+    "enterPassword": "Enter password",
+    "submitting": "Logging in...",
+    "passwordShow": "Show password",
+    "passwordHide": "Hide password"
   },
   "register": {
     "title": "Register",
@@ -278,7 +296,7 @@
   },
   "terms": {
     "title": "Terms of Use",
-    "lastUpdated": "Last updated: 2025",
+    "lastUpdated": "Last updated: 2026",
     "acceptance": {
       "title": "Acceptance of Terms",
       "description": "By using the platform, you accept these Terms of Use. If you do not agree with the terms, do not use the platform."
@@ -314,7 +332,7 @@
   },
   "privacy": {
     "title": "Privacy Policy",
-    "lastUpdated": "Last updated: 2025",
+    "lastUpdated": "Last updated: 2026",
     "introduction": {
       "title": "Introduction",
       "description": "We are committed to protecting your privacy. This Privacy Policy describes what information we collect from you and how we use it."
@@ -481,6 +499,27 @@
     "show": "Show",
     "hide": "Hide",
     "characters": "characters"
+  },
+  "apiErrors": {
+    "backendUnreachable": "Cannot connect to the backend server. Check that it is running at {{serverUrl}}.",
+    "invalidCredentials": "User not found or incorrect password",
+    "genericServerError": "Something went wrong. Server error.",
+    "unauthorized": "Not authorized. Check your email or password.",
+    "userNotFoundShort": "User not found.",
+    "serverError": "Server error. Check that the backend server is running correctly.",
+    "serviceUnavailable": "Server is temporarily unavailable. Try again later.",
+    "requestTimeout": "Connection timed out. Check that the backend is running ({{serverUrl}}).",
+    "networkError": "Cannot reach the server. Check that the backend is running at {{serverUrl}}. Try restarting the server.",
+    "unknownError": "An unknown error occurred",
+    "usernameInUse": "This username is already taken by another user",
+    "emailInUse": "This email is already registered to another user",
+    "invalidAvatarFormat": "Invalid avatar data format",
+    "profileUpdateFailed": "Server error while updating profile",
+    "uploadFailed": "File upload failed",
+    "messageFriendsOnly": "You can only message friends. Add them as a friend first.",
+    "messageForbidden": "Not allowed to send messages. Become friends first.",
+    "uploadTimeout": "Upload timed out. Check the file size or your internet connection.",
+    "uploadConnectionFailed": "Cannot connect to the server. Check that the backend is running."
   },
   "uploadModal": {
     "terminalTitle": "💻 Open web terminal:",

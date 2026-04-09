@@ -365,7 +365,7 @@ const Profile: React.FC = () => {
         </button>
       )}
       <div 
-        className="profile-header"
+        className={`profile-header${backgroundImage ? ' profile-header--has-bg' : ''}`}
         style={backgroundImage ? { 
           backgroundImage: `url(${backgroundImage})`, 
           backgroundSize: `${backgroundZoom}%`, 
@@ -527,6 +527,17 @@ const Profile: React.FC = () => {
             user={user}
             onUpdate={(updatedUser) => {
               setUser(updatedUser);
+              setCurrentUser((prev) =>
+                prev && prev.id === updatedUser.id
+                  ? {
+                      ...prev,
+                      username: updatedUser.username,
+                      email: updatedUser.email,
+                      bio: updatedUser.bio,
+                      avatar: updatedUser.avatar ?? prev.avatar,
+                    }
+                  : prev
+              );
               setIsEditModalOpen(false);
               // Reload profile to ensure consistency
               loadProfile();
