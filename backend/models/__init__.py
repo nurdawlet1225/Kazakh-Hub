@@ -4,7 +4,14 @@ from .user import (
     UserLogin,
     UserUpdate,
     ChangePassword,
-    DeleteUserRequest
+    DeleteUserRequest,
+    RefreshTokenRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    TwoFACode,
+    TwoFASetupVerify,
+    TwoFADisable,
+    TwoFALoginVerify,
 )
 from .code import (
     CodeCreate,
@@ -24,6 +31,13 @@ __all__ = [
     "UserUpdate",
     "ChangePassword",
     "DeleteUserRequest",
+    "RefreshTokenRequest",
+    "ForgotPasswordRequest",
+    "ResetPasswordRequest",
+    "TwoFACode",
+    "TwoFASetupVerify",
+    "TwoFADisable",
+    "TwoFALoginVerify",
     "CodeCreate",
     "CodeUpdate",
     "CommentCreate",
@@ -34,4 +48,3 @@ __all__ = [
     "MessageCreate",
     "FriendRequestCreate",
 ]
-

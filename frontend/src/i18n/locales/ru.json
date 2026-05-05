@@ -148,7 +148,35 @@
     "submit": "Зарегистрироваться",
     "hasAccount": "Уже есть аккаунт?",
     "login": "Войти",
-    "error": "Ошибка регистрации"
+    "error": "Ошибка регистрации",
+    "passwordMinLength": "Пароль должен содержать минимум 6 символов",
+    "passwordMismatch": "Пароли не совпадают"
+  },
+  "auth": {
+    "loginSuccess": "Вы успешно вошли",
+    "logoutSuccess": "Вы успешно вышли",
+    "sessionExpired": "Сессия истекла. Пожалуйста, войдите снова.",
+    "sessionInvalidated": "Ваш аккаунт был открыт с другого устройства. Пожалуйста, войдите снова.",
+    "loginElsewhere": "Ваш аккаунт был открыт с другого устройства",
+    "forgotPassword": "Забыли пароль?",
+    "resetPassword": "Сбросить пароль",
+    "resetPasswordSent": "Если этот адрес зарегистрирован, ссылка для сброса отправлена.",
+    "resetPasswordSuccess": "Пароль успешно сброшен. Войдите с новым паролем.",
+    "resetPasswordExpired": "Ссылка для сброса истекла или недействительна.",
+    "2fa": {
+      "required": "Требуется двухфакторная аутентификация",
+      "enterCode": "Введите код из приложения-аутентификатора",
+      "setupTitle": "Включить 2FA",
+      "setupDescription": "Отсканируйте QR-код приложением-аутентификатором",
+      "scanQR": "Отсканируйте QR-код",
+      "enabled": "2FA включена",
+      "disabled": "2FA отключена",
+      "recoveryCodes": "Коды восстановления",
+      "recoveryCodesWarning": "Сохраните эти коды в безопасном месте! Каждый код можно использовать только один раз.",
+      "disableTitle": "Отключить 2FA",
+      "wrongCode": "Неверный код",
+      "useRecoveryCode": "Используйте код восстановления"
+    }
   },
   "profile": {
     "title": "Профиль",
@@ -259,7 +287,19 @@
     "categoryAPI": "API и Backend",
     "categoryDatabase": "База данных",
     "categoryAlgorithms": "Алгоритмы",
-    "categoryOther": "Другое"
+    "categoryOther": "Другое",
+    "account": "Аккаунт",
+    "changePassword": "Изменить пароль",
+    "currentPassword": "Текущий пароль",
+    "newPassword": "Новый пароль",
+    "confirmNewPassword": "Подтвердите новый пароль",
+    "twoFactorAuth": "Двухфакторная аутентификация",
+    "enable2FA": "Включить 2FA",
+    "disable2FA": "Отключить 2FA",
+    "activeSession": "Активная сессия",
+    "singleSessionNote": "Только одна сессия может быть активна одновременно. Вход с другого устройства закроет эту сессию.",
+    "logout": "Выйти",
+    "logoutDescription": "Выйти из аккаунта"
   },
   "about": {
     "title": "О нас",

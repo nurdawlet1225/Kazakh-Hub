@@ -1,8 +1,10 @@
 """Friend routes"""
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import Dict
 from models import FriendRequestCreate
 from services.friend_service import FriendService
+from utils.auth import get_current_user
+from db import User
 
 router = APIRouter()
 
@@ -14,7 +16,7 @@ async def get_friends(user_id: str):
 
 
 @router.post("/friends/{user_id}/add")
-async def add_friend(user_id: str, request: Dict[str, str] = Body(...)):
+async def add_friend(user_id: str, request: Dict[str, str] = Body(...), user: User = Depends(get_current_user)):
     """Add a friend"""
     friend_id = request.get('friendId')
     if not friend_id:
@@ -28,7 +30,7 @@ async def add_friend(user_id: str, request: Dict[str, str] = Body(...)):
 
 
 @router.delete("/friends/{user_id}/remove/{friend_id}")
-async def remove_friend(user_id: str, friend_id: str):
+async def remove_friend(user_id: str, friend_id: str, user: User = Depends(get_current_user)):
     """Remove a friend"""
     FriendService.remove_friend(user_id, friend_id)
     return {"message": "Friend removed successfully"}
@@ -60,7 +62,7 @@ async def get_incoming_friend_request_count(user_id: str):
 
 
 @router.post("/friend-requests")
-async def create_friend_request(request: FriendRequestCreate):
+async def create_friend_request(request: FriendRequestCreate, user: User = Depends(get_current_user)):
     """Create a friend request"""
     if not request.fromUserId or not request.toUserId:
         raise HTTPException(status_code=400, detail="Missing required fields")
@@ -72,7 +74,7 @@ async def create_friend_request(request: FriendRequestCreate):
 
 
 @router.put("/friend-requests/{request_id}/accept")
-async def accept_friend_request(request_id: str):
+async def accept_friend_request(request_id: str, user: User = Depends(get_current_user)):
     """Accept a friend request"""
     try:
         request = FriendService.accept_friend_request(request_id)
@@ -82,7 +84,7 @@ async def accept_friend_request(request_id: str):
 
 
 @router.put("/friend-requests/{request_id}/reject")
-async def reject_friend_request(request_id: str):
+async def reject_friend_request(request_id: str, user: User = Depends(get_current_user)):
     """Reject a friend request"""
     try:
         request = FriendService.reject_friend_request(request_id)
@@ -92,7 +94,7 @@ async def reject_friend_request(request_id: str):
 
 
 @router.put("/friend-requests/{request_id}/cancel")
-async def cancel_friend_request(request_id: str, request: Dict[str, str] = Body(...)):
+async def cancel_friend_request(request_id: str, request: Dict[str, str] = Body(...), user: User = Depends(get_current_user)):
     """Cancel a friend request (for outgoing requests)"""
     user_id = request.get('userId')
     if not user_id:

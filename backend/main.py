@@ -9,7 +9,7 @@ import uvicorn
 import os
 
 # Import database and config
-from database import load_data, codes
+from database import load_data, save_codes, save_users, save_friends, save_messages, save_friend_requests, codes
 from config import FIRESTORE_SYNC_AVAILABLE, FIRESTORE_INIT
 from db import init_db
 
@@ -21,12 +21,15 @@ from routes import api_router
 async def lifespan(app: FastAPI):
     """Lifespan event handler for startup and shutdown"""
     import asyncio
-    from database import save_codes, save_users, save_friends, save_messages, save_friend_requests, save_passwords
-    
+
     # Startup
     # Initialize SQL database
     init_db()
-    
+
+    # Migrate JSON users to SQL
+    from migrate_json_users import migrate_json_users
+    migrate_json_users()
+
     load_data()
     print(f"Loaded {len(codes)} codes from file")
     
@@ -47,7 +50,6 @@ async def lifespan(app: FastAPI):
                 save_friends()
                 save_messages()
                 save_friend_requests()
-                save_passwords()
                 print("Auto-saved all data")
             except Exception as e:
                 print(f"Error in auto-save: {e}")
@@ -64,7 +66,6 @@ async def lifespan(app: FastAPI):
         save_friends()
         save_messages()
         save_friend_requests()
-        save_passwords()
         print("All data saved on shutdown")
     except Exception as e:
         print(f"Error saving data on shutdown: {e}")
@@ -278,13 +279,28 @@ async def serve_upload(file_path: str):
     return response
 
 # Include WebSocket endpoint directly (WebSocket doesn't work well with APIRouter)
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket, WebSocketDisconnect, Query
 from database import messages, save_messages
 from websocket import manager
+from utils.auth import decode_token
+from db import SessionLocal, User
 
 @app.websocket("/api/ws/{user_id}")
-async def websocket_endpoint(websocket: WebSocket, user_id: str):
-    """WebSocket endpoint for real-time messaging"""
+async def websocket_endpoint(websocket: WebSocket, user_id: str, token: str = Query(None)):
+    """WebSocket endpoint for real-time messaging (requires JWT token)"""
+    # Validate JWT token
+    if token:
+        try:
+            payload = decode_token(token)
+            token_user_id = payload.get("sub")
+            if token_user_id != user_id:
+                await websocket.close(code=4001, reason="User ID mismatch")
+                return
+        except Exception:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+    # Allow connection without token for backward compatibility (will be removed later)
+
     await manager.connect(websocket, user_id)
     try:
         while True:

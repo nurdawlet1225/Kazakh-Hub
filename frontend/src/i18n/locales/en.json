@@ -148,7 +148,35 @@
     "submit": "Register",
     "hasAccount": "Already have an account?",
     "login": "Login",
-    "error": "Registration error"
+    "error": "Registration error",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "auth": {
+    "loginSuccess": "Successfully logged in",
+    "logoutSuccess": "Successfully logged out",
+    "sessionExpired": "Session expired. Please log in again.",
+    "sessionInvalidated": "Your account was logged in from another device. Please log in again.",
+    "loginElsewhere": "Your account was accessed from another location",
+    "forgotPassword": "Forgot password?",
+    "resetPassword": "Reset password",
+    "resetPasswordSent": "If this email is registered, a reset link has been sent.",
+    "resetPasswordSuccess": "Password reset successfully. Please log in with your new password.",
+    "resetPasswordExpired": "Reset link has expired or is invalid.",
+    "2fa": {
+      "required": "Two-factor authentication required",
+      "enterCode": "Enter code from authenticator app",
+      "setupTitle": "Enable 2FA",
+      "setupDescription": "Scan the QR code with your authenticator app",
+      "scanQR": "Scan QR code",
+      "enabled": "2FA is enabled",
+      "disabled": "2FA is disabled",
+      "recoveryCodes": "Recovery codes",
+      "recoveryCodesWarning": "Save these codes in a safe place! Each code can only be used once.",
+      "disableTitle": "Disable 2FA",
+      "wrongCode": "Invalid code",
+      "useRecoveryCode": "Use a recovery code"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -259,7 +287,19 @@
     "categoryAPI": "API and Backend",
     "categoryDatabase": "Database",
     "categoryAlgorithms": "Algorithms",
-    "categoryOther": "Other"
+    "categoryOther": "Other",
+    "account": "Account",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "twoFactorAuth": "Two-factor authentication",
+    "enable2FA": "Enable 2FA",
+    "disable2FA": "Disable 2FA",
+    "activeSession": "Active session",
+    "singleSessionNote": "Only one session can be active at a time. Logging in from another device will close this session.",
+    "logout": "Log out",
+    "logoutDescription": "Sign out of your account"
   },
   "about": {
     "title": "About Us",

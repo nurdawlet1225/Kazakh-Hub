@@ -2,7 +2,7 @@
 from typing import Optional, List, Dict, Any
 import uuid
 import random
-from database import users, passwords, save_users, save_passwords
+from database import users, save_users
 from utils.validators import validate_email
 
 
@@ -91,9 +91,8 @@ class UserService:
         users.append(new_user)
         
         # Only save password if it's provided and not empty
-        if password and password.strip():
-            passwords[email] = password.strip()  # In real app, hash the password
-            save_passwords()
+        # NOTE: Password storage is now handled by SQL database with bcrypt hashing
+        # This UserService method is deprecated — use SQL auth routes instead
         
         # Save users to file
         try:
@@ -173,12 +172,10 @@ class UserService:
         # Delete user from users array
         users.remove(user)
         save_users()
-        
-        # Delete password
-        if user_email in passwords:
-            del passwords[user_email]
-        save_passwords()
-        
+
+        # NOTE: Password deletion is now handled by SQL database
+        # This UserService method is deprecated — use SQL auth routes instead
+
         return user_id_to_delete, user['username']
     
     @staticmethod

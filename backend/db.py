@@ -1,5 +1,5 @@
 """SQL Database setup with SQLAlchemy"""
-from sqlalchemy import create_engine, Column, String, DateTime, func
+from sqlalchemy import create_engine, Column, String, DateTime, Boolean, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
@@ -29,6 +29,11 @@ class User(Base):
     password_hash = Column(String(255), nullable=True)  # Nullable for backward compatibility
     avatar = Column(String(500), nullable=True)
     bio = Column(String(500), nullable=True)
+    session_id = Column(String(36), nullable=True)
+    refresh_token_hash = Column(String(255), nullable=True)
+    totp_secret = Column(String(255), nullable=True)
+    totp_enabled = Column(Boolean, default=False)
+    recovery_codes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -46,6 +51,18 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+class PasswordReset(Base):
+    """Password reset token storage"""
+    __tablename__ = "password_resets"
+
+    id = Column(String(36), primary_key=True)
+    user_id = Column(String(12), nullable=False, index=True)
+    token = Column(String(255), unique=True, nullable=False, index=True)
+    created_at = Column(DateTime, default=func.now())
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False)
 
 
 

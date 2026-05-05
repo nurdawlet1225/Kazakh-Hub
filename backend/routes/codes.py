@@ -1,8 +1,10 @@
 """Code routes"""
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from typing import Optional
 from models import CodeCreate, CodeUpdate, CommentCreate, CommentUpdate, LikeRequest, ViewRequest, DeleteMultipleRequest
 from services.code_service import CodeService
+from utils.auth import get_current_user, get_optional_user
+from db import User
 
 router = APIRouter()
 
@@ -28,7 +30,7 @@ async def get_code(code_id: str):
 
 
 @router.post("/codes")
-async def create_code(code_data: CodeCreate):
+async def create_code(code_data: CodeCreate, user: User = Depends(get_current_user)):
     """Create a new code"""
     try:
         code_dict = code_data.model_dump()
@@ -41,7 +43,7 @@ async def create_code(code_data: CodeCreate):
 
 
 @router.put("/codes/{code_id}")
-async def update_code(code_id: str, code_data: CodeUpdate):
+async def update_code(code_id: str, code_data: CodeUpdate, user: User = Depends(get_current_user)):
     """Update a code"""
     try:
         code_dict = {k: v for k, v in code_data.model_dump().items() if v is not None}
@@ -51,7 +53,7 @@ async def update_code(code_id: str, code_data: CodeUpdate):
 
 
 @router.delete("/codes/{code_id}")
-async def delete_code(code_id: str):
+async def delete_code(code_id: str, user: User = Depends(get_current_user)):
     """Delete a code"""
     try:
         CodeService.delete_code(code_id)
@@ -62,7 +64,7 @@ async def delete_code(code_id: str):
 
 
 @router.post("/codes/delete-multiple")
-async def delete_multiple_codes(request: DeleteMultipleRequest):
+async def delete_multiple_codes(request: DeleteMultipleRequest, user: User = Depends(get_current_user)):
     """Delete multiple codes"""
     if not request.ids or len(request.ids) == 0:
         raise HTTPException(status_code=400, detail="IDs array required")
@@ -72,7 +74,7 @@ async def delete_multiple_codes(request: DeleteMultipleRequest):
 
 
 @router.post("/codes/{code_id}/like")
-async def like_code(code_id: str, request: LikeRequest):
+async def like_code(code_id: str, request: LikeRequest, user: User = Depends(get_current_user)):
     """Like a code"""
     try:
         return CodeService.like_code(code_id, request.userId)
@@ -81,7 +83,7 @@ async def like_code(code_id: str, request: LikeRequest):
 
 
 @router.post("/codes/{code_id}/unlike")
-async def unlike_code(code_id: str, request: LikeRequest):
+async def unlike_code(code_id: str, request: LikeRequest, user: User = Depends(get_current_user)):
     """Unlike a code"""
     try:
         return CodeService.unlike_code(code_id, request.userId)
@@ -99,7 +101,7 @@ async def view_code(code_id: str, request: ViewRequest):
 
 
 @router.post("/codes/{code_id}/comments")
-async def add_comment(code_id: str, comment_data: CommentCreate):
+async def add_comment(code_id: str, comment_data: CommentCreate, user: User = Depends(get_current_user)):
     """Add a comment to a code"""
     try:
         return CodeService.add_comment(code_id, comment_data.author, comment_data.content, comment_data.parentId)
@@ -108,7 +110,7 @@ async def add_comment(code_id: str, comment_data: CommentCreate):
 
 
 @router.put("/codes/{code_id}/comments/{comment_id}")
-async def update_comment(code_id: str, comment_id: str, comment_data: CommentUpdate):
+async def update_comment(code_id: str, comment_id: str, comment_data: CommentUpdate, user: User = Depends(get_current_user)):
     """Update a comment"""
     try:
         return CodeService.update_comment(code_id, comment_id, comment_data.content)
@@ -117,7 +119,7 @@ async def update_comment(code_id: str, comment_id: str, comment_data: CommentUpd
 
 
 @router.delete("/codes/{code_id}/comments/{comment_id}")
-async def delete_comment(code_id: str, comment_id: str):
+async def delete_comment(code_id: str, comment_id: str, user: User = Depends(get_current_user)):
     """Delete a comment"""
     try:
         return CodeService.delete_comment(code_id, comment_id)
@@ -126,7 +128,7 @@ async def delete_comment(code_id: str, comment_id: str):
 
 
 @router.post("/codes/{code_id}/comments/{comment_id}/like")
-async def like_comment(code_id: str, comment_id: str, request: LikeRequest):
+async def like_comment(code_id: str, comment_id: str, request: LikeRequest, user: User = Depends(get_current_user)):
     """Like/unlike a comment"""
     try:
         return CodeService.like_comment(code_id, comment_id, request.userId)

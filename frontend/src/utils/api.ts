@@ -115,6 +115,11 @@ export interface SiteConfig {
 class ApiService {
   private baseUrl: string;
   private connectionChecked: boolean = false;
+  private _getToken: (() => string | null) | null = null;
+
+  setTokenGetter(getter: () => string | null) {
+    this._getToken = getter;
+  }
 
   constructor() {
     this.baseUrl = API_BASE_URL;
@@ -180,6 +185,7 @@ class ApiService {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
+          ...(this._getToken ? { 'Authorization': `Bearer ${this._getToken()}` } : {}),
           ...options?.headers,
         },
       });
@@ -376,43 +382,91 @@ class ApiService {
     });
   }
 
-  async deleteAccount(userId: string, email: string): Promise<{ message: string }> {
-    return this.request<{ message: string }>('/user', {
-      method: 'DELETE',
-      body: JSON.stringify({ userId, email }),
-    });
-  }
-
   // Authentication
-  async register(username: string, email: string, password: string): Promise<{ user: User; message: string }> {
-    return this.request<{ user: User; message: string }>('/auth/register', {
+  async register(username: string, email: string, password: string): Promise<{ user: User; access_token: string; refresh_token: string; token_type: string; message: string }> {
+    return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
     });
   }
 
-  async login(emailOrUsername: string, password: string): Promise<{ user: User; message: string }> {
-    // Check if it's an email (contains @) or username
+  async login(emailOrUsername: string, password: string): Promise<any> {
     const isEmail = emailOrUsername.includes('@');
-    const body = isEmail 
+    const body = isEmail
       ? { email: emailOrUsername, password }
       : { username: emailOrUsername, password };
-    
-    try {
-      return await this.request<{ user: User; message: string }>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
-    } catch (error: any) {
-      throw error;
-    }
+
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
   }
 
-  async changePassword(userId: string, currentPassword: string | null, newPassword: string): Promise<{ message: string }> {
+  async refreshToken(refresh_token: string): Promise<{ access_token: string; token_type: string }> {
+    return this.request('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token }),
+    });
+  }
+
+  async logout(token?: string): Promise<{ message: string }> {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return this.request('/auth/logout', {
+      method: 'POST',
+      headers,
+    });
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
     return this.request<{ message: string }>('/auth/change-password', {
       method: 'POST',
-      body: JSON.stringify({ userId, currentPassword, newPassword }),
+      body: JSON.stringify({ currentPassword, newPassword }),
     });
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string; reset_token?: string }> {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, new_password: string): Promise<{ message: string }> {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, new_password }),
+    });
+  }
+
+  // 2FA
+  async setup2FA(): Promise<{ secret: string; uri: string }> {
+    return this.request('/auth/2fa/setup', { method: 'POST' });
+  }
+
+  async verify2FASetup(code: string): Promise<{ message: string; recovery_codes: string[] }> {
+    return this.request('/auth/2fa/verify-setup', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    });
+  }
+
+  async disable2FA(password: string): Promise<{ message: string }> {
+    return this.request('/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+  }
+
+  async verify2FALogin(temp_token: string, code: string): Promise<any> {
+    return this.request('/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ temp_token, code }),
+    });
+  }
+
+  async deleteAccount(): Promise<{ message: string }> {
+    return this.request('/user', { method: 'DELETE' });
   }
 
   // Likes

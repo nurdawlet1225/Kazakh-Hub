@@ -148,7 +148,35 @@
     "submit": "Тіркелу",
     "hasAccount": "Тіркелгіңіз бар ма?",
     "login": "Кіру",
-    "error": "Тіркелу қатесі"
+    "error": "Тіркелу қатесі",
+    "passwordMinLength": "Құпия сөз кемінде 6 таңбадан тұруы керек",
+    "passwordMismatch": "Құпия сөздер сәйкес келмейді"
+  },
+  "auth": {
+    "loginSuccess": "Сәтті кірдіңіз",
+    "logoutSuccess": "Сәтті шықтыңыз",
+    "sessionExpired": "Сессия мерзімі бітті. Қайта кіріңіз.",
+    "sessionInvalidated": "Басқа құрылғыдан аккаунтқа кірілді. Қайта кіріңіз.",
+    "loginElsewhere": "Аккаунтыңызға басқа жерден кірілді",
+    "forgotPassword": "Құпия сөзді ұмыттыңыз ба?",
+    "resetPassword": "Құпия сөзді қалпына келтіру",
+    "resetPasswordSent": "Егер бұл электрондық пошта тіркелген болса, қалпына келтіру сілтемесі жіберілді.",
+    "resetPasswordSuccess": "Құпия сөз сәтті өзгертілді. Жаңа құпия сөзбен кіріңіз.",
+    "resetPasswordExpired": "Қалпына келтіру сілтемесінің мерзімі біткен немесе жарамсыз.",
+    "2fa": {
+      "required": "Екі факторлы тексеру қажет",
+      "enterCode": "Аутентификатор қосымшасынан код енгізіңіз",
+      "setupTitle": "2FA қосу",
+      "setupDescription": "Аутентификатор қосымшасымен QR кодты сканерлеңіз",
+      "scanQR": "QR кодты сканерлеңіз",
+      "enabled": "2FA қосылған",
+      "disabled": "2FA өшірілген",
+      "recoveryCodes": "Қалпына келтіру кодтары",
+      "recoveryCodesWarning": "Бұл кодтарды қауіпсіз жерде сақтаңыз! Әр кодты тек бір рет қолдануға болады.",
+      "disableTitle": "2FA өшіру",
+      "wrongCode": "Код дұрыс емес",
+      "useRecoveryCode": "Қалпына келтіру кодын пайдаланыңыз"
+    }
   },
   "profile": {
     "title": "Профиль",
@@ -259,7 +287,19 @@
     "categoryAPI": "API және Backend",
     "categoryDatabase": "Деректер базасы",
     "categoryAlgorithms": "Алгоритмдер",
-    "categoryOther": "Басқа"
+    "categoryOther": "Басқа",
+    "account": "Аккаунт",
+    "changePassword": "Құпия сөзді өзгерту",
+    "currentPassword": "Ағымдағы құпия сөз",
+    "newPassword": "Жаңа құпия сөз",
+    "confirmNewPassword": "Жаңа құпия сөзді растау",
+    "twoFactorAuth": "Екі факторлы аутентификация",
+    "enable2FA": "2FA қосу",
+    "disable2FA": "2FA өшіру",
+    "activeSession": "Белсі сессия",
+    "singleSessionNote": "Бір аккаунтпен бір мезгілде бір ғана сессия жұмыс істей алады. Басқа құрылғыдан кіргенде бұл сессия жабылады.",
+    "logout": "Шығып кету",
+    "logoutDescription": "Аккаунттан шығу"
   },
   "about": {
     "title": "Біз туралы",

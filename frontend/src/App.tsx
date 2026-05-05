@@ -1,7 +1,9 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { apiService } from './utils/api';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ScrollToTop from './components/layout/ScrollToTop';
@@ -22,6 +24,17 @@ const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+
+// Bridge: connect AuthContext token to apiService
+const AuthBridge: React.FC = () => {
+  const { getAccessToken } = useAuth();
+  useEffect(() => {
+    apiService.setTokenGetter(getAccessToken);
+  }, [getAccessToken]);
+  return null;
+};
 
 // Loading component
 const PageLoader: React.FC = () => (
@@ -66,6 +79,8 @@ const AppContent: React.FC = () => {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="*" element={
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                   <h1>{t('viewCode.404')}</h1>
@@ -93,10 +108,13 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <Router>
-        <ScrollToTop />
-        <AppContent />
-      </Router>
+      <AuthProvider>
+        <Router>
+          <AuthBridge />
+          <ScrollToTop />
+          <AppContent />
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 };

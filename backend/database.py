@@ -3,7 +3,7 @@ import json
 import os
 from typing import List, Dict, Any
 from config import (
-    CODES_FILE, USERS_FILE, PASSWORDS_FILE, FRIENDS_FILE,
+    CODES_FILE, USERS_FILE, FRIENDS_FILE,
     MESSAGES_FILE, FRIEND_REQUESTS_FILE, FIRESTORE_SYNC_AVAILABLE,
     FIRESTORE_SYNC_CODE, FIRESTORE_SYNC_MESSAGE, FIRESTORE_DELETE_CODE
 )
@@ -11,7 +11,6 @@ from config import (
 # Global data storage
 codes: List[Dict[str, Any]] = []
 users: List[Dict[str, Any]] = []
-passwords: Dict[str, str] = {}
 friends: Dict[str, List[str]] = {}
 messages: List[Dict[str, Any]] = []
 friend_requests: List[Dict[str, Any]] = []
@@ -19,7 +18,7 @@ friend_requests: List[Dict[str, Any]] = []
 
 def load_data():
     """Load all data from JSON files"""
-    global codes, users, passwords, friends, messages, friend_requests
+    global codes, users, friends, messages, friend_requests
     
     # Load codes
     try:
@@ -59,20 +58,7 @@ def load_data():
             'email': 'user@example.com',
             'avatar': None
         })
-    
-    # Load passwords
-    try:
-        if os.path.exists(PASSWORDS_FILE):
-            with open(PASSWORDS_FILE, 'r', encoding='utf-8') as f:
-                passwords_obj = json.load(f)
-                passwords.clear()
-                passwords.update(passwords_obj)
-        else:
-            passwords.clear()
-    except Exception as e:
-        print(f'Error loading passwords: {e}')
-        passwords.clear()
-    
+
     # Load friends
     try:
         if os.path.exists(FRIENDS_FILE):
@@ -146,20 +132,6 @@ def save_users():
         print(f'Users saved successfully, count: {len(users)}')
     except Exception as e:
         print(f'Error saving users: {e}')
-        raise
-
-
-def save_passwords():
-    """Save passwords to file"""
-    try:
-        # Ensure directory exists
-        password_dir = os.path.dirname(PASSWORDS_FILE)
-        if password_dir:
-            os.makedirs(password_dir, exist_ok=True)
-        with open(PASSWORDS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(passwords, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f'Error saving passwords: {e}')
         raise
 
 

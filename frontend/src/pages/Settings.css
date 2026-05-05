@@ -8,6 +8,150 @@
   box-sizing: border-box;
 }
 
+.settings-tabs {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settings-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-tab {
+  white-space: nowrap;
+  scroll-snap-align: start;
+  padding: 0.6rem 1.25rem;
+  border-radius: 7.7px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 0.64px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.settings-tab:hover {
+  border-color: var(--primary-color);
+  color: var(--text-primary);
+}
+
+.settings-tab.active {
+  background: var(--accent-gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--shadow-md);
+}
+
+.settings-content {
+  min-height: 300px;
+}
+
+.settings-error {
+  color: #ef4444;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.settings-success {
+  color: #22c55e;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.settings-warning {
+  color: #f59e0b;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+}
+
+.setting-info {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+
+/* 2FA styles */
+.twofa-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.twofa-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.twofa-qr-container {
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-radius: 7.7px;
+  text-align: center;
+}
+
+.twofa-secret {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-top: 0.5rem;
+}
+
+.twofa-verify {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.twofa-code-input {
+  max-width: 140px;
+  text-align: center;
+  font-size: 1.25rem;
+  letter-spacing: 0.5rem;
+}
+
+.twofa-disable-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.twofa-recovery-codes {
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-radius: 7.7px;
+  margin-bottom: 1rem;
+}
+
+.recovery-codes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.recovery-code {
+  font-family: monospace;
+  font-size: 0.9rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 3.8px;
+  text-align: center;
+  color: var(--text-primary);
+}
+
 .settings-title {
   font-size: 1.60rem;
   margin: 0 0 1.60rem 0;
@@ -355,6 +499,7 @@
 @media (max-width: 491.5px) {
   .settings-container {
     padding: 1rem;
+    width: 100%;
   }
 
   .settings-actions {
@@ -401,6 +546,14 @@
   .btn-delete-account {
     padding: 1rem 1.5rem;
     font-size: 1rem;
+  }
+
+  .twofa-verify {
+    flex-direction: column;
+  }
+
+  .twofa-code-input {
+    max-width: 100%;
   }
 }
 

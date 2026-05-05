@@ -116,5 +116,22 @@
     "status": "delivered",
     "read": false,
     "readAt": null
+  },
+  {
+    "id": "2a44a68a-f6f9-4c22-8874-51008894ce45",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "📍 Мое местоположение",
+    "type": "location",
+    "attachments": [],
+    "metadata": {
+      "latitude": 43.21335049056455,
+      "longitude": 76.91084821690234,
+      "address": "Akadem town, Bostandıq District, Almaty, 500060, Kazakhstan"
+    },
+    "createdAt": "2026-04-11T11:09:53.409464",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
   }
 ]

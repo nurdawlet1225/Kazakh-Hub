@@ -7,8 +7,8 @@ from utils.validators import validate_email
 class UserRegister(BaseModel):
     username: str
     email: str
-    password: str  # Required for SQL-based auth
-    
+    password: str
+
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
@@ -18,8 +18,8 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: Optional[str] = None
     username: Optional[str] = None
-    password: Optional[str] = None  # Optional for Firebase auth users
-    
+    password: str
+
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
@@ -29,17 +29,8 @@ class UserLogin(BaseModel):
 
 
 class ChangePassword(BaseModel):
-    userId: Optional[str] = None
-    email: Optional[str] = None
-    currentPassword: Optional[str] = None
+    currentPassword: str
     newPassword: str
-    
-    @field_validator('email')
-    @classmethod
-    def validate_email(cls, v):
-        if v is not None:
-            return validate_email(v)
-        return v
 
 
 class UserUpdate(BaseModel):
@@ -49,7 +40,7 @@ class UserUpdate(BaseModel):
     bio: Optional[str] = None
     userId: Optional[str] = None
     currentEmail: Optional[str] = None
-    
+
     @field_validator('email', 'currentEmail')
     @classmethod
     def validate_email(cls, v):
@@ -61,7 +52,7 @@ class UserUpdate(BaseModel):
 class DeleteUserRequest(BaseModel):
     userId: Optional[str] = None
     email: Optional[str] = None
-    
+
     @field_validator('email')
     @classmethod
     def validate_email(cls, v):
@@ -69,3 +60,37 @@ class DeleteUserRequest(BaseModel):
             return validate_email(v)
         return v
 
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return validate_email(v)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class TwoFACode(BaseModel):
+    code: str
+
+
+class TwoFASetupVerify(BaseModel):
+    code: str
+
+
+class TwoFADisable(BaseModel):
+    password: str
+
+
+class TwoFALoginVerify(BaseModel):
+    temp_token: str
+    code: str

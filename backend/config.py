@@ -1,5 +1,13 @@
 """Application configuration"""
 import os
+from datetime import timedelta
+
+# JWT Configuration
+JWT_SECRET_KEY = os.getenv("JWT_SECRET", "kazakh-hub-secret-change-in-production-2024")
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_EXPIRE", "30"))
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_EXPIRE", "7"))
+JWT_2FA_TEMP_TOKEN_EXPIRE_MINUTES = 5
 
 # Data file paths
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")

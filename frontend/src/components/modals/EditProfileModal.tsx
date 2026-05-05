@@ -321,7 +321,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         // Change password
         try {
           await apiService.changePassword(
-            user.id,
             formData.currentPassword,
             formData.newPassword
           );

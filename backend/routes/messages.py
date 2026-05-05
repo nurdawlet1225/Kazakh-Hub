@@ -1,10 +1,12 @@
 """Message routes"""
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from typing import Optional, List
 import json
 from models import MessageCreate
 from services.message_service import MessageService
 from services.friend_service import FriendService
+from utils.auth import get_current_user
+from db import User
 import os
 from datetime import datetime
 
@@ -32,7 +34,7 @@ async def get_conversation(user_id: str, friend_id: str):
 
 
 @router.post("/messages")
-async def create_message(message_data: MessageCreate):
+async def create_message(message_data: MessageCreate, user: User = Depends(get_current_user)):
     """Create a new message"""
     if not message_data.fromUserId or not message_data.toUserId:
         raise HTTPException(status_code=400, detail="Missing required fields")
@@ -131,7 +133,7 @@ async def upload_file(
 
 
 @router.put("/messages/{message_id}/read")
-async def mark_message_read(message_id: str):
+async def mark_message_read(message_id: str, user: User = Depends(get_current_user)):
     """Mark a message as read"""
     try:
         return await MessageService.mark_message_read(message_id)
@@ -140,7 +142,7 @@ async def mark_message_read(message_id: str):
 
 
 @router.put("/messages/{user_id}/{friend_id}/mark-read")
-async def mark_conversation_read(user_id: str, friend_id: str):
+async def mark_conversation_read(user_id: str, friend_id: str, user: User = Depends(get_current_user)):
     """Mark all messages in a conversation as read"""
     updated_count = await MessageService.mark_conversation_read(user_id, friend_id)
     return {'message': f'{updated_count} messages marked as read', 'count': updated_count}
@@ -161,7 +163,7 @@ async def get_total_unread_count(user_id: str):
 
 
 @router.delete("/messages/{user_id}/{friend_id}")
-async def clear_conversation(user_id: str, friend_id: str):
+async def clear_conversation(user_id: str, friend_id: str, user: User = Depends(get_current_user)):
     """Delete all messages in a conversation"""
     deleted_count = MessageService.clear_conversation(user_id, friend_id)
     return {'message': 'Conversation cleared', 'deletedCount': deleted_count}

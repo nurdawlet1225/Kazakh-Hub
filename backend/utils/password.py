@@ -6,9 +6,10 @@ def hash_password(password: str) -> str:
     """Hash a password using bcrypt"""
     if not password:
         return ""
-    # Generate salt and hash password
+    # bcrypt has a 72-byte limit, truncate if necessary
+    pwd_bytes = password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
     return hashed.decode('utf-8')
 
 
@@ -17,7 +18,8 @@ def verify_password(password: str, password_hash: str) -> bool:
     if not password or not password_hash:
         return False
     try:
-        return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+        pwd_bytes = password.encode('utf-8')[:72]
+        return bcrypt.checkpw(pwd_bytes, password_hash.encode('utf-8'))
     except Exception:
         return False
 

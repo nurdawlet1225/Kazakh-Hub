@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/ui/Button';
 import Parallax from 'parallax-js';
 import { imageStorage } from '../utils/imageStorage';
@@ -12,6 +13,7 @@ import './Auth.css';
 const Login: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { login } = useAuth();
   const heroRef = useRef<HTMLDivElement>(null);
   
   // Сақталған логин деректерін жүктеу
@@ -27,6 +29,10 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFAError, setTwoFAError] = useState('');
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const parallaxRef = useRef<Parallax | null>(null);
   const parallaxSceneRef = useRef<HTMLDivElement>(null);
@@ -133,51 +139,41 @@ const Login: React.FC = () => {
     try {
       // Login with backend API
       const response = await apiService.login(formData.emailOrUsername, formData.password);
-      
-      // Save user to localStorage
+
+      // Check if 2FA is required
+      if (response.requires_2fa) {
+        setRequires2FA(true);
+        setTempToken(response.temp_token);
+        setLoading(false);
+        return;
+      }
+
+      // Save tokens and user via AuthContext
       const userData = response.user;
-      
+
       // Save avatar separately using imageStorage if present
       if (userData.avatar && userData.avatar.trim() !== '') {
         try {
           await imageStorage.saveImage(`avatar-${userData.id}`, userData.avatar);
         } catch (err: any) {
           console.error('Error saving avatar to imageStorage:', err);
-          // Continue even if avatar save fails
         }
       }
-      
-      // Update localStorage without avatar (to avoid quota issues)
-      // Remove avatar from user object before saving to localStorage
+
       const { avatar, ...userWithoutAvatar } = userData;
       const userForStorage = {
         ...userWithoutAvatar,
-        avatar: avatar ? 'stored' : undefined // Just a flag, not the actual image
+        avatar: avatar ? 'stored' : undefined,
       };
-      
-      try {
-        localStorage.setItem('user', JSON.stringify(userForStorage));
-      } catch (err: any) {
-        // If quota exceeded, try without avatar flag
-        if (err.name === 'QuotaExceededError') {
-          console.warn('Quota exceeded, trying to save user without avatar flag');
-          try {
-            const { avatar: _, ...userMinimal } = userForStorage;
-            localStorage.setItem('user', JSON.stringify(userMinimal));
-          } catch (minimalErr: any) {
-            // If still fails, show error to user
-            setError(t('editProfile.storageQuotaExceeded'));
-            setLoading(false);
-            return;
-          }
-        } else {
-          throw err;
-        }
-      }
-      
+
+      login(
+        { access_token: response.access_token, refresh_token: response.refresh_token, token_type: response.token_type },
+        userForStorage,
+      );
+
       // Dispatch custom event to notify other components of login
       window.dispatchEvent(new Event('userProfileUpdated'));
-      
+
       // Redirect to home
       navigate('/');
     } catch (err: any) {
@@ -342,6 +338,66 @@ const Login: React.FC = () => {
             <Button type="submit" variant="primary" fullWidth disabled={loading}>
               {loading ? t('login.submitting') : t('login.submit')}
             </Button>
+
+            {requires2FA && (
+              <div className="twofa-section" style={{ marginTop: '1rem' }}>
+                <h3>{t('auth.2fa.required')}</h3>
+                <p>{t('auth.2fa.enterCode')}</p>
+                <input
+                  type="text"
+                  value={twoFACode}
+                  onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                  className="twofa-input"
+                />
+                {twoFAError && <div className="form-error">{twoFAError}</div>}
+                <Button
+                  variant="primary"
+                  fullWidth
+                  disabled={twoFACode.length !== 6}
+                  onClick={async () => {
+                    try {
+                      const res = await apiService.verify2FALogin(tempToken, twoFACode);
+                      const userData = res.user;
+                      if (userData.avatar && userData.avatar.trim() !== '') {
+                        try {
+                          await imageStorage.saveImage(`avatar-${userData.id}`, userData.avatar);
+                        } catch {}
+                      }
+                      const { avatar, ...userWithoutAvatar } = userData;
+                      const userForStorage = { ...userWithoutAvatar, avatar: avatar ? 'stored' : undefined };
+                      login({ access_token: res.access_token, refresh_token: res.refresh_token, token_type: res.token_type }, userForStorage);
+                      window.dispatchEvent(new Event('userProfileUpdated'));
+                      navigate('/');
+                    } catch (err: any) {
+                      setTwoFAError(err?.message || t('auth.2fa.wrongCode'));
+                    }
+                  }}
+                >
+                  {t('auth.2fa.enterCode')}
+                </Button>
+              </div>
+            )}
+
+            {!requires2FA && (
+              <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {t('auth.forgotPassword')}
+                </button>
+              </div>
+            )}
           </form>
           
           <div style={{ marginTop: '1rem', textAlign: 'center' }}>

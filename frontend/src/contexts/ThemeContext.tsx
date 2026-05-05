@@ -1,9 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
-type Theme = 'light' | 'dark';
+type ThemePreference = 'auto' | 'light' | 'dark';
+type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeContextType {
-  theme: Theme;
+  theme: ResolvedTheme;
+  preference: ThemePreference;
+  setThemePreference: (pref: ThemePreference) => void;
   toggleTheme: () => void;
 }
 
@@ -21,63 +24,84 @@ interface ThemeProviderProps {
   children: ReactNode;
 }
 
+function getSystemTheme(): ResolvedTheme {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
+}
+
+function resolveTheme(pref: ThemePreference): ResolvedTheme {
+  if (pref === 'auto') return getSystemTheme();
+  return pref;
+}
+
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  // localStorage-дан немесе браузердің баптауынан теманы алу
-  const getInitialTheme = (): Theme => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      return savedTheme;
-    }
-    // Браузердің баптауына сүйену
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    return 'light';
+  const getInitialPreference = (): ThemePreference => {
+    const saved = localStorage.getItem('theme-preference') as ThemePreference | null;
+    if (saved && ['auto', 'light', 'dark'].includes(saved)) return saved;
+    const oldTheme = localStorage.getItem('theme') as string | null;
+    if (oldTheme === 'dark' || oldTheme === 'light') return oldTheme;
+    return 'auto';
   };
 
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [preference, setPreference] = useState<ThemePreference>(getInitialPreference);
+  const [theme, setTheme] = useState<ResolvedTheme>(() => resolveTheme(getInitialPreference()));
 
-  useEffect(() => {
-    // Теманы localStorage-та сақтау
-    localStorage.setItem('theme', theme);
-    
-    // HTML элементіне класс қосу/алу
+  const applyTheme = useCallback((resolved: ResolvedTheme) => {
     const root = document.documentElement;
     const body = document.body;
-    
-    // Fade эффектісі үшін класс қосу
     body.style.opacity = '0.7';
     body.style.transition = 'opacity 0.3s ease';
-    
-    // Теманы өзгерту
-    if (theme === 'dark') {
+
+    if (resolved === 'dark') {
       root.classList.add('dark-theme');
       root.classList.remove('light-theme');
     } else {
       root.classList.add('light-theme');
       root.classList.remove('dark-theme');
     }
-    
-    // Fade in эффектісі
+
     requestAnimationFrame(() => {
       body.style.opacity = '1';
     });
-    
-    // Transition-ды қайта қалпына келтіру
-    setTimeout(() => {
-      body.style.transition = '';
-    }, 300);
-  }, [theme]);
+    setTimeout(() => { body.style.transition = ''; }, 300);
+  }, []);
 
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
-  };
+  useEffect(() => {
+    const resolved = resolveTheme(preference);
+    setTheme(resolved);
+    localStorage.setItem('theme-preference', preference);
+    applyTheme(resolved);
+  }, [preference, applyTheme]);
+
+  // Listen for system theme changes when in auto mode
+  useEffect(() => {
+    if (preference !== 'auto') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      const resolved = e.matches ? 'dark' : 'light';
+      setTheme(resolved);
+      applyTheme(resolved);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [preference, applyTheme]);
+
+  const setThemePreference = useCallback((pref: ThemePreference) => {
+    setPreference(pref);
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setPreference(prev => {
+      if (prev === 'light') return 'dark';
+      return 'light';
+    });
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, preference, setThemePreference, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 };
-
-

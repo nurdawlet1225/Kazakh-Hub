@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/ui/Button';
 import Parallax from 'parallax-js';
 import { imageStorage } from '../utils/imageStorage';
@@ -12,6 +13,7 @@ import './Auth.css';
 const Register: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const heroRef = useRef<HTMLDivElement>(null);
   const parallaxRef = useRef<Parallax | null>(null);
   const parallaxSceneRef = useRef<HTMLDivElement>(null);
@@ -132,45 +134,28 @@ const Register: React.FC = () => {
       
       // Save user to localStorage
       const userData = response.user;
-      
+
       // Save avatar separately using imageStorage if present
       if (userData.avatar && userData.avatar.trim() !== '') {
         try {
           await imageStorage.saveImage(`avatar-${userData.id}`, userData.avatar);
         } catch (err: any) {
           console.error('Error saving avatar to imageStorage:', err);
-          // Continue even if avatar save fails
         }
       }
-      
-      // Update localStorage without avatar (to avoid quota issues)
-      // Remove avatar from user object before saving to localStorage
+
       const { avatar, ...userWithoutAvatar } = userData;
       const userForStorage = {
         ...userWithoutAvatar,
-        avatar: avatar ? 'stored' : undefined // Just a flag, not the actual image
+        avatar: avatar ? 'stored' : undefined,
       };
-      
-      try {
-        localStorage.setItem('user', JSON.stringify(userForStorage));
-      } catch (err: any) {
-        // If quota exceeded, try without avatar flag
-        if (err.name === 'QuotaExceededError') {
-          console.warn('Quota exceeded, trying to save user without avatar flag');
-          try {
-            const { avatar: _, ...userMinimal } = userForStorage;
-            localStorage.setItem('user', JSON.stringify(userMinimal));
-          } catch (minimalErr: any) {
-            // If still fails, show error to user
-            setError('Жад шегінен асып кетті. Браузердің кэшін тазалап көріңіз.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          throw err;
-        }
-      }
-      
+
+      // Save via AuthContext
+      authLogin(
+        { access_token: response.access_token, refresh_token: response.refresh_token, token_type: response.token_type },
+        userForStorage,
+      );
+
       // Dispatch custom event to notify other components of registration
       window.dispatchEvent(new Event('userProfileUpdated'));
       
