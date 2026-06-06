@@ -133,5 +133,82 @@
     "status": "delivered",
     "read": false,
     "readAt": null
+  },
+  {
+    "id": "edb3dd7a-ee72-46aa-986b-57ce73f5b5a9",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "",
+    "type": "audio",
+    "attachments": [
+      {
+        "filename": "recording_1778837808746.webm",
+        "url": "/api/uploads/audio/20260515_143648_recording_1778837808746.webm",
+        "size": 11888,
+        "mimeType": "audio/webm"
+      }
+    ],
+    "metadata": {},
+    "createdAt": "2026-05-15T14:36:48.779790",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "a3f84be2-29d3-4bab-b2bd-7ef149e516e1",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "📍 Менің орналасқан жерім",
+    "type": "location",
+    "attachments": [],
+    "metadata": {
+      "latitude": 43.19541391038048,
+      "longitude": 76.88129621384066,
+      "address": "11, Орбита 4-й микрорайон, Orbita-4, Орбита, Bostandıq District, Almaty, 050043, Kazakhstan"
+    },
+    "createdAt": "2026-05-15T14:36:54.429850",
+    "status": "delivered",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "8c9f10da-64fd-41ff-8ee2-51612b778fc9",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "",
+    "type": "file",
+    "attachments": [
+      {
+        "filename": "ipad-pro-2021-apple-event-2021-purple-light-colorful-stock-3840x3840-5260.jpg",
+        "url": "/api/uploads/files/20260606_023121_ipad-pro-2021-apple-event-2021-purple-light-colorful-stock-3840x3840-5260.jpg",
+        "size": 6026646,
+        "mimeType": "image/jpeg"
+      }
+    ],
+    "metadata": {},
+    "createdAt": "2026-06-06T02:31:21.442007",
+    "status": "sent",
+    "read": false,
+    "readAt": null
+  },
+  {
+    "id": "b7494f7c-f3ba-47d1-b9d4-13a44c2a5440",
+    "fromUserId": "964641166155",
+    "toUserId": "728388036309",
+    "content": "",
+    "type": "image",
+    "attachments": [
+      {
+        "filename": "ipad-pro-2021-apple-event-2021-purple-light-colorful-stock-3840x3840-5260.jpg",
+        "url": "/api/uploads/images/20260606_023134_ipad-pro-2021-apple-event-2021-purple-light-colorful-stock-3840x3840-5260.jpg",
+        "size": 6026646,
+        "mimeType": "image/jpeg"
+      }
+    ],
+    "metadata": {},
+    "createdAt": "2026-06-06T02:31:34.275935",
+    "status": "sent",
+    "read": false,
+    "readAt": null
   }
 ]

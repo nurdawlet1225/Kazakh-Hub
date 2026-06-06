@@ -131,7 +131,14 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
 
       // Get current user
       const storedUser = localStorage.getItem('user');
-      const currentUser = storedUser ? JSON.parse(storedUser) : { username: 'guest' };
+      let currentUser = { username: 'guest' };
+      if (storedUser) {
+        try {
+          currentUser = JSON.parse(storedUser);
+        } catch {
+          // Fall back to guest
+        }
+      }
 
       // Save image as code file with base64 content
       await apiService.createCodeFile({

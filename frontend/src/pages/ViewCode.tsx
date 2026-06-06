@@ -219,10 +219,15 @@ const CommentItem: React.FC<CommentItemProps> = ({
                     // Extract src from img tag
                     const srcMatch = part.match(/src="([^"]*)"/);
                     if (srcMatch) {
+                      const src = srcMatch[1];
+                      // Only allow http/https/data protocol URLs to prevent XSS
+                      if (!/^https?:\/\//i.test(src) && !/^data:image\//i.test(src)) {
+                        return <span key={index}>[image blocked]</span>;
+                      }
                       return (
                         <img
                           key={index}
-                          src={srcMatch[1]}
+                          src={src}
                           alt="Comment image"
                           className="max-w-full rounded-lg mt-2"
                           style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
@@ -372,12 +377,75 @@ const ViewCode: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      loadCode(id);
-      
+      let cancelled = false;
+      const loadCodeWithCancel = async (codeId: string) => {
+        if (cancelled) return;
+        try {
+          setLoading(true);
+          const data = await apiService.getCodeFile(codeId);
+          if (cancelled) return;
+          setCode(data);
+          setError(null);
+
+          // Load current user if not already loaded
+          if (!currentUser) {
+            await loadCurrentUser();
+          }
+          if (cancelled) return;
+
+          // Load avatars for comment authors
+          if (data.comments && data.comments.length > 0) {
+            loadCommentAuthorAvatars(data.comments);
+          }
+
+          // Increment view count
+          try {
+            const userId = currentUser?.id || (() => {
+              try {
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) {
+                  const userData = JSON.parse(storedUser);
+                  return userData.id || null;
+                }
+              } catch (e) {
+                // Ignore
+              }
+              return null;
+            })();
+            const updatedCode = await apiService.incrementView(codeId, userId);
+            if (cancelled) return;
+            if (updatedCode) {
+              setCode(updatedCode);
+              if (updatedCode.comments && updatedCode.comments.length > 0) {
+                loadCommentAuthorAvatars(updatedCode.comments);
+              }
+            }
+          } catch (viewError) {
+            console.error('Failed to increment view:', viewError);
+          }
+
+          // Load files only if it's a folder
+          if (data.isFolder) {
+            await loadFolderFiles(codeId);
+          } else {
+            setFolderFiles([]);
+            setSelectedFile(null);
+          }
+        } catch (err) {
+          if (cancelled) return;
+          setError(err instanceof Error ? err.message : 'Кодты жүктеу қатесі');
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      };
+
+      loadCodeWithCancel(id);
+
       // Real-time listener қосу
       const unsubscribeListener = subscribeToCode(
         id,
         (updatedCode) => {
+          if (cancelled) return;
           setCode(updatedCode);
           // Load avatars for comment authors if comments exist
           if (updatedCode.comments && updatedCode.comments.length > 0) {
@@ -395,13 +463,14 @@ const ViewCode: React.FC = () => {
         (error) => {
           console.error('Real-time listener error:', error);
           // Егер real-time жұмыс істемесе, қалыпты жолмен жүктеу
-          if (!code) {
-            loadCode(id);
+          if (!code && !cancelled) {
+            loadCodeWithCancel(id);
           }
         }
       );
-      
+
       return () => {
+        cancelled = true;
         unsubscribeListener();
         unsubscribe(`code-${id}`);
       };
@@ -1142,7 +1211,7 @@ const ViewCode: React.FC = () => {
           </span>
           <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.author')}:</span>
-            <span className="meta-value">{code.author === currentUser?.username ? 'current-user' : code.author}</span>
+            <span className="meta-value">{code.author === currentUser?.username ? t('viewCode.you') || 'Сіз' : code.author}</span>
           </span>
           <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.created')}:</span>

@@ -1,7 +1,7 @@
 """Authentication routes"""
 import secrets
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from models import (
@@ -217,15 +217,16 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
         id=str(uuid.uuid4()),
         user_id=user.id,
         token=token,
-        expires_at=datetime.utcnow() + timedelta(hours=1),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
     )
     db.add(reset)
     db.commit()
 
     # In production, send via email. For now, return token in response.
+    # TODO: Send reset link via email instead of returning token
     return {
         "message": "If the email exists, a reset link has been sent.",
-        "reset_token": token,  # Remove in production
+        "reset_token": token,  # TODO: Remove this in production - send via email instead
     }
 
 
@@ -241,7 +242,7 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
 
     if not reset_entry:
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
-    if reset_entry.expires_at and datetime.utcnow() > reset_entry.expires_at:
+    if reset_entry.expires_at and datetime.now(timezone.utc) > reset_entry.expires_at:
         raise HTTPException(status_code=400, detail="Reset token has expired")
 
     user = db.query(User).filter(User.id == reset_entry.user_id).first()

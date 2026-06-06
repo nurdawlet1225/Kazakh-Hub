@@ -133,7 +133,7 @@ class ApiService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for health check
       
-      const healthUrl = `${this.baseUrl.replace('/api', '')}/api/health`;
+      const healthUrl = `${this.baseUrl.replace(/\/api\/?$/, '')}/api/health`;
       const response = await fetch(healthUrl, {
         method: 'GET',
         signal: controller.signal,
@@ -146,7 +146,7 @@ class ApiService {
       this.connectionChecked = true;
       return response.ok;
     } catch (error) {
-      this.connectionChecked = true;
+      // Don't set connectionChecked on failure so subsequent requests can retry
       console.warn('Backend connection check failed:', error);
       return false;
     }
@@ -174,20 +174,28 @@ class ApiService {
       }
       
       const url = `${this.baseUrl}${endpoint}`;
-      console.log(`API Request: ${options?.method || 'GET'} ${url}`);
-      
+      if (import.meta.env.DEV) {
+        console.log(`API Request: ${options?.method || 'GET'} ${url}`);
+      }
+
       // Add timeout to prevent hanging (30 seconds for better reliability)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       
+      const headers: Record<string, string> = {
+        ...(this._getToken ? { 'Authorization': `Bearer ${this._getToken()}` } : {}),
+        ...options?.headers as Record<string, string>,
+      };
+      // Only set Content-Type for requests with a body (not for GET/DELETE without body)
+      const hasBody = options?.body !== undefined && options?.body !== null;
+      if (hasBody && !(options?.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+      }
+
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(this._getToken ? { 'Authorization': `Bearer ${this._getToken()}` } : {}),
-          ...options?.headers,
-        },
+        headers,
       });
       
       clearTimeout(timeoutId);
@@ -245,6 +253,10 @@ class ApiService {
         throw new Error(errorMessage);
       }
 
+      // Handle empty responses (e.g., 204 No Content)
+      if (response.status === 204 || response.headers.get('content-length') === '0') {
+        return undefined as T;
+      }
       return response.json();
     } catch (error) {
       if (error instanceof Error) {
@@ -609,6 +621,9 @@ class ApiService {
         method: 'POST',
         body: formData,
         signal: controller.signal,
+        headers: {
+          ...(this._getToken && this._getToken() ? { 'Authorization': `Bearer ${this._getToken()}` } : {}),
+        },
       });
       
       clearTimeout(timeoutId);

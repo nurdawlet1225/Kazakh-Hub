@@ -47,8 +47,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true, onClose }) => {
 
     // User деректерін алып тастау
     localStorage.removeItem('user');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('access_token');
     // In a real app, this would also clear auth tokens
-    
+
     // Redirect to login page
     window.location.href = '/login';
   };

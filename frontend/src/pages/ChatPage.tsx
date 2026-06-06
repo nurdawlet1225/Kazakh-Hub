@@ -90,7 +90,14 @@ const ChatPage: React.FC = () => {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        const userData = JSON.parse(storedUser);
+        let userData;
+        try {
+          userData = JSON.parse(storedUser);
+        } catch {
+          localStorage.removeItem('user');
+          navigate('/login');
+          return;
+        }
         // Verify user exists in backend using stored email and id
         try {
           const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
@@ -683,30 +690,10 @@ const ChatPage: React.FC = () => {
       let filtered = results.filter(
         user => user.id !== currentUser.id && !friendIds.has(user.id)
       );
-      
-      // Verify that each user still exists (filter out deleted accounts)
-      // Check users in parallel for better performance
-      const userExistenceChecks = await Promise.allSettled(
-        filtered.map(async (user) => {
-          try {
-            await apiService.getUserProfile(user.id);
-            return user;
-          } catch (err: any) {
-            // If user not found (404), account was deleted
-            if (err.message?.includes('404') || err.message?.includes('not found') || err.message?.includes('табылмады')) {
-              return null;
-            }
-            // For other errors, assume user still exists
-            return user;
-          }
-        })
-      );
-      
-      // Filter out null values (deleted accounts)
-      filtered = userExistenceChecks
-        .map((result) => result.status === 'fulfilled' ? result.value : null)
-        .filter((user): user is User => user !== null);
-      
+
+      // Use search results directly — the API should already return valid users
+      // (Removed N+1 per-user verification that was causing excessive API calls)
+
       setSearchResults(filtered);
     } catch (err: any) {
       console.error('Failed to search users:', err);
@@ -840,9 +827,12 @@ const ChatPage: React.FC = () => {
       if (profileNameMenuRef.current && !profileNameMenuRef.current.contains(event.target as Node)) {
         setShowProfileNameMenu(false);
       }
-      // Контекст менюсін жабу
+      // Контекст менюсін жабу (тек меню ішіндегі батырма басылмағанда)
       if (imageContextMenu) {
-        setImageContextMenu(null);
+        const target = event.target as HTMLElement;
+        if (!target.closest('.image-context-menu')) {
+          setImageContextMenu(null);
+        }
       }
     };
 
@@ -1408,9 +1398,9 @@ const ChatPage: React.FC = () => {
                         {chat.lastMessage && (
                           <div className="chat-friend-last-message">
                             {chat.lastMessage.fromUserId === currentUser?.id ? 'Сіз: ' : ''}
-                            {chat.lastMessage.content.length > 40 
-                              ? chat.lastMessage.content.substring(0, 40) + '...'
-                              : chat.lastMessage.content}
+                            {(chat.lastMessage.content || '').length > 40
+                              ? (chat.lastMessage.content || '').substring(0, 40) + '...'
+                              : (chat.lastMessage.content || '')}
                           </div>
                         )}
                         {chat.lastMessage && (
@@ -1606,16 +1596,9 @@ const ChatPage: React.FC = () => {
                           </div>
                           <div className="chat-request-actions">
                             <button
-                              className="chat-accept-btn"
-                              onClick={() => handleAcceptRequest(request.id)}
-                              title="Қабылдау"
-                            >
-                              <FontAwesomeIcon icon={faCheck} />
-                            </button>
-                            <button
                               className="chat-cancel-btn"
                               onClick={() => handleCancelRequest(request.id)}
-                              title="Сұрауды жою"
+                              title={t('chat.cancelRequest') || 'Сұрауды жою'}
                             >
                               <FontAwesomeIcon icon={faTimes} />
                             </button>

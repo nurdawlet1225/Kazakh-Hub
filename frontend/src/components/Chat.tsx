@@ -27,6 +27,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [searching, setSearching] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +45,9 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (currentUser && activeTab === 'requests') {
       loadFriendRequests();
-      const interval = setInterval(loadFriendRequests, 5000);
+      // Use ref to avoid stale closure in setInterval
+      const loadFriendRequestsRef = { current: loadFriendRequests };
+      const interval = setInterval(() => loadFriendRequestsRef.current(), 5000);
       return () => clearInterval(interval);
     }
   }, [currentUser, activeTab]);
@@ -83,7 +86,13 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
-        const userData = JSON.parse(storedUser);
+        let userData;
+        try {
+          userData = JSON.parse(storedUser);
+        } catch {
+          localStorage.removeItem('user');
+          return;
+        }
         // Verify user exists in backend using stored email and id
         try {
           const verifiedUser = await apiService.getCurrentUser(userData.email, userData.id);
@@ -370,14 +379,18 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    handleSearchUsers(e.target.value);
+                    // Debounce search to avoid excessive API calls
+                    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                    searchDebounceRef.current = setTimeout(() => {
+                      handleSearchUsers(e.target.value);
+                    }, 300);
                   }}
                 />
               </div>
               {searching ? (
-                <div className="chat-loading">Ізделуде...</div>
+                <div className="chat-loading">{t('chat.searching') || 'Ізделуде...'}</div>
               ) : searchResults.length === 0 && searchQuery ? (
-                <div className="chat-empty">Пайдаланушы табылмады</div>
+                <div className="chat-empty">{t('chat.noUsersFound') || 'Пайдаланушы табылмады'}</div>
               ) : (
                 <div className="chat-search-results">
                   {searchResults.map((user) => (

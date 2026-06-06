@@ -162,15 +162,15 @@
   font-size: 1rem;
   width: 10.2px;
   text-align: center;
-  color: white;
+  color: var(--text-secondary);
 }
 
 .file-icon svg {
-  color: white;
+  color: var(--text-secondary);
 }
 
 .file-icon path {
-  fill: white;
+  fill: var(--text-secondary);
 }
 
 .file-item.selected .file-icon {
@@ -188,7 +188,7 @@
 .file-name {
   flex: 1;
   font-size: 0.9rem;
-  color: white;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -196,7 +196,7 @@
   background-image: none;
   -webkit-background-clip: unset;
   background-clip: unset;
-  -webkit-text-fill-color: white;
+  -webkit-text-fill-color: unset;
 }
 
 .file-item.selected .file-name {

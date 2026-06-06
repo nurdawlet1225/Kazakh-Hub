@@ -1,7 +1,8 @@
 """User service for business logic"""
 from typing import Optional, List, Dict, Any
 import uuid
-import random
+import hashlib
+import secrets
 from database import users, save_users
 from utils.validators import validate_email
 
@@ -66,20 +67,23 @@ class UserService:
         
         # Generate numeric ID (12 digits)
         if firebase_uid:
-            # Convert Firebase UID to numeric ID using hash
-            # Take hash of firebase_uid and convert to 12-digit number
-            hash_value = abs(hash(firebase_uid))
+            # Use deterministic SHA-256 hash instead of Python's hash() which is randomized per process
+            hash_hex = hashlib.sha256(firebase_uid.encode()).hexdigest()
+            hash_value = int(hash_hex[:15], 16)  # Use first 15 hex chars for a large number
             user_id = str(hash_value % (10 ** 12)).zfill(12)
             # Ensure ID is unique
+            counter = 0
             while UserService.find_user_by_id(user_id):
-                hash_value = abs(hash(firebase_uid + str(random.randint(0, 9999))))
+                counter += 1
+                hash_hex = hashlib.sha256(f"{firebase_uid}_{counter}".encode()).hexdigest()
+                hash_value = int(hash_hex[:15], 16)
                 user_id = str(hash_value % (10 ** 12)).zfill(12)
         else:
-            # Generate a 12-digit numeric ID
-            user_id = ''.join([str(random.randint(0, 9)) for _ in range(12)])
+            # Generate a 12-digit numeric ID using cryptographically secure random
+            user_id = ''.join([str(secrets.randbelow(10)) for _ in range(12)])
             # Ensure ID is unique
             while UserService.find_user_by_id(user_id):
-                user_id = ''.join([str(random.randint(0, 9)) for _ in range(12)])
+                user_id = ''.join([str(secrets.randbelow(10)) for _ in range(12)])
         
         new_user = {
             'id': user_id,

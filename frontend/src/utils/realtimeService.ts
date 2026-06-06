@@ -238,6 +238,9 @@ export const subscribeToCodes = (
       );
     } else {
       // Басты бетте: folderId === null болатын барлық кодтар мен папкалар
+      // Note: Firestore 'where field == null' only matches docs where the field
+      // is explicitly set to null, not docs where the field is absent.
+      // We also filter client-side to catch documents without folderId.
       try {
         q = query(
           codesRef,
@@ -294,7 +297,11 @@ export const subscribeToCodes = (
             views: data.views || 0,
             viewedBy: data.viewedBy || [],
           };
-          codes.push(code);
+          // For non-folder queries, also include docs where folderId field is absent
+          // (Firestore '== null' doesn't match absent fields)
+          if (folderId || code.folderId === null || data.folderId === undefined) {
+            codes.push(code);
+          }
         });
         
         // Егер orderBy қолданылмаған болса, клиентте сұрыптау

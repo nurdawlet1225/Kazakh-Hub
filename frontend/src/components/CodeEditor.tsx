@@ -84,11 +84,15 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         <span className="code-editor-language">{language}</span>
         <button
           className="code-editor-copy"
-          onClick={() => {
-            navigator.clipboard.writeText(content);
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(content);
+            } catch (err) {
+              console.error('Failed to copy:', err);
+            }
           }}
         >
-          <FontAwesomeIcon icon={faCopy} /> Көшіру
+          <FontAwesomeIcon icon={faCopy} /> {t('common.copy') || 'Көшіру'}
         </button>
       </div>
       <textarea

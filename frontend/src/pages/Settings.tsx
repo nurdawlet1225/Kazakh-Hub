@@ -12,7 +12,7 @@ type SettingsTab = 'general' | 'account' | 'danger';
 const Settings: React.FC = () => {
   const { i18n, t } = useTranslation();
   const navigate = useNavigate();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
   const { preference, setThemePreference } = useTheme();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
@@ -44,10 +44,10 @@ const Settings: React.FC = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isLoading) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem('i18nextLng') || i18n.language || 'kk';

@@ -26,6 +26,7 @@ class WebSocketService {
   private reconnectDelay = 1000;
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
   private pingInterval: NodeJS.Timeout | null = null;
+  private intentionalDisconnect = false;
 
   connect(userId: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -35,6 +36,7 @@ class WebSocketService {
       }
 
       this.userId = userId;
+      this.intentionalDisconnect = false;
       const wsUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://');
       const url = `${wsUrl}/ws/${userId}`;
 
@@ -65,7 +67,9 @@ class WebSocketService {
         this.ws.onclose = () => {
           console.log('WebSocket disconnected');
           this.stopPing();
-          this.attemptReconnect();
+          if (!this.intentionalDisconnect) {
+            this.attemptReconnect();
+          }
         };
       } catch (error) {
         reject(error);
@@ -152,13 +156,14 @@ class WebSocketService {
   }
 
   disconnect() {
+    this.intentionalDisconnect = true;
     this.stopPing();
     if (this.ws) {
       this.ws.close();
       this.ws = null;
     }
     this.userId = null;
-    this.listeners.clear();
+    // Don't clear listeners - components manage their own subscriptions via on/off
     this.reconnectAttempts = 0;
   }
 

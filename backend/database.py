@@ -1,6 +1,7 @@
 """Database operations for loading and saving data"""
 import json
 import os
+import tempfile
 from typing import List, Dict, Any
 from config import (
     CODES_FILE, USERS_FILE, FRIENDS_FILE,
@@ -99,15 +100,33 @@ def load_data():
         friend_requests.clear()
 
 
+def _atomic_write(filepath: str, data: str) -> None:
+    """Write data to a file atomically using write-then-rename pattern."""
+    dir_path = os.path.dirname(filepath)
+    if dir_path:
+        os.makedirs(dir_path, exist_ok=True)
+    # Write to temporary file first, then rename for atomic operation
+    fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write(data)
+        os.replace(tmp_path, filepath)
+    except Exception:
+        # Clean up temp file on error
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
 def save_codes():
     """Save codes to file and sync to Firestore"""
     try:
-        os.makedirs(os.path.dirname(CODES_FILE), exist_ok=True)
         json_data = json.dumps(codes, indent=2, ensure_ascii=False)
-        with open(CODES_FILE, 'w', encoding='utf-8') as f:
-            f.write(json_data)
+        _atomic_write(CODES_FILE, json_data)
         print(f'Codes saved successfully, file size: {len(json_data)} bytes')
-        
+
         # Firestore-ға синхрондау
         if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_CODE:
             try:
@@ -123,12 +142,8 @@ def save_codes():
 def save_users():
     """Save users to file"""
     try:
-        # Ensure directory exists
-        users_dir = os.path.dirname(USERS_FILE)
-        if users_dir:
-            os.makedirs(users_dir, exist_ok=True)
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
+        json_data = json.dumps(users, indent=2, ensure_ascii=False)
+        _atomic_write(USERS_FILE, json_data)
         print(f'Users saved successfully, count: {len(users)}')
     except Exception as e:
         print(f'Error saving users: {e}')
@@ -138,12 +153,8 @@ def save_users():
 def save_friends():
     """Save friends to file"""
     try:
-        # Ensure directory exists
-        friends_dir = os.path.dirname(FRIENDS_FILE)
-        if friends_dir:
-            os.makedirs(friends_dir, exist_ok=True)
-        with open(FRIENDS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(friends, f, indent=2, ensure_ascii=False)
+        json_data = json.dumps(friends, indent=2, ensure_ascii=False)
+        _atomic_write(FRIENDS_FILE, json_data)
         print(f'Friends saved successfully, count: {len(friends)} users')
     except Exception as e:
         print(f'Error saving friends: {e}')
@@ -153,13 +164,9 @@ def save_friends():
 def save_messages():
     """Save messages to file and sync to Firestore"""
     try:
-        # Ensure directory exists
-        messages_dir = os.path.dirname(MESSAGES_FILE)
-        if messages_dir:
-            os.makedirs(messages_dir, exist_ok=True)
-        with open(MESSAGES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(messages, f, indent=2, ensure_ascii=False)
-        
+        json_data = json.dumps(messages, indent=2, ensure_ascii=False)
+        _atomic_write(MESSAGES_FILE, json_data)
+
         # Firestore-ға синхрондау (соңғы хабарламаларды)
         if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_SYNC_MESSAGE:
             try:
@@ -177,12 +184,8 @@ def save_messages():
 def save_friend_requests():
     """Save friend requests to file"""
     try:
-        # Ensure directory exists
-        friend_requests_dir = os.path.dirname(FRIEND_REQUESTS_FILE)
-        if friend_requests_dir:
-            os.makedirs(friend_requests_dir, exist_ok=True)
-        with open(FRIEND_REQUESTS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(friend_requests, f, indent=2, ensure_ascii=False)
+        json_data = json.dumps(friend_requests, indent=2, ensure_ascii=False)
+        _atomic_write(FRIEND_REQUESTS_FILE, json_data)
         print(f'Friend requests saved successfully, count: {len(friend_requests)}')
     except Exception as e:
         print(f'Error saving friend requests: {e}')

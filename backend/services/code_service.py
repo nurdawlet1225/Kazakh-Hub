@@ -157,33 +157,36 @@ class CodeService:
     @staticmethod
     def delete_multiple_codes(code_ids: List[str]) -> int:
         """Delete multiple codes"""
-        deleted_count = 0
+        deleted_ids = set()
         codes_to_delete = [c for c in codes if c['id'] in code_ids]
-        
+
         # First, delete all files in folders that are being deleted
         for code in codes_to_delete:
             if code.get('isFolder'):
                 folder_files = [c for c in codes if c.get('folderId') == code['id']]
                 for file in folder_files:
-                    codes.remove(file)
-                    deleted_count += 1
-        
+                    if file['id'] not in deleted_ids:
+                        deleted_ids.add(file['id'])
+                        codes.remove(file)
+
         # Then delete the codes themselves
         for code_id in code_ids:
+            if code_id in deleted_ids:
+                continue  # Already deleted as a folder child
             code = CodeService.find_code_by_id(code_id)
             if code:
+                deleted_ids.add(code_id)
                 codes.remove(code)
-                deleted_count += 1
-                
+
                 # Firestore delete
                 if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_DELETE_CODE:
                     try:
                         FIRESTORE_DELETE_CODE(code_id)
                     except Exception as e:
                         print(f'Warning: Firestore delete failed for {code_id}: {e}')
-        
+
         save_codes()
-        return deleted_count
+        return len(deleted_ids)
     
     @staticmethod
     def like_code(code_id: str, user_id: str) -> Dict[str, Any]:

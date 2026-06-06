@@ -355,10 +355,12 @@ export const initErrorSuppression = () => {
         shouldSuppressError(errorUrl) ||
         shouldSuppressError(allErrorInfo) ||
         isFirestoreBlockedError ||
-        (isFirestoreBlockedError && markFirestoreBlockedFn ? (() => { markFirestoreBlockedFn(); return true; })() : false) ||
-        (isFirebaseAuthError && (errorMessage.includes('Cross-Origin-Opener-Policy') || 
+        (isFirebaseAuthError && (errorMessage.includes('Cross-Origin-Opener-Policy') ||
                                  errorMessage.includes('window.closed') ||
                                  errorMessage.includes('window.close')))) {
+      if (isFirestoreBlockedError && markFirestoreBlockedFn) {
+        markFirestoreBlockedFn();
+      }
       event.preventDefault();
       event.stopPropagation();
       return false;
@@ -374,8 +376,8 @@ export const initErrorSuppression = () => {
       const errorMessage = error?.message || error?.toString() || '';
       const url = args[0]?.toString() || '';
       if (shouldSuppressError(errorMessage) || shouldSuppressError(url)) {
-        // Return a rejected promise that won't be logged
-        return Promise.reject(new Error('Network request blocked (non-critical)'));
+        // Suppress console output but preserve original error for callers
+        throw Object.assign(error, { _suppressed: true });
       }
       throw error;
     }
@@ -398,14 +400,15 @@ export const initErrorSuppression = () => {
         // Don't mark immediately, wait for error to confirm
       }
       
-      this.addEventListener('error', function() {
+      this.addEventListener('error', function(event: Event) {
         if (markFirestoreBlockedFn) {
           markFirestoreBlockedFn();
         }
         // Suppress error event
-        this.dispatchEvent = () => false;
-      });
-      
+        event.stopImmediatePropagation();
+        event.preventDefault();
+      }, true);
+
       // Also check for blocked status on loadend
       this.addEventListener('loadend', function() {
         // Status 0 often indicates blocked request
@@ -414,18 +417,19 @@ export const initErrorSuppression = () => {
         }
       });
     } else {
-      this.addEventListener('error', function() {
+      this.addEventListener('error', function(event: Event) {
         if (shouldSuppressError(errorUrl)) {
           // Suppress error event
-          this.dispatchEvent = () => false;
+          event.stopImmediatePropagation();
+          event.preventDefault();
         }
-      });
+      }, true);
     }
     return originalXHROpen.apply(this, [method, url, ...rest] as any);
   };
   
   XMLHttpRequest.prototype.send = function(...args: any[]) {
-    const errorUrl = this.responseURL || (this as any)._url || '';
+    const errorUrl = (this as any)._url || this.responseURL || '';
     const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com') || 
                                errorUrl.includes('google.firestore.v1.Firestore') ||
                                errorUrl.includes('Listen/channel') ||

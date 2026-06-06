@@ -11,7 +11,7 @@ interface FolderUploadItemProps {
 
 const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
@@ -34,7 +34,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setSelectedFiles(e.dataTransfer.files);
+      setSelectedFiles(Array.from(e.dataTransfer.files));
       const folderName = e.dataTransfer.files[0]?.webkitRelativePath?.split('/')[0] || 'folder';
       if (!title) {
         setTitle(folderName);
@@ -44,7 +44,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
 
   const handleFolderInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles(e.target.files);
+      setSelectedFiles(Array.from(e.target.files));
       const folderName = e.target.files[0]?.webkitRelativePath?.split('/')[0] || 'folder';
       if (!title) {
         setTitle(folderName);
@@ -54,7 +54,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFiles) return;
+    if (!selectedFiles || selectedFiles.length === 0) return;
 
     try {
       await uploadFolder(selectedFiles, {
@@ -70,7 +70,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
   };
 
   const handleReset = () => {
-    setSelectedFiles(null);
+    setSelectedFiles([]);
     setTitle('');
     setDescription('');
     setTags('');

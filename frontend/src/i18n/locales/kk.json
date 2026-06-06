@@ -121,7 +121,10 @@
     "file": "файл",
     "filesPlural": "файлдар",
     "folder": "папка",
-    "foldersPlural": "папкалар"
+    "foldersPlural": "папкалар",
+    "actionsTitle": "Әрекеттер",
+    "folderNamePlaceholder": "Папка атауы",
+    "folderDescriptionPlaceholder": "Папка сипаттамасы"
   },
   "login": {
     "title": "Кіру",
@@ -150,7 +153,16 @@
     "login": "Кіру",
     "error": "Тіркелу қатесі",
     "passwordMinLength": "Құпия сөз кемінде 6 таңбадан тұруы керек",
-    "passwordMismatch": "Құпия сөздер сәйкес келмейді"
+    "passwordMismatch": "Құпия сөздер сәйкес келмейді",
+    "enterUsername": "Пайдаланушы атын енгізіңіз",
+    "enterEmail": "Электрондық поштаны енгізіңіз",
+    "enterEmailInvalid": "Электрондық пошта дұрыс емес",
+    "emailInUse": "Бұл электрондық пошта немесе пайдаланушы аты бойынша тіркелгі бар",
+    "allFieldsRequired": "Барлық өрістерді толтырыңыз",
+    "storageQuotaExceeded": "Жад шегінен асып кетті. Браузердің кэшін тазалап көріңіз.",
+    "submitting": "Тіркелу...",
+    "passwordShow": "Парольді көрсету",
+    "passwordHide": "Парольді жасыру"
   },
   "auth": {
     "loginSuccess": "Сәтті кірдіңіз",
@@ -482,7 +494,21 @@
     "incomingRequests": "Келіп тұрған сұраулар",
     "outgoingRequests": "Жіберілген сұраулар",
     "noIncomingRequests": "Келіп тұрған сұраулар жоқ",
-    "noOutgoingRequests": "Жіберілген сұраулар жоқ"
+    "noOutgoingRequests": "Жіберілген сұраулар жоқ",
+    "backToHome": "Чаттың бастапқы бетіне қайту",
+    "searchFriends": "Достарды іздеу...",
+    "searchUsersPlaceholder": "Пайдаланушыны іздеу (аты, email немесе ID)...",
+    "sendFriendRequestTitle": "Достық сұрауы жіберу",
+    "acceptTitle": "Қабылдау",
+    "rejectTitle": "Сұрауды жою",
+    "menuTitle": "Меню",
+    "searchMessagesPlaceholder": "Хабарламаларды іздеу...",
+    "saveTitle": "Сақтау",
+    "cancelTitle": "Болдырмау",
+    "imageUploadError": "Суретті жүктеу қатесі. Суретті оң жақ батырмамен «Суретті басқа атаумен сақтау» арқылы сақтаңыз.",
+    "timeNow": "Қазір",
+    "timeMinutesAgo": "мин бұрын",
+    "timeHoursAgo": "сағ бұрын"
   },
   "messageInput": {
     "placeholder": "Хабарлама жазыңыз...",
@@ -538,7 +564,11 @@
     "invalidData": "Деректер дұрыс емес. Барлық өрістерді тексеріңіз.",
     "show": "Көрсету",
     "hide": "Жасыру",
-    "characters": "таңба"
+    "characters": "таңба",
+    "bioPlaceholder": "Сипаттама",
+    "currentPasswordPlaceholder": "Ағымдағы құпия сөз",
+    "newPasswordPlaceholder": "Жаңа құпия сөз",
+    "confirmPasswordPlaceholder": "Құпия сөзді қайталаңыз"
   },
   "apiErrors": {
     "backendUnreachable": "Backend серверіне қосылу мүмкін емес. Сервердің {{serverUrl}} адресінде жұмыс істеп тұрғанын тексеріңіз.",
@@ -599,5 +629,48 @@
     "categoryOtherOption5": "База деректері",
     "categoryOtherOption6": "DevOps",
     "categoryOtherOption7": "Басқа"
+  },
+  "folderUpload": {
+    "title": "Папка жүктеу",
+    "folderLabel": "Папка",
+    "fileCount": "файл",
+    "dropzoneText": "Папканы осы жерге тартып тастаңыз немесе таңдау үшін басыңыз",
+    "dropzoneHint": "Папкадағы барлық файлдар өңделеді",
+    "titleLabel": "Атауы",
+    "titlePlaceholder": "Папканың атауын енгізіңіз",
+    "descriptionLabel": "Сипаттама",
+    "descriptionPlaceholder": "Папканың сипаттамасын енгізіңіз...",
+    "tagsLabel": "Тегтер",
+    "tagsPlaceholder": "folder, project, code (үтірмен бөлінген)",
+    "clear": "Тазалау",
+    "uploading": "Жүктелуде...",
+    "upload": "Жүктеу"
+  },
+  "imageUpload": {
+    "title": "Сурет жүктеу",
+    "onlyImageFiles": "Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF, WEBP)",
+    "imageSizeLimit": "Сурет өлшемі 30MB-тан аспауы керек",
+    "imageProcessingError": "Суретті өңдеу қатесі",
+    "imageUploadError": "Суретті жүктеу қатесі",
+    "dropzoneText": "Суретті осы жерге тартып тастаңыз немесе таңдау үшін басыңыз",
+    "dropzoneHint": "JPG, PNG, GIF, WEBP форматындағы суреттер",
+    "titleLabel": "Атауы",
+    "titlePlaceholder": "Суреттің атауын енгізіңіз",
+    "descriptionLabel": "Сипаттама (міндетті емес)",
+    "descriptionPlaceholder": "Суреттің сипаттамасын енгізіңіз...",
+    "tagsLabel": "Тегтер",
+    "tagsPlaceholder": "image, photo, picture (үтірмен бөлінген)",
+    "clear": "Тазалау",
+    "uploading": "Жүктелуде...",
+    "upload": "Жүктеу",
+    "defaultDescription": "Сурет файлы"
+  },
+  "changeBackground": {
+    "dragImage": "Суретті жылжыту үшін тартыңыз, масштабтау үшін дөңгелекті пайдаланыңыз",
+    "selectBackground": "Фон суретін таңдау үшін басыңыз",
+    "addBackground": "Фон суретін қосу",
+    "moveImage": "Суретті жылжыту",
+    "zoomIn": "Жақындату",
+    "zoomOut": "Масштабты кішірету"
   }
 }

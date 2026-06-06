@@ -144,13 +144,13 @@ const Home: React.FC = () => {
     // Sync search query with URL params
     const urlSearch = searchParams.get('search') || '';
     setSearchQuery(urlSearch);
-    
+
     // Егер URL-да іздеу сұрауы болса, барлық кодтарды жүктеу
-    if (urlSearch && (totalCodesCount === 0 || codes.length < totalCodesCount) && !loading) {
+    if (urlSearch && totalCodesCount === 0 && !loading) {
       setLoading(true);
       loadCodes(1000, 0);
     }
-  }, [searchParams, totalCodesCount, codes.length, loading, loadCodes]);
+  }, [searchParams, loadCodes]);
 
   const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

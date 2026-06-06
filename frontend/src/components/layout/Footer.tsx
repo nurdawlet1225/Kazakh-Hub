@@ -13,7 +13,9 @@ const Footer: React.FC = () => {
   const [config, setConfig] = useState<SiteConfig | null>(null);
 
   useEffect(() => {
-    apiService.getConfig().then(setConfig);
+    apiService.getConfig().then(setConfig).catch((err) => {
+      console.error('Failed to load config:', err);
+    });
   }, []);
 
   const appName = config?.appName ?? t('header.appName');

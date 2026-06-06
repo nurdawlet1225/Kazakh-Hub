@@ -5,6 +5,7 @@ import { faLaptop, faHeart, faComment, faEye, faFileAlt, faUser, faEnvelope, faI
 import { User, CodeFile } from '../../utils/api';
 import { apiService } from '../../utils/api';
 import { ensureNumericId } from '../../utils/idConverter';
+import { imageStorage } from '../../utils/imageStorage';
 import CodeCard from '../CodeCard';
 import EditProfileModal from './EditProfileModal';
 import './ProfilePageModal.css';
@@ -36,14 +37,33 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
   }, [isOpen]);
 
   useEffect(() => {
-    // Load background image from localStorage
+    // Load background image from storage (IndexedDB for large images, localStorage for small)
     if (user?.id) {
-      const savedBg = localStorage.getItem(`profile-bg-${user.id}`);
-      if (savedBg) {
-        setBackgroundImage(savedBg);
-      } else {
-        setBackgroundImage(null);
-      }
+      const loadBg = async () => {
+        try {
+          const savedBg = await imageStorage.getImage(`profile-bg-${user.id}`);
+          if (savedBg) {
+            setBackgroundImage(savedBg);
+          } else {
+            // Fallback to localStorage for backwards compatibility
+            const localBg = localStorage.getItem(`profile-bg-${user.id}`);
+            if (localBg) {
+              setBackgroundImage(localBg);
+            } else {
+              setBackgroundImage(null);
+            }
+          }
+        } catch {
+          // Fallback to localStorage
+          const localBg = localStorage.getItem(`profile-bg-${user.id}`);
+          if (localBg) {
+            setBackgroundImage(localBg);
+          } else {
+            setBackgroundImage(null);
+          }
+        }
+      };
+      loadBg();
     }
   }, [user?.id]);
 
@@ -68,10 +88,17 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
       let userData: User;
       
       if (storedUser) {
-        userData = JSON.parse(storedUser);
-        // Convert to numeric ID if it contains letters
+        try {
+          userData = JSON.parse(storedUser);
+        } catch {
+          setError(t('profile.loginRequired') || 'Кіру қажет. Қайта кіріңіз.');
+          setLoading(false);
+          return;
+        }
+        // Convert to numeric ID if it contains letters (create new object, don't mutate)
         if (userData.id && !/^\d+$/.test(userData.id)) {
-          userData.id = ensureNumericId(userData.id);
+          const numericId = ensureNumericId(userData.id);
+          userData = { ...userData, id: numericId };
           localStorage.setItem('user', JSON.stringify(userData));
         }
         // Always verify user exists in backend using stored email and id
@@ -82,13 +109,13 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
         } catch (err: any) {
           // If user not found in backend, show error
           console.error('Failed to verify user:', err);
-          setError('Пайдаланушы табылмады. Қайта кіріңіз.');
+          setError(t('profile.userNotFoundRelogin') || 'Пайдаланушы табылмады. Қайта кіріңіз.');
           setLoading(false);
           return;
         }
       } else {
         // No stored user - show error
-        setError('Кіру қажет. Қайта кіріңіз.');
+        setError(t('profile.loginRequired') || 'Кіру қажет. Қайта кіріңіз.');
         setLoading(false);
         return;
       }
@@ -191,7 +218,7 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
                         <button 
                           className="copy-id-btn" 
                           onClick={copyId}
-                          title={isIdCopied ? 'Көшірілді' : 'ID көшіру'}
+                          title={isIdCopied ? (t('profile.idCopied') || 'Көшірілді') : (t('profile.copyId') || 'ID көшіру')}
                         >
                           <FontAwesomeIcon icon={isIdCopied ? faCheck : faCopy} />
                         </button>
@@ -275,7 +302,6 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
           onUpdate={(updatedUser) => {
             setUser(updatedUser);
             setIsEditModalOpen(false);
-            loadProfile();
           }}
         />
       )}

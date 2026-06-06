@@ -23,14 +23,20 @@ export interface FolderStructure {
   };
 }
 
+export const getFileExtension = (filename: string): string => {
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex === -1) return '';
+  return filename.toLowerCase().substring(lastDotIndex);
+};
+
 export const isImageFile = (filename: string): boolean => {
-  const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  const ext = getFileExtension(filename);
   const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'];
   return imageExtensions.includes(ext);
 };
 
 export const detectLanguage = (filename: string): string => {
-  const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  const ext = getFileExtension(filename);
   
   const languageMap: Record<string, string> = {
     '.js': FILE_TYPES.JAVASCRIPT,
@@ -52,7 +58,7 @@ export const detectLanguage = (filename: string): string => {
 };
 
 export const isSupportedFile = (filename: string): boolean => {
-  const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  const ext = getFileExtension(filename);
   return SUPPORTED_EXTENSIONS.includes(ext);
 };
 
@@ -120,7 +126,7 @@ export const formatFileSize = (bytes: number): string => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
 };
 
-export const processFolder = async (files: FileList): Promise<FolderInfo> => {
+export const processFolder = async (files: FileList | File[]): Promise<FolderInfo> => {
   const fileArray = Array.from(files);
   const folderName = fileArray[0]?.webkitRelativePath?.split('/')[0] || 'folder';
   const structure: FolderStructure = {};

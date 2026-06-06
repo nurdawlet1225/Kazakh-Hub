@@ -54,6 +54,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Cleanup refresh timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
+
   const refreshAccessToken = useCallback(async (refreshToken: string) => {
     if (isRefreshing.current) return;
     isRefreshing.current = true;
@@ -93,7 +100,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAccessToken(null);
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
     setUserState(null);
+    isRefreshing.current = false; // Reset so refresh can work after re-login
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
   }, [accessToken]);
 
@@ -111,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user && !!accessToken,
+    isAuthenticated: !isLoading && !!user && !!accessToken,
     isLoading,
     accessToken,
     login,

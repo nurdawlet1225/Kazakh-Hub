@@ -65,10 +65,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // Send files first if any
     if (previewFiles.length > 0) {
-      previewFiles.forEach(async (preview) => {
-        await onUploadFile(preview.file, preview.type, message || undefined);
-      });
+      const filesToSend = [...previewFiles];
       setPreviewFiles([]);
+      (async () => {
+        for (const preview of filesToSend) {
+          try {
+            await onUploadFile(preview.file, preview.type, message || undefined);
+          } catch (err) {
+            console.error('Failed to upload file:', err);
+          }
+        }
+      })();
     }
 
     // Send location if any
@@ -97,29 +104,32 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
     // For images, send immediately without preview
     if (type === 'image') {
-      Array.from(files).forEach(async (file) => {
-        try {
-          // Send image immediately
-          await onUploadFile(file, type, message || undefined);
-          // Clear message after sending
-          if (message) {
-            setMessage('');
-            adjustTextareaHeight();
+      const messageToSend = message || undefined;
+      (async () => {
+        for (const file of Array.from(files)) {
+          try {
+            // Send image immediately
+            await onUploadFile(file, type, messageToSend);
+          } catch (error) {
+            console.error('Failed to upload image:', error);
+            // If upload fails, add to preview for manual retry
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              setPreviewFiles(prev => [...prev, {
+                file,
+                type,
+                preview: reader.result as string
+              }]);
+            };
+            reader.readAsDataURL(file);
           }
-        } catch (error) {
-          console.error('Failed to upload image:', error);
-          // If upload fails, add to preview for manual retry
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setPreviewFiles(prev => [...prev, {
-              file,
-              type,
-              preview: reader.result as string
-            }]);
-          };
-          reader.readAsDataURL(file);
         }
-      });
+        // Clear message after all images are sent
+        if (messageToSend) {
+          setMessage('');
+          adjustTextareaHeight();
+        }
+      })();
     } else {
       // For other file types, add to preview
       Array.from(files).forEach(file => {
@@ -204,13 +214,17 @@ const MessageInput: React.FC<MessageInputProps> = ({
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioFile = new File([audioBlob], `recording_${Date.now()}.webm`, { type: 'audio/webm' });
-        
-        await onUploadFile(audioFile, 'audio');
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const audioFile = new File([audioBlob], `recording_${Date.now()}.webm`, { type: 'audio/webm' });
+
+          await onUploadFile(audioFile, 'audio');
+        } catch (err) {
+          console.error('Failed to upload audio:', err);
+        } finally {
+          // Stop all tracks
+          stream.getTracks().forEach(track => track.stop());
+        }
       };
 
       mediaRecorder.start();

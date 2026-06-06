@@ -26,7 +26,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
   const [uploadMode, setUploadMode] = useState<UploadMode>('folder');
   const [apiDisplayUrl, setApiDisplayUrl] = useState<string>(getApiBaseForDisplay());
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
@@ -62,7 +62,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setSelectedFiles(e.dataTransfer.files);
+      setSelectedFiles(Array.from(e.dataTransfer.files));
       const folderName = e.dataTransfer.files[0]?.webkitRelativePath?.split('/')[0] || 'folder';
       if (!title) {
         setTitle(folderName);
@@ -72,7 +72,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
 
   const handleFolderInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFiles(e.target.files);
+      setSelectedFiles(Array.from(e.target.files));
       const folderName = e.target.files[0]?.webkitRelativePath?.split('/')[0] || 'folder';
       if (!title) {
         setTitle(folderName);
@@ -82,7 +82,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFiles) return;
+    if (!selectedFiles || selectedFiles.length === 0) return;
     
     // Тіл міндетті
     if (!language) {
@@ -112,7 +112,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
   };
 
   const handleClose = () => {
-    setSelectedFiles(null);
+    setSelectedFiles([]);
     setTitle('');
     setLanguage('');
     setProjectDescription('');

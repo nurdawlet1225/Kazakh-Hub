@@ -29,21 +29,21 @@ class FriendService:
         """Add a friend (bidirectional)"""
         if user_id == friend_id:
             raise ValueError("Cannot add yourself as a friend")
-        
+
         if user_id not in friends:
             friends[user_id] = []
-        
+
         if friend_id not in friends[user_id]:
             friends[user_id].append(friend_id)
-            save_friends()
-        
+
         # Add reverse friendship (bidirectional)
         if friend_id not in friends:
             friends[friend_id] = []
-        
+
         if user_id not in friends[friend_id]:
             friends[friend_id].append(user_id)
-            save_friends()
+
+        save_friends()
     
     @staticmethod
     def remove_friend(user_id: str, friend_id: str) -> None:
@@ -58,20 +58,23 @@ class FriendService:
     
     @staticmethod
     def are_friends(user_id: str, friend_id: str) -> bool:
-        """Check if two users are friends or have messages (can message each other)"""
-        # Check if they are friends
+        """Check if two users are friends"""
         user_friends = friends.get(user_id, [])
-        if friend_id in user_friends:
+        return friend_id in user_friends
+
+    @staticmethod
+    def can_message(user_id: str, friend_id: str) -> bool:
+        """Check if two users can message each other (friends or previous conversation)"""
+        if FriendService.are_friends(user_id, friend_id):
             return True
-        
-        # Check if they have any messages (if they have chatted before, allow messaging)
+
+        # Check if they have any previous messages
         from database import messages
         has_messages = any(
             (msg.get('fromUserId') == user_id and msg.get('toUserId') == friend_id) or
             (msg.get('fromUserId') == friend_id and msg.get('toUserId') == user_id)
             for msg in messages
         )
-        
         return has_messages
     
     @staticmethod

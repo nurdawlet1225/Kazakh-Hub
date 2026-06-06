@@ -57,23 +57,23 @@
 /* Dark Theme - түстері (Қараңғы көк және сары) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #0a1929;
-    --bg-secondary: #132f4c;
+    --bg-primary: #071320;
+    --bg-secondary: #162d4a;
     --bg-hover: #1e4a6b;
     --bg-code: #020617;
     --bg-gradient: linear-gradient(135deg, #00AFCA 0%, #0099CC 25%, #0088BB 50%, #0077AA 75%, #006699 100%);
-    
+
     --text-primary: #f1f5f9;
-    --text-secondary: #bae7ff;
-    --text-muted: #91d5ff;
-    
-    --border-color: #1e4a6b;
+    --text-secondary: #b0d4f1;
+    --text-muted: #7aa8cc;
+
+    --border-color: #1a3a55;
     --border-hover: #2a5a7a;
     --border-glow: rgba(0, 175, 202, 0.8);
-    
+
     --primary-color: #00AFCA;
     --primary-hover: #0099CC;
-    --primary-light: #132f4c;
+    --primary-light: #1a3d5c;
     --accent-color: #FFD700;
     --accent-hover: #FFC700;
     --accent-gradient: linear-gradient(135deg, #00AFCA 0%, #0099CC 25%, #FFD700 50%, #FCD116 75%, #FFC700 100%);
@@ -99,23 +99,23 @@
 
 /* Class-based dark mode toggle */
 .dark-theme {
-  --bg-primary: #0a1929;
-  --bg-secondary: #132f4c;
+  --bg-primary: #071320;
+  --bg-secondary: #162d4a;
   --bg-hover: #1e4a6b;
   --bg-code: #020617;
   --bg-gradient: linear-gradient(135deg, #00AFCA 0%, #0099CC 25%, #0088BB 50%, #0077AA 75%, #006699 100%);
-  
+
   --text-primary: #f1f5f9;
-  --text-secondary: #bae7ff;
-  --text-muted: #91d5ff;
-  
-  --border-color: #1e4a6b;
+  --text-secondary: #b0d4f1;
+  --text-muted: #7aa8cc;
+
+  --border-color: #1a3a55;
   --border-hover: #2a5a7a;
   --border-glow: rgba(0, 175, 202, 0.8);
-  
+
   --primary-color: #00AFCA;
   --primary-hover: #0099CC;
-  --primary-light: #132f4c;
+  --primary-light: #1a3d5c;
   --accent-color: #FFD700;
   --accent-hover: #FFC700;
   --accent-gradient: linear-gradient(135deg, #00AFCA 0%, #0099CC 25%, #FFD700 50%, #FCD116 75%, #FFC700 100%);

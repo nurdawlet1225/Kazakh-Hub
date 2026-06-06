@@ -54,20 +54,20 @@ async def search_users(query: Optional[str] = Query(None), db: Session = Depends
         return []
 
     search_term = query.strip().lower()
+    # Escape LIKE wildcards to prevent injection
+    escaped_term = search_term.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
     from sqlalchemy import func
     sql_users = db.query(User).filter(
-        (func.lower(User.username).contains(search_term)) |
-        (func.lower(User.email).contains(search_term)) |
-        (User.id.like(f"%{search_term}%"))
+        (func.lower(User.username).contains(escaped_term)) |
+        (func.lower(User.email).contains(escaped_term)) |
+        (User.id.like(f"%{escaped_term}%"))
     ).limit(50).all()
 
     return [
         {
             "id": user.id,
             "username": user.username,
-            "email": user.email,
             "avatar": user.avatar,
-            "bio": user.bio,
         }
         for user in sql_users
     ]
@@ -133,6 +133,9 @@ async def update_user(
             if user_data.avatar == '':
                 current_user.avatar = None
             elif isinstance(user_data.avatar, str) and user_data.avatar.startswith('data:image'):
+                # Validate avatar size (max 1MB after base64 encoding, ~750KB raw)
+                if len(user_data.avatar) > 1_400_000:  # ~1MB base64 string
+                    raise ValueError("Avatar image is too large. Maximum size is 1MB.")
                 current_user.avatar = user_data.avatar
             else:
                 raise ValueError("Invalid avatar format")
@@ -168,11 +171,7 @@ async def delete_user(
         user_id_to_delete = current_user.id
         username = current_user.username
 
-        # Delete from SQL database
-        db.delete(current_user)
-        db.commit()
-
-        # Delete user's codes
+        # Delete user's codes first (before SQL delete to avoid orphaned data)
         codes[:] = [code for code in codes if code.get('author') != username]
         save_codes()
 
@@ -207,6 +206,10 @@ async def delete_user(
                     if 'replies' in comment:
                         comment['replies'] = [reply for reply in comment['replies'] if reply.get('author') != username]
         save_codes()
+
+        # Now delete from SQL database
+        db.delete(current_user)
+        db.commit()
 
         return {"message": "Account deleted successfully"}
     except Exception as e:

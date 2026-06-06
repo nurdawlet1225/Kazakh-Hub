@@ -1493,7 +1493,7 @@
 
 .comment-login-prompt-left {
   flex: 0 0 75%;
-  background: #E0E0E0;
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -1502,9 +1502,19 @@
   text-align: left;
 }
 
+.light-theme .comment-login-prompt-left {
+  background: #E0E0E0;
+  color: #333333;
+}
+
+.dark-theme .comment-login-prompt-left {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
 .comment-login-prompt-right {
   flex: 0 0 25%;
-  background: #4A1414;
+  background: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1603,21 +1613,43 @@
 .comment-item {
   padding: 1rem;
   padding-bottom: 1rem;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  border: 1px solid rgba(0, 175, 202, 0.3);
-  border-bottom: 1px solid rgba(0, 175, 202, 0.3);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   border-radius: 12px;
   transition: all 0.3s ease;
   display: flex;
   gap: 1rem;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 175, 202, 0.1);
+  box-shadow: var(--shadow-md);
   width: 100%;
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
   position: relative;
+}
+
+.dark-theme .comment-item {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid rgba(0, 175, 202, 0.3);
+  border-bottom: 1px solid rgba(0, 175, 202, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 175, 202, 0.1);
+}
+
+.light-theme .comment-item {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .comment-item {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    border: 1px solid rgba(0, 175, 202, 0.3);
+    border-bottom: 1px solid rgba(0, 175, 202, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 175, 202, 0.1);
+  }
 }
 
 .comment-content-wrapper {
@@ -1787,12 +1819,21 @@
 
 .comment-author {
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  text-shadow: 0 0 8px rgba(0, 175, 202, 0.5);
+}
+
+.dark-theme .comment-author {
+  text-shadow: 0 0 8px rgba(0, 175, 202, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .comment-author {
+    text-shadow: 0 0 8px rgba(0, 175, 202, 0.3);
+  }
 }
 
 .comment-author svg {
@@ -1801,32 +1842,38 @@
 
 .comment-date {
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   white-space: nowrap;
   opacity: 0.9;
   padding: 0.25rem 0.75rem;
   background: rgba(0, 175, 202, 0.15);
   border-radius: 8px;
   border: 1px solid rgba(0, 175, 202, 0.3);
-  box-shadow: 0 0 8px rgba(0, 175, 202, 0.2);
+  box-shadow: none;
+}
+
+.light-theme .comment-date {
+  color: var(--text-muted);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
 .comment-content {
-  color: #e2e8f0;
+  color: var(--text-primary);
   line-height: 1.6;
   white-space: pre-wrap;
   word-wrap: break-word;
   padding: 0.75rem 1rem;
   margin: 0;
   font-size: 0.95rem;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-wrap: break-word;
   word-break: break-word;
-  border-left: 1px solid rgba(0, 175, 202, 0.4);
-  border-top: 1px solid rgba(0, 175, 202, 0.4);
+  border-left: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
   border-bottom: none;
   border-right: none;
   border-radius: 0;
@@ -1839,6 +1886,26 @@
   min-height: 48px;
   min-width: 0;
   overflow: hidden;
+}
+
+.dark-theme .comment-content {
+  background: rgba(15, 23, 42, 0.5);
+  border-left: 1px solid rgba(0, 175, 202, 0.4);
+  border-top: 1px solid rgba(0, 175, 202, 0.4);
+}
+
+.light-theme .comment-content {
+  background: rgba(0, 0, 0, 0.03);
+  border-left: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .comment-content {
+    background: rgba(15, 23, 42, 0.5);
+    border-left: 1px solid rgba(0, 175, 202, 0.4);
+    border-top: 1px solid rgba(0, 175, 202, 0.4);
+  }
 }
 
 

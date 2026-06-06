@@ -59,8 +59,46 @@ const Header: React.FC = () => {
   };
 
   useEffect(() => {
-    // Check if user is logged in
-    loadUser();
+    let isMounted = true;
+    const loadUserSafe = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+
+          // Load avatar from imageStorage if it exists
+          if (userData.id) {
+            try {
+              const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
+              if (!isMounted) return;
+              if (avatarFromStorage) {
+                userData.avatar = avatarFromStorage;
+              } else if (userData.avatar === 'stored') {
+                userData.avatar = undefined;
+              }
+            } catch (err) {
+              if (!isMounted) return;
+              if (userData.avatar === 'stored') {
+                userData.avatar = undefined;
+              }
+            }
+          }
+
+          setIsLoggedIn(true);
+          setUser(userData);
+        } catch (err) {
+          if (!isMounted) return;
+          setIsLoggedIn(false);
+          setUser(null);
+        }
+      } else {
+        if (!isMounted) return;
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
+    loadUserSafe();
+    return () => { isMounted = false; };
   }, [location]);
 
   const loadIncomingRequestCount = useCallback(async () => {

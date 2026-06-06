@@ -215,13 +215,13 @@ a.btn {
 
 /* Dark theme adjustments */
 .dark-theme .btn-primary {
-  background: #000000;
+  background: var(--primary-color);
   color: #ffffff;
   outline: none !important;
   border: none !important;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 175, 202, 0.3),
+    0 2px 4px -1px rgba(0, 175, 202, 0.2) !important;
 }
 
 .dark-theme .btn-primary:focus,
@@ -230,15 +230,29 @@ a.btn {
   outline: none !important;
   outline-offset: 0 !important;
   border: none !important;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 175, 202, 0.3),
+    0 2px 4px -1px rgba(0, 175, 202, 0.2) !important;
 }
 
 .dark-theme .btn-primary:hover:not(:disabled) {
-  background: #1a1a1a;
+  background: var(--primary-hover);
   outline: none !important;
   border: none !important;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 175, 202, 0.4),
+    0 4px 6px -2px rgba(0, 175, 202, 0.2) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-primary {
+    background: var(--primary-color);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
 }
 
 .light-theme .btn-primary {

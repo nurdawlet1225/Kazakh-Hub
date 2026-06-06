@@ -35,29 +35,34 @@ Kazakh Hub — React пен TypeScript негізінде жасалған ко�
 ### Қалай бастау керек
 
 1. Репозиторийді көшіріңіз:
+
 ```bash
 git clone <repository-url>
 cd "Kazakh Hub"
 ```
 
 2. Фронтенд тәуелділіктерін орнатыңыз:
+
 ```bash
 cd frontend
 npm install
 ```
 
 3. Backend тәуелділіктерін орнатыңыз:
+
 ```bash
 cd ../backend
 pip install -r requirements.txt
 ```
 
 4. Backend серверін іске қосыңыз:
+
 ```bash
 uvicorn main:app --reload --port 3000
 ```
 
 5. Фронтенд серверін басқа терминалда іске қосыңыз:
+
 ```bash
 cd ../frontend
 npm run dev
@@ -124,6 +129,6 @@ Backend сервер FastAPI негізінде жұмыс істейді жән
 
 Өзгерістер мен үлестерге ашықпыз. Pull Request жіберіңіз немесе мәселелерді (issues) тіркеңіз.
 
-## Лицензия
+## Лицензия 
 
 MIT License

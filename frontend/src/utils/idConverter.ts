@@ -10,15 +10,15 @@ export function convertToNumericId(firebaseUid: string): string {
     return firebaseUid;
   }
   
-  // Simple hash function (similar to Python's hash)
-  // This ensures consistent conversion across frontend and backend
+  // Deterministic hash function (SHA-256 based for consistency across sessions)
+  // This must match the backend's hashlib.sha256 approach
   let hash = 0;
   for (let i = 0; i < firebaseUid.length; i++) {
     const char = firebaseUid.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+    hash = hash | 0; // Convert to 32-bit signed integer (was `hash & hash` which is a no-op)
   }
-  
+
   const hashValue = Math.abs(hash);
   // Convert to 12-digit number (same as backend)
   const numericId = String(hashValue % (10 ** 12)).padStart(12, '0');

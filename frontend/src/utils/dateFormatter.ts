@@ -46,7 +46,9 @@ const monthNamesRussian: Record<string, { short: string; long: string }> = {
 };
 
 export const formatDate = (dateString: string, locale: string = 'kk', format: 'short' | 'long' = 'short'): string => {
+  if (!dateString) return '';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
   const day = date.getDate();
   const month = date.getMonth().toString();
   const year = date.getFullYear();
@@ -67,7 +69,9 @@ export const formatDate = (dateString: string, locale: string = 'kk', format: 's
 };
 
 export const formatDateTime = (dateString: string, locale: string = 'kk', format: 'short' | 'long' = 'short'): string => {
+  if (!dateString) return '';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
   const day = date.getDate();
   const month = date.getMonth().toString();
   const year = date.getFullYear();

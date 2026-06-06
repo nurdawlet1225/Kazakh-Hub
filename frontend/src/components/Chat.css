@@ -873,6 +873,20 @@
   border: 0.64px solid var(--border-color);
 }
 
+.dark-theme .chat-message.own .chat-message-content {
+  background: var(--primary-light);
+  color: var(--text-primary);
+  border: 0.64px solid var(--border-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-message.own .chat-message-content {
+    background: var(--primary-light);
+    color: var(--text-primary);
+    border: 0.64px solid var(--border-color);
+  }
+}
+
 .chat-message.other .chat-message-content {
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -885,6 +899,20 @@
   color: black;
   border-bottom-right-radius: 2.6px;
   border: 0.64px solid var(--border-color);
+}
+
+.dark-theme .chat-message.text.own .chat-message-text-content {
+  background: var(--primary-light);
+  color: var(--text-primary);
+  border: 0.64px solid var(--border-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .chat-message.text.own .chat-message-text-content {
+    background: var(--primary-light);
+    color: var(--text-primary);
+    border: 0.64px solid var(--border-color);
+  }
 }
 
 .chat-message.text.other .chat-message-text-content {

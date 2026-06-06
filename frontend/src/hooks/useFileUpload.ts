@@ -11,7 +11,7 @@ interface UseFileUploadReturn {
   pendingUploads: number;
   isOnline: boolean;
   uploadFile: (file: File, metadata?: { title?: string; description?: string; tags?: string[]; language?: string }) => Promise<void>;
-  uploadFolder: (files: FileList, metadata?: { title?: string; description?: string; tags?: string[]; language?: string }) => Promise<void>;
+  uploadFolder: (files: FileList | File[], metadata?: { title?: string; description?: string; tags?: string[]; language?: string }) => Promise<void>;
   retryPendingUploads: () => Promise<void>;
   reset: () => void;
 }
@@ -68,15 +68,18 @@ export const useFileUpload = (): UseFileUploadReturn => {
 
   const retryPendingUploads = async () => {
     if (!isOnline()) return;
-    
+
     try {
       const pending = await offlineStorage.getPendingUploads();
       if (pending.length === 0) return;
 
       console.log(`${pending.length} күтудегі жүктеу табылды, жалғастыру...`);
-      
+
       for (const upload of pending) {
         try {
+          // Remove from cache first to prevent duplicates if uploadFolder creates a new pending upload
+          await offlineStorage.removePendingUpload(upload.id);
+
           if (upload.type === 'folder') {
             // Convert stored files back to FileList-like structure
             const files = fileListToArray(upload.files as File[]);
@@ -86,20 +89,16 @@ export const useFileUpload = (): UseFileUploadReturn => {
             const file = (upload.files as File[])[0];
             await uploadFile(file, upload.metadata);
           }
-          
-          // Remove from cache after successful upload
-          await offlineStorage.removePendingUpload(upload.id);
+
           await checkPendingUploads();
         } catch (err) {
           console.error(`Күтудегі жүктеуді жалғастыру қатесі (${upload.id}):`, err);
-          // Increment retry count
+          // Increment retry count and re-save
           upload.retryCount++;
           if (upload.retryCount < 5) {
             await offlineStorage.savePendingUpload(upload);
-          } else {
-            // Too many retries, remove from cache
-            await offlineStorage.removePendingUpload(upload.id);
           }
+          // If too many retries, it's already removed from cache
         }
       }
     } catch (err) {
@@ -150,7 +149,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
   };
 
   const uploadFolder = async (
-    files: FileList,
+    files: FileList | File[],
     metadata?: { title?: string; description?: string; tags?: string[]; language?: string }
   ): Promise<void> => {
     setUploading(true);

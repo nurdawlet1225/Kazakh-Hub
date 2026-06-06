@@ -268,12 +268,12 @@ const Profile: React.FC = () => {
             // If user not found in backend, clear localStorage and redirect to login
             console.error('Failed to verify user:', err);
             localStorage.removeItem('user');
-            window.location.href = '/login';
+            navigate('/login');
             return;
           }
         } else {
           // No stored user - redirect to login instead of trying to get random user
-          window.location.href = '/login';
+          navigate('/login');
           return;
         }
       }

@@ -3,7 +3,7 @@
 interface PendingUpload {
   id: string;
   type: 'file' | 'folder';
-  files: FileList | File[];
+  files: File[];  // Always use File[] — FileList cannot be stored in IndexedDB
   metadata: {
     title?: string;
     description?: string;

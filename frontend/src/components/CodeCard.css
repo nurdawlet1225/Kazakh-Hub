@@ -518,7 +518,7 @@
   color: white;
   font-weight: 600;
   padding: 0.5rem 0.875rem;
-  background: #384357;
+  background: var(--primary-color);
   border-radius: 8px;
   white-space: nowrap;
   text-transform: uppercase;
@@ -547,7 +547,7 @@
     color: white;
     font-weight: 600;
     padding: 0.5rem 0.875rem;
-    background: #384357;
+    background: var(--primary-color);
     border-radius: 8px;
     white-space: nowrap;
     text-transform: uppercase;
@@ -658,12 +658,12 @@
   top: 3.5rem;
   right: 0;
   font-size: 0.85rem;
-  color: white;
+  color: #000000;
   font-weight: 600;
   padding: 0.4rem 0.75rem;
-  background: #283A4C;
+  background: var(--accent-color);
   border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.5);
+  border: 1px solid rgba(255, 215, 0, 0.5);
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -681,12 +681,12 @@
     top: 3.5rem;
     right: 0;
     font-size: 0.85rem;
-    color: white;
+    color: #000000;
     font-weight: 600;
     padding: 0.4rem 0.75rem;
-    background: #283A4C;
+    background: var(--accent-color);
     border-radius: 8px;
-    border: 1px solid rgba(128, 128, 128, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.5);
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
@@ -706,7 +706,7 @@
 }
 
 .dark-theme .folder-stats-button {
-  border: 1px solid rgba(251, 191, 36, 0.7);
+  border: 1px solid rgba(255, 215, 0, 0.7);
 }
 
 .dark-theme .folder-stats-button:hover {
@@ -849,6 +849,24 @@
   transition: all 0.2s ease;
 }
 
+.dark-theme .code-card-author,
+.dark-theme .code-card-date,
+.dark-theme .code-card-likes,
+.dark-theme .code-card-comments,
+.dark-theme .code-card-views {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  .code-card-author,
+  .code-card-date,
+  .code-card-likes,
+  .code-card-comments,
+  .code-card-views {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
 .code-card-author {
   color: var(--text-primary) !important;
   font-weight: 600;
@@ -866,6 +884,18 @@
 .code-card-date:hover {
   background: rgba(0, 0, 0, 0.2);
   opacity: 1;
+}
+
+.dark-theme .code-card-author:hover,
+.dark-theme .code-card-date:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  .code-card-author:hover,
+  .code-card-date:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
 }
 
 /* Light Theme - Likes */
@@ -1213,10 +1243,19 @@
 }
 
 .dark-theme .folder-stats {
-  color: #f59e0b;
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
-  border: 1px solid rgba(251, 191, 36, 0.5);
-  box-shadow: 0 1px 3px rgba(251, 191, 36, 0.3);
+  color: #000000;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  box-shadow: 0 1px 3px rgba(255, 215, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  .folder-stats {
+    color: #000000;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 0 1px 3px rgba(255, 215, 0, 0.3);
+  }
 }
 
 .light-theme .folder-stats {
@@ -1227,10 +1266,10 @@
 
 @media (prefers-color-scheme: dark) {
   .folder-stats {
-    color: #f59e0b;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
-    border: 1px solid rgba(251, 191, 36, 0.5);
-    box-shadow: 0 1px 3px rgba(251, 191, 36, 0.3);
+    color: #000000;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(245, 158, 11, 0.2) 100%);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    box-shadow: 0 1px 3px rgba(255, 215, 0, 0.3);
   }
 }
 

@@ -102,29 +102,13 @@ app.add_middleware(
 async def log_requests(request, call_next):
     print(f"{datetime.now().isoformat()} - {request.method} {request.url.path}")
     
-    # Handle OPTIONS requests for CORS preflight
-    if request.method == "OPTIONS":
-        response = JSONResponse(content={})
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
-    
     response = await call_next(request)
-    
-    # Add CORS headers for static files (uploads)
-    if request.url.path.startswith("/api/uploads"):
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    
+
     # Add caching headers for GET requests
     if request.method == "GET" and request.url.path.startswith("/api/codes"):
         # Cache codes list for 30 seconds
         response.headers["Cache-Control"] = "public, max-age=30"
-    
+
     return response
 
 # Root endpoints
@@ -241,42 +225,27 @@ async def serve_upload(file_path: str):
     
     # Determine content type based on decoded path
     content_type = "application/octet-stream"
-    if decoded_path.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp")):
-        content_type = f"image/{decoded_path.split('.')[-1].lower()}"
-    elif decoded_path.endswith((".mp4", ".webm", ".mov")):
-        content_type = f"video/{decoded_path.split('.')[-1].lower()}"
-    elif decoded_path.endswith((".mp3", ".wav", ".ogg")):
-        content_type = f"audio/{decoded_path.split('.')[-1].lower()}"
-    
-    # Read file and create response with CORS headers
-    try:
-        with open(file_full_path, "rb") as f:
-            file_content = f.read()
-    except Exception as e:
-        print(f"Error reading file {file_full_path}: {e}")
-        response = JSONResponse(
-            content={"error": "Error reading file"},
-            status_code=500
-        )
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        return response
+    MIME_MAP = {
+        '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif', '.webp': 'image/webp',
+        '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
+        '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
+    }
+    ext = os.path.splitext(decoded_path)[1].lower()
+    if ext in MIME_MAP:
+        content_type = MIME_MAP[ext]
     
     # Get filename for Content-Disposition header
     filename = os.path.basename(decoded_path)
-    
-    response = Response(
-        content=file_content,
+
+    return FileResponse(
+        file_full_path,
         media_type=content_type,
+        filename=filename,
         headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Allow-Credentials": "true",
-            "Content-Disposition": f'inline; filename="{filename}"',
-            "Cache-Control": "public, max-age=31536000",  # Cache for 1 year
+            "Cache-Control": "public, max-age=31536000",
         }
     )
-    return response
 
 # Include WebSocket endpoint directly (WebSocket doesn't work well with APIRouter)
 from fastapi import WebSocket, WebSocketDisconnect, Query
@@ -288,18 +257,19 @@ from db import SessionLocal, User
 @app.websocket("/api/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str, token: str = Query(None)):
     """WebSocket endpoint for real-time messaging (requires JWT token)"""
-    # Validate JWT token
-    if token:
-        try:
-            payload = decode_token(token)
-            token_user_id = payload.get("sub")
-            if token_user_id != user_id:
-                await websocket.close(code=4001, reason="User ID mismatch")
-                return
-        except Exception:
-            await websocket.close(code=4001, reason="Invalid token")
+    # Validate JWT token (required)
+    if not token:
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+    try:
+        payload = decode_token(token)
+        token_user_id = payload.get("sub")
+        if token_user_id != user_id:
+            await websocket.close(code=4001, reason="User ID mismatch")
             return
-    # Allow connection without token for backward compatibility (will be removed later)
+    except Exception:
+        await websocket.close(code=4001, reason="Invalid token")
+        return
 
     await manager.connect(websocket, user_id)
     try:

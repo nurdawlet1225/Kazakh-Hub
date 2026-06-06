@@ -1,5 +1,5 @@
 """JWT authentication utilities"""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -15,11 +15,12 @@ from config import (
 from db import get_db, User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
+    expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
     )
     to_encode.update({"exp": expire, "type": "access"})
@@ -28,7 +29,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
+    expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(days=JWT_REFRESH_TOKEN_EXPIRE_DAYS)
     )
     to_encode.update({"exp": expire, "type": "refresh"})
@@ -37,7 +38,7 @@ def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) 
 
 def create_temp_2fa_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=JWT_2FA_TEMP_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_2FA_TEMP_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "2fa_temp"})
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
@@ -83,12 +84,24 @@ async def get_current_user(
 
 
 async def get_optional_user(
-    token: Optional[str] = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme_optional),
     db: Session = Depends(get_db),
 ) -> Optional[User]:
     if token is None:
         return None
     try:
-        return await get_current_user(token, db)
+        payload = decode_token(token)
+        token_type = payload.get("type")
+        if token_type != "access":
+            return None
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            return None
+        if user.session_id and payload.get("session_id") and payload.get("session_id") != user.session_id:
+            return None
+        return user
     except HTTPException:
         return None

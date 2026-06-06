@@ -32,10 +32,10 @@ class ImageStorage {
   /**
    * Check available localStorage quota
    */
-  private getLocalStorageQuota(): { used: number; available: number; total: number } {
+  private async getLocalStorageQuota(): Promise<{ used: number; available: number; total: number }> {
     let used = 0;
     let available = 0;
-    
+
     try {
       // Calculate used space
       for (let key in localStorage) {
@@ -43,28 +43,29 @@ class ImageStorage {
           used += localStorage[key].length + key.length;
         }
       }
-      
-      // Try to estimate total quota (typically 5-10MB)
-      // We'll use a conservative estimate of 5MB
-      const estimatedTotal = 5 * 1024 * 1024; // 5MB
-      available = estimatedTotal - used;
-      
+
       // Try to get actual quota if available
       if ('storage' in navigator && 'estimate' in navigator.storage) {
-        navigator.storage.estimate().then((estimate) => {
+        try {
+          const estimate = await navigator.storage.estimate();
           if (estimate.quota) {
             const quota = estimate.quota;
             const usage = estimate.usage || 0;
             available = quota - usage;
+            return { used, available, total: used + available };
           }
-        }).catch(() => {
+        } catch {
           // Fallback to estimate if quota API fails
-        });
+        }
       }
+
+      // Fallback: conservative estimate of 5MB
+      const estimatedTotal = 5 * 1024 * 1024; // 5MB
+      available = estimatedTotal - used;
     } catch (e) {
       console.warn('Could not calculate localStorage quota:', e);
     }
-    
+
     return { used, available, total: used + available };
   }
 
@@ -73,8 +74,8 @@ class ImageStorage {
    */
   async saveImage(key: string, imageData: string): Promise<void> {
     const imageSize = new Blob([imageData]).size;
-    const quota = this.getLocalStorageQuota();
-    
+    const quota = await this.getLocalStorageQuota();
+
     // If image is larger than 1MB or would exceed available quota, use IndexedDB
     const maxLocalStorageSize = 1 * 1024 * 1024; // 1MB
     const shouldUseIndexedDB = imageSize > maxLocalStorageSize || imageSize > quota.available * 0.8;

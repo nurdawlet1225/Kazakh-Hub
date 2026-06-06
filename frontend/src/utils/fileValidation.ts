@@ -3,13 +3,13 @@
 // Maximum file size: 30MB per file
 export const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB in bytes
 
-// Maximum folder size: 1000000000000000000000MB total
-export const MAX_FOLDER_SIZE = 1000000000000000000000 * 1024 * 1024; // 1000000000000000000000MB in bytes
+// Maximum folder size: 500MB total
+export const MAX_FOLDER_SIZE = 500 * 1024 * 1024; // 500MB in bytes
 
 // Dangerous file extensions that should be blocked
 export const DANGEROUS_EXTENSIONS = [
-  '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js', '.jar',
-  '.app', '.deb', '.pkg', '.rpm', '.msi', '.dmg', '.sh', '.ps1', '.sh',
+  '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.jar',
+  '.app', '.deb', '.pkg', '.rpm', '.msi', '.dmg', '.ps1',
   '.bin', '.dll', '.so', '.dylib', '.sys', '.drv', '.ocx', '.cpl',
   '.php', '.asp', '.aspx', '.jsp', '.class',
 ];
@@ -18,7 +18,7 @@ export const DANGEROUS_EXTENSIONS = [
 export const ALLOWED_EXTENSIONS = [
   // Code files
   '.js', '.jsx', '.ts', '.tsx', '.py', '.pyc', '.pyo', '.java', '.cpp', '.c', '.h', '.hpp',
-  '.cs', '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.clj',
+  '.cs', '.go', '.rs', '.rb', '.swift', '.kt', '.scala', '.clj',
   '.lua', '.r', '.m', '.pl', '.sh', '.bash', '.zsh', '.fish',
   // Web files
   '.html', '.htm', '.css', '.scss', '.sass', '.less', '.xml', '.json',
@@ -68,7 +68,8 @@ export interface ValidationResult {
  * Validate file extension
  */
 export const validateFileExtension = (filename: string): ValidationResult => {
-  const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  const lastDotIndex = filename.lastIndexOf('.');
+  const ext = lastDotIndex === -1 ? '' : filename.toLowerCase().substring(lastDotIndex);
   
   // Check if extension is in dangerous list
   if (DANGEROUS_EXTENSIONS.includes(ext)) {
@@ -169,7 +170,9 @@ export const validateFile = (file: File): ValidationResult => {
  * Get file extension
  */
 export const getFileExtension = (filename: string): string => {
-  return filename.toLowerCase().substring(filename.lastIndexOf('.'));
+  const lastDotIndex = filename.lastIndexOf('.');
+  if (lastDotIndex === -1) return '';
+  return filename.toLowerCase().substring(lastDotIndex);
 };
 
 /**

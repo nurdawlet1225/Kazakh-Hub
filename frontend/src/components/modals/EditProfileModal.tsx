@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -82,7 +83,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       
       loadAvatar();
     }
-  }, [isOpen, user.id]); // Include user.id to reload avatar when user changes
+  }, [isOpen, user.id, user.avatar, user.bio, user.username, user.email]);
 
   // Update username, email, and bio when user changes, but preserve avatarPreview state
   useEffect(() => {
@@ -542,13 +543,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             />
           </div>
 
-          {(user.bio || formData.bio) && (
-            <div className="form-group">
+          <div className="form-group">
               <textarea
                 id="bio"
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder="Сипаттама"
+                placeholder={t('editProfile.bioPlaceholder') || 'Сипаттама'}
                 rows={1}
                 maxLength={500}
                 style={{
@@ -605,7 +605,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 </div>
               )}
             </div>
-          )}
 
           <div className="form-group password-change-section">
             <div className="password-section-header">
@@ -630,7 +629,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="password"
                 value={formData.currentPassword}
                 onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                placeholder="Ағымдағы құпия сөз"
+                placeholder={t('editProfile.currentPasswordPlaceholder') || 'Ағымдағы құпия сөз'}
                 required
               />
             </div>
@@ -640,7 +639,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="password"
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                placeholder="Жаңа құпия сөз"
+                placeholder={t('editProfile.newPasswordPlaceholder') || 'Жаңа құпия сөз'}
                 minLength={6}
               />
             </div>
@@ -650,7 +649,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                placeholder="Құпия сөзді қайталаңыз"
+                placeholder={t('editProfile.confirmPasswordPlaceholder') || 'Құпия сөзді қайталаңыз'}
                 minLength={6}
               />
             </div>
@@ -671,10 +670,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           <div className="form-actions">
             <Button type="button" onClick={onClose} variant="secondary">
-              Болдырмау
+              {t('common.cancel') || 'Болдырмау'}
             </Button>
             <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? 'Сақталуда...' : 'Сақтау'}
+              {loading ? (t('editProfile.saving') || 'Сақталуда...') : (t('common.save') || 'Сақтау')}
             </Button>
           </div>
         </form>
