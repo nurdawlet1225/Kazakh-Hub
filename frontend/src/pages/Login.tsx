@@ -167,7 +167,7 @@ const Login: React.FC = () => {
       };
 
       login(
-        { access_token: response.access_token, refresh_token: response.refresh_token, token_type: response.token_type },
+        { access_token: response.access_token, token_type: response.token_type },
         userForStorage,
       );
 
@@ -367,7 +367,7 @@ const Login: React.FC = () => {
                       }
                       const { avatar, ...userWithoutAvatar } = userData;
                       const userForStorage = { ...userWithoutAvatar, avatar: avatar ? 'stored' : undefined };
-                      login({ access_token: res.access_token, refresh_token: res.refresh_token, token_type: res.token_type }, userForStorage);
+                      login({ access_token: res.access_token, token_type: res.token_type }, userForStorage);
                       window.dispatchEvent(new Event('userProfileUpdated'));
                       navigate('/');
                     } catch (err: any) {

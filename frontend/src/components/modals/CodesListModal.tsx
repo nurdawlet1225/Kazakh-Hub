@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { CodeFile } from '../../utils/api';
 import { apiService } from '../../utils/api';
+import { useSiteConfig } from '../../contexts/SiteConfigContext';
 import CodeCard from '../CodeCard';
 import './CodesListModal.css';
 
@@ -25,19 +26,30 @@ interface CodesListModalProps {
   onClose: () => void;
 }
 
-type CategoryKey = 
-  | 'categoryAI' 
-  | 'categoryWebsites' 
-  | 'categoryMobile' 
-  | 'categoryAPI' 
-  | 'categoryDatabase' 
-  | 'categoryAlgorithms' 
+type CategoryKey =
+  | 'categoryAI'
+  | 'categoryWebsites'
+  | 'categoryMobile'
+  | 'categoryAPI'
+  | 'categoryDatabase'
+  | 'categoryAlgorithms'
   | 'categoryOther';
+
+// Default category keywords when config is not available
+const defaultCategoryKeywords: { [category: string]: string[] } = {
+  ai: ['жи', 'ai', 'machine learning', 'ml', 'нейрон', 'жасанды', 'нейросеть', 'deep learning', 'nlp', 'tensorflow', 'pytorch', 'gpt', 'llm', 'chatbot'],
+  websites: ['сайт', 'web', 'html', 'css', 'frontend', 'backend', 'react', 'angular', 'vue', 'node', 'express', 'веб', 'домен', 'серв', 'фреймворк'],
+  mobile: ['мобиль', 'mobile', 'android', 'ios', 'flutter', 'react native', 'swift', 'kotlin', 'телефон', 'приложение', 'app'],
+  api: ['api', 'backend', 'сервер', 'server', 'rest', 'graphql', 'endpoint', 'маршрут', 'запрос'],
+  database: ['база', 'database', 'sql', 'mongodb', 'postgres', 'mysql', 'sqlite', 'redis', 'данных', 'схема'],
+  algorithms: ['алгоритм', 'algorithm', 'структура', 'structure', 'сортировка', 'sorting', 'граф', 'graph', 'дерево', 'tree', 'рекурсия', 'recursion', 'динамик', 'dynamic']
+};
 
 /**
  * Determines the category for a code based on its content
+ * Uses keywords from config or defaults
  */
-const getCategory = (code: CodeFile): CategoryKey => {
+const getCategory = (code: CodeFile, categoryKeywords: { [category: string]: string[] }): CategoryKey => {
   const searchText = [
     code.title?.toLowerCase() || '',
     code.description?.toLowerCase() || '',
@@ -45,90 +57,32 @@ const getCategory = (code: CodeFile): CategoryKey => {
     code.language?.toLowerCase() || ''
   ].join(' ');
 
-  // AI Section / ЖИ бөлімі
-  if (
-    searchText.includes('жи') || 
-    searchText.includes('жоба') || 
-    searchText.includes('проект') ||
-    searchText.includes('ai') || 
-    searchText.includes('artificial') || 
-    searchText.includes('machine learning') ||
-    searchText.includes('ml') || 
-    searchText.includes('neural') || 
-    searchText.includes('deep learning')
-  ) {
+  if (categoryKeywords.ai?.some(kw => searchText.includes(kw))) {
     return 'categoryAI';
   }
-  
-  // Websites / Сайттар
-  if (
-    searchText.includes('сайт') || 
-    searchText.includes('веб') || 
-    searchText.includes('web') || 
-    searchText.includes('html') || 
-    searchText.includes('css') || 
-    searchText.includes('react') ||
-    searchText.includes('frontend') || 
-    searchText.includes('ui') || 
-    searchText.includes('ux')
-  ) {
+  if (categoryKeywords.websites?.some(kw => searchText.includes(kw))) {
     return 'categoryWebsites';
   }
-  
-  // Mobile Apps / Мобильді қосымшалар
-  if (
-    searchText.includes('мобиль') || 
-    searchText.includes('mobile') || 
-    searchText.includes('android') ||
-    searchText.includes('ios') || 
-    searchText.includes('app')
-  ) {
+  if (categoryKeywords.mobile?.some(kw => searchText.includes(kw))) {
     return 'categoryMobile';
   }
-  
-  // API and Backend
-  if (
-    searchText.includes('api') || 
-    searchText.includes('backend') || 
-    searchText.includes('сервер') ||
-    searchText.includes('server') || 
-    searchText.includes('node') || 
-    searchText.includes('express')
-  ) {
+  if (categoryKeywords.api?.some(kw => searchText.includes(kw))) {
     return 'categoryAPI';
   }
-  
-  // Database / Деректер базасы
-  if (
-    searchText.includes('база') || 
-    searchText.includes('database') || 
-    searchText.includes('sql') ||
-    searchText.includes('mysql') || 
-    searchText.includes('postgresql') || 
-    searchText.includes('mongodb')
-  ) {
+  if (categoryKeywords.database?.some(kw => searchText.includes(kw))) {
     return 'categoryDatabase';
   }
-  
-  // Algorithms / Алгоритмдер
-  if (
-    searchText.includes('алгоритм') || 
-    searchText.includes('algorithm') || 
-    searchText.includes('структура') ||
-    searchText.includes('data structure') || 
-    searchText.includes('sort') || 
-    searchText.includes('search')
-  ) {
+  if (categoryKeywords.algorithms?.some(kw => searchText.includes(kw))) {
     return 'categoryAlgorithms';
   }
-  
-  // Other / Басқа
+
   return 'categoryOther';
 };
 
 const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { config } = useSiteConfig();
   
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +135,9 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
     };
   }, [isOpen, loadCodes]);
 
-  // Group codes by category
+  // Group codes by category (using keywords from config or defaults)
+  const categoryKeywords = config?.codeCategoryKeywords || defaultCategoryKeywords;
+
   const groupedCategories = useMemo(() => {
     const grouped: Record<CategoryKey, CodeFile[]> = {
       categoryAI: [],
@@ -194,7 +150,7 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
     };
 
     codes.forEach((code) => {
-      const category = getCategory(code);
+      const category = getCategory(code, categoryKeywords);
       grouped[category].push(code);
     });
 
@@ -213,7 +169,7 @@ const CodesListModal: React.FC<CodesListModalProps> = ({ isOpen, onClose }) => {
         }
         return a.key.localeCompare(b.key);
       });
-  }, [codes, categoryIcons]);
+  }, [codes, categoryIcons, categoryKeywords]);
 
   // Toggle category expansion (accordion behavior - only one open at a time)
   const toggleCategory = useCallback((category: CategoryKey) => {

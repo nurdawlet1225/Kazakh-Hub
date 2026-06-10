@@ -1,44 +1,66 @@
 """User routes"""
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 from models import UserUpdate, DeleteUserRequest
 from database import codes, friends, messages, friend_requests, save_users, save_codes, save_friends, save_messages, save_friend_requests
 from db import get_db, User
 from utils.auth import get_current_user
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/user")
+@limiter.limit("30/minute")
 async def get_current_user_endpoint(
+    request: Request,
     email: Optional[str] = Query(None),
     user_id: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Get current user by email or user_id."""
+    """Get user by email or user_id (requires authentication, email hidden for non-self)."""
     if user_id:
         sql_user = db.query(User).filter(User.id == user_id).first()
         if sql_user:
+            # Only show email if requesting own profile
+            if str(current_user.id) == str(user_id):
+                return {
+                    "id": sql_user.id,
+                    "username": sql_user.username,
+                    "email": sql_user.email,
+                    "avatar": sql_user.avatar,
+                    "bio": sql_user.bio,
+                    "totp_enabled": sql_user.totp_enabled,
+                }
             return {
                 "id": sql_user.id,
                 "username": sql_user.username,
-                "email": sql_user.email,
                 "avatar": sql_user.avatar,
                 "bio": sql_user.bio,
-                "totp_enabled": sql_user.totp_enabled,
             }
 
     if email:
         sql_user = db.query(User).filter(User.email == email.strip().lower()).first()
         if sql_user:
+            # Only show email if requesting own profile
+            if str(current_user.id) == str(sql_user.id):
+                return {
+                    "id": sql_user.id,
+                    "username": sql_user.username,
+                    "email": sql_user.email,
+                    "avatar": sql_user.avatar,
+                    "bio": sql_user.bio,
+                    "totp_enabled": sql_user.totp_enabled,
+                }
             return {
                 "id": sql_user.id,
                 "username": sql_user.username,
-                "email": sql_user.email,
                 "avatar": sql_user.avatar,
                 "bio": sql_user.bio,
-                "totp_enabled": sql_user.totp_enabled,
             }
 
     if user_id or email:
@@ -48,8 +70,9 @@ async def get_current_user_endpoint(
 
 
 @router.get("/users/search")
-async def search_users(query: Optional[str] = Query(None), db: Session = Depends(get_db)):
-    """Search users by username or email"""
+@limiter.limit("20/minute")
+async def search_users(request: Request, query: Optional[str] = Query(None), current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Search users by username or email (requires authentication)"""
     if not query:
         return []
 
@@ -60,7 +83,7 @@ async def search_users(query: Optional[str] = Query(None), db: Session = Depends
     sql_users = db.query(User).filter(
         (func.lower(User.username).contains(escaped_term)) |
         (func.lower(User.email).contains(escaped_term)) |
-        (User.id.like(f"%{escaped_term}%"))
+        (func.lower(User.id).contains(escaped_term))
     ).limit(50).all()
 
     return [
@@ -74,14 +97,24 @@ async def search_users(query: Optional[str] = Query(None), db: Session = Depends
 
 
 @router.get("/users/{user_id}")
-async def get_user(user_id: str, db: Session = Depends(get_db)):
-    """Get user by ID"""
+@limiter.limit("30/minute")
+async def get_user(request: Request, user_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get user by ID (requires authentication, email hidden for non-self)"""
     sql_user = db.query(User).filter(User.id == user_id).first()
     if sql_user:
+        # Only show email if requesting own profile
+        if str(current_user.id) == str(user_id):
+            return {
+                "id": sql_user.id,
+                "username": sql_user.username,
+                "email": sql_user.email,
+                "avatar": sql_user.avatar,
+                "bio": sql_user.bio,
+            }
+        # Public profile - hide email
         return {
             "id": sql_user.id,
             "username": sql_user.username,
-            "email": sql_user.email,
             "avatar": sql_user.avatar,
             "bio": sql_user.bio,
         }
@@ -89,14 +122,24 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/users/by-username/{username}")
-async def get_user_by_username(username: str, db: Session = Depends(get_db)):
-    """Get user by username"""
+@limiter.limit("30/minute")
+async def get_user_by_username(request: Request, username: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get user by username (requires authentication, email hidden for non-self)"""
     sql_user = db.query(User).filter(User.username == username).first()
     if sql_user:
+        # Only show email if requesting own profile
+        if str(current_user.id) == str(sql_user.id):
+            return {
+                "id": sql_user.id,
+                "username": sql_user.username,
+                "email": sql_user.email,
+                "avatar": sql_user.avatar,
+                "bio": sql_user.bio,
+            }
+        # Public profile - hide email
         return {
             "id": sql_user.id,
             "username": sql_user.username,
-            "email": sql_user.email,
             "avatar": sql_user.avatar,
             "bio": sql_user.bio,
         }
@@ -104,7 +147,9 @@ async def get_user_by_username(username: str, db: Session = Depends(get_db)):
 
 
 @router.put("/user")
+@limiter.limit("10/minute")
 async def update_user(
+    request: Request,
     user_data: UserUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -162,7 +207,9 @@ async def update_user(
 
 
 @router.delete("/user")
+@limiter.limit("5/minute")
 async def delete_user(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

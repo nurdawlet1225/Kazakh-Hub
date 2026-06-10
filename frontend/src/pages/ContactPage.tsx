@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEnvelope, faPhone, faMapMarkerAlt, faPaperPlane, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faEnvelope, faPhone, faMapMarkerAlt, faPaperPlane, faCheckCircle, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import { apiService, SiteConfig } from '../utils/api';
 import './ContactPage.css';
 
@@ -15,6 +15,8 @@ const ContactPage: React.FC = () => {
     message: ''
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     apiService.getConfig().then(setConfig);
@@ -28,15 +30,24 @@ const ContactPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the form data to your backend
-    console.log('Form submitted:', formData);
-    setIsSubmitted(true);
-    setTimeout(() => {
-      setIsSubmitted(false);
-      setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 3000);
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await apiService.submitContactForm(formData);
+      setIsSubmitted(true);
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setFormData({ name: '', email: '', subject: '', message: '' });
+      }, 3000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('contact.submitError', 'Failed to send message. Please try again.');
+      setSubmitError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -53,7 +64,7 @@ const ContactPage: React.FC = () => {
             <section className="contact-info">
               <h2>{t('contact.getInTouch')}</h2>
               <p>{t('contact.description')}</p>
-              
+
               <div className="contact-methods">
                 <div className="contact-method">
                   <div className="method-icon">
@@ -64,7 +75,7 @@ const ContactPage: React.FC = () => {
                     <p>{config?.contact?.email ?? ''}</p>
                   </div>
                 </div>
-                
+
                 <div className="contact-method">
                   <div className="method-icon">
                     <FontAwesomeIcon icon={faPhone} />
@@ -74,7 +85,7 @@ const ContactPage: React.FC = () => {
                     <p>{config?.contact?.phone ?? ''}</p>
                   </div>
                 </div>
-                
+
                 <div className="contact-method">
                   <div className="method-icon">
                     <FontAwesomeIcon icon={faMapMarkerAlt} />
@@ -91,7 +102,7 @@ const ContactPage: React.FC = () => {
           <div className="contact-form-section">
             <section className="contact-form-container">
               <h2>{t('contact.sendMessage')}</h2>
-              
+
               {isSubmitted ? (
                 <div className="form-success">
                   <FontAwesomeIcon icon={faCheckCircle} />
@@ -99,6 +110,12 @@ const ContactPage: React.FC = () => {
                 </div>
               ) : (
                 <form className="contact-form" onSubmit={handleSubmit}>
+                  {submitError && (
+                    <div className="form-error">
+                      <FontAwesomeIcon icon={faExclamationCircle} />
+                      <span>{submitError}</span>
+                    </div>
+                  )}
                   <div className="form-group">
                     <label htmlFor="name">{t('contact.form.name')}</label>
                     <input
@@ -109,9 +126,10 @@ const ContactPage: React.FC = () => {
                       onChange={handleChange}
                       required
                       placeholder={t('contact.form.namePlaceholder')}
+                      disabled={isSubmitting}
                     />
                   </div>
-                  
+
                   <div className="form-group">
                     <label htmlFor="email">{t('contact.form.email')}</label>
                     <input
@@ -122,9 +140,10 @@ const ContactPage: React.FC = () => {
                       onChange={handleChange}
                       required
                       placeholder={t('contact.form.emailPlaceholder')}
+                      disabled={isSubmitting}
                     />
                   </div>
-                  
+
                   <div className="form-group">
                     <label htmlFor="subject">{t('contact.form.subject')}</label>
                     <input
@@ -135,9 +154,10 @@ const ContactPage: React.FC = () => {
                       onChange={handleChange}
                       required
                       placeholder={t('contact.form.subjectPlaceholder')}
+                      disabled={isSubmitting}
                     />
                   </div>
-                  
+
                   <div className="form-group">
                     <label htmlFor="message">{t('contact.form.message')}</label>
                     <textarea
@@ -148,12 +168,13 @@ const ContactPage: React.FC = () => {
                       required
                       rows={6}
                       placeholder={t('contact.form.messagePlaceholder')}
+                      disabled={isSubmitting}
                     />
                   </div>
-                  
-                  <button type="submit" className="submit-button">
+
+                  <button type="submit" className="submit-button" disabled={isSubmitting}>
                     <FontAwesomeIcon icon={faPaperPlane} />
-                    <span>{t('contact.form.submit')}</span>
+                    <span>{isSubmitting ? t('contact.form.submitting', 'Жіберілуде...') : t('contact.form.submit')}</span>
                   </button>
                 </form>
               )}

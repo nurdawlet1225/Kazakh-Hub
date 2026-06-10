@@ -3,7 +3,9 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { useTranslation } from 'react-i18next';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SiteConfigProvider, useSiteConfig } from './contexts/SiteConfigContext';
 import { apiService } from './utils/api';
+import { initializeFirebase, isFirebaseInitialized } from './utils/firebase';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
 import ScrollToTop from './components/layout/ScrollToTop';
@@ -33,6 +35,17 @@ const AuthBridge: React.FC = () => {
   useEffect(() => {
     apiService.setTokenGetter(getAccessToken);
   }, [getAccessToken]);
+  return null;
+};
+
+// Bridge: initialize Firebase when SiteConfig becomes available
+const FirebaseBridge: React.FC = () => {
+  const { config } = useSiteConfig();
+  useEffect(() => {
+    if (config?.firebaseConfig && !isFirebaseInitialized()) {
+      initializeFirebase(config.firebaseConfig);
+    }
+  }, [config?.firebaseConfig]);
   return null;
 };
 
@@ -109,11 +122,14 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <AuthBridge />
-          <ScrollToTop />
-          <AppContent />
-        </Router>
+        <SiteConfigProvider>
+          <Router>
+            <AuthBridge />
+            <FirebaseBridge />
+            <ScrollToTop />
+            <AppContent />
+          </Router>
+        </SiteConfigProvider>
       </AuthProvider>
     </ThemeProvider>
   );

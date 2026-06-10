@@ -25,7 +25,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,
   onUploadFile,
   disabled = false,
-  placeholder = "Хабарлама жазыңыз..."
+  placeholder = undefined
 }) => {
   const { t } = useTranslation();
   const [message, setMessage] = useState('');
@@ -237,7 +237,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
       }, 1000);
     } catch (error) {
       console.error('Microphone access denied:', error);
-      alert('Микрофонға қол жеткізу рұқсаты қажет');
+      alert(t('messageInput.microphonePermissionRequired'));
     }
   };
 
@@ -359,7 +359,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="button"
             className="message-toolbar-btn"
             onClick={() => videoInputRef.current?.click()}
-            title="Видео"
+            title={t('messageInput.video')}
           >
             <FontAwesomeIcon icon={faVideo} />
           </button>
@@ -414,7 +414,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             type="button"
             className={`message-toolbar-btn ${showEmojiPicker ? 'active' : ''}`}
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            title="Эмодзи"
+            title={t('messageInput.emoji')}
           >
             <FontAwesomeIcon icon={faSmile} />
           </button>

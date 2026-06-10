@@ -1,0 +1,52 @@
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Deployment/config files with secrets
+substitutions.json
+
+# Backend data files (contain user data and secrets)
+backend/data/*.json
+backend/data/*.db
+
+# Temp files
+*.tmp
+
+# Backend uploads
+backend/uploads/
+
+# Firebase service account key
+**/serviceAccountKey.json
+
+# Firebase API key documentation (contains secrets)
+FIREBASE_API_KEY_*.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

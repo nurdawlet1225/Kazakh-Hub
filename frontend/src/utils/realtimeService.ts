@@ -1,5 +1,5 @@
 // Real-time авто-обновление сервисі - Firestore onSnapshot пайдалана отырып
-import { db, isFirestoreBlocked, markFirestoreBlocked } from './firebase';
+import { getFirebaseDb, isFirestoreBlocked, markFirestoreBlocked, isFirebaseInitialized } from './firebase';
 import { doc, onSnapshot, Unsubscribe, collection, query, where, orderBy, onSnapshot as onSnapshotCollection } from 'firebase/firestore';
 import { CodeFile, Message } from './api';
 
@@ -24,12 +24,14 @@ export const subscribeToCode = (
   }
 
   // Check if Firestore is blocked before attempting connection
-  if (isFirestoreBlocked()) {
+  if (isFirestoreBlocked() || !isFirebaseInitialized()) {
     // Return empty unsubscribe function - don't attempt connection
     return () => {};
   }
 
   try {
+    const db = getFirebaseDb();
+    if (!db) return () => {};
     const codeRef = doc(db, 'codes', codeId);
     const unsubscribe = onSnapshot(
       codeRef,
@@ -123,12 +125,14 @@ export const subscribeToMessages = (
   }
 
   // Check if Firestore is blocked before attempting connection
-  if (isFirestoreBlocked()) {
+  if (isFirestoreBlocked() || !isFirebaseInitialized()) {
     // Return empty unsubscribe function - don't attempt connection
     return () => {};
   }
 
   try {
+    const db = getFirebaseDb();
+    if (!db) return () => {};
     // Екі пайдаланушы арасындағы хабарламаларды табу
     const messagesRef = collection(db, 'messages');
     const q = query(
@@ -219,7 +223,7 @@ export const subscribeToCodes = (
   }
 
   // Check if Firestore is blocked before attempting connection
-  if (isFirestoreBlocked()) {
+  if (isFirestoreBlocked() || !isFirebaseInitialized()) {
     // Return empty unsubscribe function - don't attempt connection
     // Call onUpdate with empty array so component doesn't wait
     setTimeout(() => onUpdate([]), 0);
@@ -227,6 +231,11 @@ export const subscribeToCodes = (
   }
 
   try {
+    const db = getFirebaseDb();
+    if (!db) {
+      setTimeout(() => onUpdate([]), 0);
+      return () => {};
+    }
     const codesRef = collection(db, 'codes');
     let q;
     

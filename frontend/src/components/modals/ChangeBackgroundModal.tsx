@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faTimes, faArrowsAlt, faUpload, faSearchPlus, faSearchMinus } from '@fortawesome/free-solid-svg-icons';
 import { User } from '../../utils/api';
@@ -19,6 +20,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
   user,
   onUpdate,
 }) => {
+  const { t } = useTranslation();
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
   const [backgroundPosition, setBackgroundPosition] = useState({ x: 50, y: 50 });
@@ -134,7 +136,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF)');
+      setError(t('changeBackground.onlyImageFiles'));
       if (backgroundInputRef.current) {
         backgroundInputRef.current.value = '';
       }
@@ -143,7 +145,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
 
     // Validate file size (max 10MB before compression)
     if (file.size > 100 * 1024 * 1024) {
-      setError('Сурет өлшемі 100MB-тан аспауы керек');
+      setError(t('changeBackground.imageSizeLimit'));
       if (backgroundInputRef.current) {
         backgroundInputRef.current.value = '';
       }
@@ -185,11 +187,11 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
       console.error('Error processing background image:', err);
       
       // Provide user-friendly error messages
-      let errorMessage = 'Суретті өңдеу қатесі';
+      let errorMessage = t('changeBackground.imageProcessingError');
       if (err.name === 'QuotaExceededError' || err.message?.includes('quota')) {
-        errorMessage = 'Жад жеткіліксіз. Кішірек сурет таңдаңыз немесе басқа суреттерді жойыңыз.';
+        errorMessage = t('changeBackground.storageInsufficient');
       } else if (err.message?.includes('compression')) {
-        errorMessage = 'Суретті сығу қатесі. Басқа сурет файлын таңдаңыз.';
+        errorMessage = t('changeBackground.compressionError');
       }
       
       setError(errorMessage);
@@ -309,9 +311,9 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
       console.error('Error saving background:', err);
       
       // Provide user-friendly error messages
-      let errorMessage = 'Фонды сақтау қатесі';
+      let errorMessage = t('changeBackground.saveError');
       if (err.name === 'QuotaExceededError' || err.message?.includes('quota')) {
-        errorMessage = 'Жад жеткіліксіз. Кішірек сурет таңдаңыз немесе басқа суреттерді жойыңыз.';
+        errorMessage = t('changeBackground.storageInsufficient');
       }
       
       setError(errorMessage);
@@ -326,7 +328,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content change-background-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Фон өзгерту</h2>
+          <h2>{t('changeBackground.title')}</h2>
           <button className="modal-close" onClick={onClose}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
@@ -355,7 +357,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                 }}
                 onMouseDown={backgroundPreview ? handleMouseDown : undefined}
                 onWheel={backgroundPreview ? handleWheel : undefined}
-                title={backgroundPreview ? "Суретті жылжыту үшін тартыңыз, масштабтау үшін дөңгелекті пайдаланыңыз" : "Фон суретін таңдау үшін басыңыз"}
+                title={backgroundPreview ? t('changeBackground.dragHint') : t('changeBackground.clickToSelect')}
                 style={backgroundPreview ? { 
                   backgroundImage: `url(${backgroundPreview})`,
                   backgroundPosition: `${backgroundPosition.x}% ${backgroundPosition.y}%`,
@@ -370,7 +372,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                 {!backgroundPreview && (
                   <div className="background-placeholder">
                     <span>+</span>
-                    <span>Фон суретін қосу</span>
+                    <span>{t('changeBackground.addBackgroundImage')}</span>
                   </div>
                 )}
                 {backgroundPreview && (
@@ -383,7 +385,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                     </div>
                     <div className="background-drag-indicator">
                       <FontAwesomeIcon icon={faArrowsAlt} />
-                      <span>Суретті жылжыту</span>
+                      <span>{t('changeBackground.dragImage')}</span>
                     </div>
                     <div 
                       className="background-zoom-controls"
@@ -402,7 +404,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                           e.stopPropagation();
                         }}
                         className="btn-zoom btn-zoom-in"
-                        title="Жақындату"
+                        title={t('changeBackground.zoomIn')}
                       >
                         <FontAwesomeIcon icon={faSearchPlus} />
                       </button>
@@ -419,7 +421,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                           e.stopPropagation();
                         }}
                         className="btn-zoom btn-zoom-out"
-                        title="Масштабты кішірету"
+                        title={t('changeBackground.zoomOut')}
                       >
                         <FontAwesomeIcon icon={faSearchMinus} />
                       </button>
@@ -441,7 +443,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                   onClick={() => backgroundInputRef.current?.click()}
                   className="btn-upload-background"
                 >
-                  <FontAwesomeIcon icon={faUpload} /> Сурет жүктеу
+                  <FontAwesomeIcon icon={faUpload} /> {t('changeBackground.uploadImage')}
                 </button>
                 {backgroundPreview && (
                   <button
@@ -449,7 +451,7 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
                     onClick={handleRemoveBackground}
                     className="btn-remove-background"
                   >
-                    <FontAwesomeIcon icon={faTrash} /> Фонды жою
+                    <FontAwesomeIcon icon={faTrash} /> {t('changeBackground.removeBackground')}
                   </button>
                 )}
               </div>
@@ -464,10 +466,10 @@ const ChangeBackgroundModal: React.FC<ChangeBackgroundModalProps> = ({
 
           <div className="form-actions">
             <Button type="button" onClick={onClose} variant="secondary">
-              Болдырмау
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={handleSave} variant="primary" disabled={loading}>
-              {loading ? 'Сақталуда...' : 'Сақтау'}
+              {loading ? t('changeBackground.saving') : t('common.save')}
             </Button>
           </div>
         </div>

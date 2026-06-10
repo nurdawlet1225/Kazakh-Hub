@@ -17,8 +17,16 @@ const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setError(t('register.passwordMinLength'));
+      return;
+    }
+    if (!/[A-ZА-ЯЁҰҒҚҢҺҮІ]/.test(newPassword)) {
+      setError(t('register.passwordUppercase'));
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setError(t('register.passwordDigit'));
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -63,7 +71,7 @@ const ResetPassword: React.FC = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              minLength={6}
+              minLength={8}
               required
             />
           </div>
@@ -73,7 +81,7 @@ const ResetPassword: React.FC = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              minLength={6}
+              minLength={8}
               required
             />
           </div>

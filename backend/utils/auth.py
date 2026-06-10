@@ -105,3 +105,17 @@ async def get_optional_user(
         return user
     except HTTPException:
         return None
+
+
+async def verify_user_access(
+    user_id: str,
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """Verify that the authenticated user matches the requested user_id.
+    Raises 403 Forbidden if they don't match."""
+    if str(current_user.id) != str(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: you can only access your own resources",
+        )
+    return current_user

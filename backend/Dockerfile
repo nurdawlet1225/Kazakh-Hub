@@ -21,6 +21,10 @@ COPY . .
 # Create data directory for persistent storage
 RUN mkdir -p /app/data
 
+# Run as non-root user for security
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
 # Expose port (Cloud Run will set PORT env var)
 EXPOSE 8080
 

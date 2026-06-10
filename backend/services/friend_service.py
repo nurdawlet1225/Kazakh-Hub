@@ -7,7 +7,12 @@ from database import friends, friend_requests, users, save_friends, save_friend_
 
 class FriendService:
     """Service for friend-related operations"""
-    
+
+    @staticmethod
+    def get_friend_request_by_id(request_id: str) -> Optional[Dict[str, Any]]:
+        """Get a friend request by its ID"""
+        return next((req for req in friend_requests if req['id'] == request_id), None)
+
     @staticmethod
     def get_friends(user_id: str) -> List[Dict[str, Any]]:
         """Get all friends for a user"""
@@ -19,7 +24,6 @@ class FriendService:
                 friends_list.append({
                     'id': friend['id'],
                     'username': friend['username'],
-                    'email': friend['email'],
                     'avatar': friend.get('avatar')
                 })
         return friends_list
@@ -129,7 +133,6 @@ class FriendService:
                     'otherUser': {
                         'id': other_user['id'],
                         'username': other_user['username'],
-                        'email': other_user['email'],
                         'avatar': other_user.get('avatar')
                     },
                     'isIncoming': req.get('toUserId') == user_id
@@ -154,7 +157,6 @@ class FriendService:
                     'fromUser': {
                         'id': from_user['id'],
                         'username': from_user['username'],
-                        'email': from_user['email'],
                         'avatar': from_user.get('avatar')
                     }
                 })
@@ -178,7 +180,6 @@ class FriendService:
                     'toUser': {
                         'id': to_user['id'],
                         'username': to_user['username'],
-                        'email': to_user['email'],
                         'avatar': to_user.get('avatar')
                     }
                 })

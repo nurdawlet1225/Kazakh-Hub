@@ -203,7 +203,6 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
             numericId = numericId.padStart(12, '0');
           }
           
-          console.log('Searching user by ID:', numericId);
           const user = await apiService.getUserProfile(numericId);
           
           // Егер пайдаланушы табылса және бұл ағымдағы пайдаланушы емес
@@ -211,7 +210,6 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
             // Дос емес екенін тексеру
             if (!friends.some(f => f.id === user.id)) {
               results = [user];
-              console.log('User found by ID:', user);
             }
           }
         } catch (err: any) {
@@ -300,9 +298,9 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     
-    if (minutes < 1) return 'Қазір';
-    if (minutes < 60) return `${minutes} мин бұрын`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)} сағ бұрын`;
+    if (minutes < 1) return t('chat.timeNow');
+    if (minutes < 60) return `${minutes} ${t('chat.timeMinutesAgo')}`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)} ${t('chat.timeHoursAgo')}`;
     
     return formatDateTime(dateString, i18n.language);
   };
@@ -312,7 +310,7 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
   return (
     <div className="chat-container">
       <div className="chat-header">
-        <h3><FontAwesomeIcon icon={faComment} /> Чат</h3>
+        <h3><FontAwesomeIcon icon={faComment} /> {t('chat.title')}</h3>
         <button className="chat-close-btn" onClick={onClose}>×</button>
       </div>
 
@@ -323,27 +321,27 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
               className={`chat-tab ${activeTab === 'friends' ? 'active' : ''}`}
               onClick={() => setActiveTab('friends')}
             >
-              Достар ({friends.length})
+              {t('chat.friends')} ({friends.length})
             </button>
             <button
               className={`chat-tab ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
-              Қосу
+              {t('chat.addTab')}
             </button>
             <button
               className={`chat-tab ${activeTab === 'requests' ? 'active' : ''}`}
               onClick={() => setActiveTab('requests')}
             >
-              Сұраулар {friendRequests.length > 0 && `(${friendRequests.length})`}
+              {t('chat.requests')} {friendRequests.length > 0 && `(${friendRequests.length})`}
             </button>
           </div>
           {activeTab === 'friends' && (
             <>
               {loading ? (
-                <div className="chat-loading">Жүктелуде...</div>
+                <div className="chat-loading">{t('common.loading')}</div>
               ) : friends.length === 0 ? (
-                <div className="chat-empty">Достар тізімі бос</div>
+                <div className="chat-empty">{t('chat.friendsListEmpty')}</div>
               ) : (
                 <div className="chat-friends-items">
                   {friends.map((friend) => (
@@ -388,9 +386,9 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                 />
               </div>
               {searching ? (
-                <div className="chat-loading">{t('chat.searching') || 'Ізделуде...'}</div>
+                <div className="chat-loading">{t('chat.searching')}</div>
               ) : searchResults.length === 0 && searchQuery ? (
-                <div className="chat-empty">{t('chat.noUsersFound') || 'Пайдаланушы табылмады'}</div>
+                <div className="chat-empty">{t('chat.noUsersFound')}</div>
               ) : (
                 <div className="chat-search-results">
                   {searchResults.map((user) => (
@@ -500,19 +498,19 @@ const Chat: React.FC<ChatProps> = ({ isOpen, onClose }) => {
                 <input
                   type="text"
                   className="chat-input"
-                  placeholder="Хабарлама жазыңыз..."
+                  placeholder={t('messageInput.placeholder')}
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                 />
                 <button type="submit" className="chat-send-btn" disabled={!newMessage.trim()}>
-                  Жіберу
+                  {t('messageInput.send')}
                 </button>
               </form>
             </>
           ) : (
             <div className="chat-no-selection">
               <div className="chat-no-selection-icon"><FontAwesomeIcon icon={faComment} /></div>
-              <p>Дос таңдаңыз</p>
+              <p>{t('chat.selectFriend')}</p>
             </div>
           )}
         </div>

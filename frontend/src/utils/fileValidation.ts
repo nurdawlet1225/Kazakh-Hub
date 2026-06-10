@@ -1,43 +1,31 @@
 // File validation utilities for security
+// Configuration can be overridden from site config via configureValidation()
 
-// Maximum file size: 30MB per file
-export const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB in bytes
+import i18n from '../i18n/config';
 
-// Maximum folder size: 500MB total
-export const MAX_FOLDER_SIZE = 500 * 1024 * 1024; // 500MB in bytes
-
-// Dangerous file extensions that should be blocked
-export const DANGEROUS_EXTENSIONS = [
+// Default values (used when config is not loaded yet)
+let configMaxFileSize = 30 * 1024 * 1024; // 30MB in bytes
+let configMaxFolderSize = 500 * 1024 * 1024; // 500MB in bytes
+let configDangerousExtensions: string[] = [
   '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.jar',
   '.app', '.deb', '.pkg', '.rpm', '.msi', '.dmg', '.ps1',
   '.bin', '.dll', '.so', '.dylib', '.sys', '.drv', '.ocx', '.cpl',
   '.php', '.asp', '.aspx', '.jsp', '.class',
 ];
-
-// Allowed file extensions for code files
-export const ALLOWED_EXTENSIONS = [
-  // Code files
+let configAllowedExtensions: string[] = [
   '.js', '.jsx', '.ts', '.tsx', '.py', '.pyc', '.pyo', '.java', '.cpp', '.c', '.h', '.hpp',
   '.cs', '.go', '.rs', '.rb', '.swift', '.kt', '.scala', '.clj',
   '.lua', '.r', '.m', '.pl', '.sh', '.bash', '.zsh', '.fish',
-  // Web files
   '.html', '.htm', '.css', '.scss', '.sass', '.less', '.xml', '.json',
   '.yaml', '.yml', '.toml', '.ini', '.conf', '.config',
-  // Data files
   '.csv', '.tsv', '.txt', '.md', '.markdown', '.rst', '.tex',
-  // Config files
   '.env', '.gitignore', '.dockerfile', '.dockerignore', '.gitattributes',
   '.editorconfig', '.prettierrc', '.eslintrc', '.babelrc',
-  // Build files
   '.makefile', '.cmake', '.gradle', '.maven', '.pom', '.build',
-  // Documentation
   '.pdf', '.doc', '.docx', '.rtf',
-  // No extension (files without extension)
   '',
 ];
-
-// Allowed MIME types
-export const ALLOWED_MIME_TYPES = [
+let configAllowedMimeTypes: string[] = [
   'text/plain',
   'text/html',
   'text/css',
@@ -59,6 +47,54 @@ export const ALLOWED_MIME_TYPES = [
   'text/yaml',
 ];
 
+/**
+ * Configure validation from site config (called by SiteConfigContext)
+ */
+export const configureValidation = (config: {
+  fileConfig?: {
+    maxFileSizeBytes?: number;
+    maxFileSizeMB?: number;
+    maxFolderSizeBytes?: number;
+    supportedExtensions?: string[];
+    dangerousExtensions?: string[];
+    allowedExtensions?: string[];
+    allowedMimeTypes?: string[];
+  };
+}) => {
+  if (!config.fileConfig) return;
+
+  if (config.fileConfig.maxFileSizeBytes) {
+    configMaxFileSize = config.fileConfig.maxFileSizeBytes;
+  } else if (config.fileConfig.maxFileSizeMB) {
+    configMaxFileSize = config.fileConfig.maxFileSizeMB * 1024 * 1024;
+  }
+
+  if (config.fileConfig.maxFolderSizeBytes) {
+    configMaxFolderSize = config.fileConfig.maxFolderSizeBytes;
+  }
+
+  if (config.fileConfig.dangerousExtensions?.length) {
+    configDangerousExtensions = config.fileConfig.dangerousExtensions;
+  }
+
+  if (config.fileConfig.allowedExtensions?.length) {
+    configAllowedExtensions = config.fileConfig.allowedExtensions;
+  }
+
+  if (config.fileConfig.allowedMimeTypes?.length) {
+    configAllowedMimeTypes = config.fileConfig.allowedMimeTypes;
+  }
+};
+
+// Exported constants for backward compatibility (use configured values)
+/** @deprecated These constants are stale — they capture the default value at import time and do not update when configureValidation() is called. Use getConfiguredMaxFileSize() instead. */
+export const MAX_FILE_SIZE = 30 * 1024 * 1024; // Default, actual value from config
+/** @deprecated These constants are stale — they capture the default value at import time and do not update when configureValidation() is called. Use getConfiguredMaxFolderSize() instead. */
+export const MAX_FOLDER_SIZE = 500 * 1024 * 1024; // Default
+export const DANGEROUS_EXTENSIONS = configDangerousExtensions;
+export const ALLOWED_EXTENSIONS = configAllowedExtensions;
+export const ALLOWED_MIME_TYPES = configAllowedMimeTypes;
+
 export interface ValidationResult {
   valid: boolean;
   error?: string;
@@ -70,23 +106,23 @@ export interface ValidationResult {
 export const validateFileExtension = (filename: string): ValidationResult => {
   const lastDotIndex = filename.lastIndexOf('.');
   const ext = lastDotIndex === -1 ? '' : filename.toLowerCase().substring(lastDotIndex);
-  
+
   // Check if extension is in dangerous list
-  if (DANGEROUS_EXTENSIONS.includes(ext)) {
+  if (configDangerousExtensions.includes(ext)) {
     return {
       valid: false,
-      error: `Қауіпті файл түрі блокталды: ${ext}. Бұл файл түрі жүктелуге рұқсат етілмейді.`,
+      error: i18n.t('uploadModal.dangerousFileType', { ext }),
     };
   }
-  
+
   // If file has extension, check if it's allowed
-  if (ext && !ALLOWED_EXTENSIONS.includes(ext)) {
+  if (ext && !configAllowedExtensions.includes(ext)) {
     return {
       valid: false,
-      error: `Рұқсат етілмеген файл түрі: ${ext}. Тек код файлдары жүктелуге рұқсат етіледі.`,
+      error: i18n.t('uploadModal.unsupportedFileType', { ext }),
     };
   }
-  
+
   return { valid: true };
 };
 
@@ -94,21 +130,21 @@ export const validateFileExtension = (filename: string): ValidationResult => {
  * Validate file size
  */
 export const validateFileSize = (size: number): ValidationResult => {
-  if (size > MAX_FILE_SIZE) {
-    const maxSizeMB = MAX_FILE_SIZE / (1024 * 1024);
+  if (size > configMaxFileSize) {
+    const maxSizeMB = configMaxFileSize / (1024 * 1024);
     return {
       valid: false,
-      error: `Файл өлшемі тым үлкен. Максималды өлшем: ${maxSizeMB}MB. Ағымдағы өлшем: ${(size / (1024 * 1024)).toFixed(2)}MB`,
+      error: i18n.t('uploadModal.fileTooLarge', { maxSize: maxSizeMB.toFixed(0), currentSize: (size / (1024 * 1024)).toFixed(2) }),
     };
   }
-  
+
   if (size === 0) {
     return {
       valid: false,
-      error: 'Бос файл жүктелуге рұқсат етілмейді.',
+      error: i18n.t('uploadModal.emptyFile'),
     };
   }
-  
+
   return { valid: true };
 };
 
@@ -121,15 +157,15 @@ export const validateFileMimeType = (file: File): ValidationResult => {
     // Fall back to extension validation
     return validateFileExtension(file.name);
   }
-  
+
   // Check if MIME type is allowed
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+  if (!configAllowedMimeTypes.includes(file.type)) {
     return {
       valid: false,
-      error: `Рұқсат етілмеген файл түрі: ${file.type}. Тек код файлдары жүктелуге рұқсат етіледі.`,
+      error: i18n.t('uploadModal.unsupportedMimeType', { type: file.type }),
     };
   }
-  
+
   return { valid: true };
 };
 
@@ -141,28 +177,28 @@ export const validateFile = (file: File): ValidationResult => {
   if (!file.name || file.name.trim() === '') {
     return {
       valid: false,
-      error: 'Файл атауы бос болмауы керек.',
+      error: i18n.t('uploadModal.emptyFileName'),
     };
   }
-  
+
   // Check file extension
   const extResult = validateFileExtension(file.name);
   if (!extResult.valid) {
     return extResult;
   }
-  
+
   // Check file size
   const sizeResult = validateFileSize(file.size);
   if (!sizeResult.valid) {
     return sizeResult;
   }
-  
+
   // Check MIME type
   const mimeResult = validateFileMimeType(file);
   if (!mimeResult.valid) {
     return mimeResult;
   }
-  
+
   return { valid: true };
 };
 
@@ -180,5 +216,11 @@ export const getFileExtension = (filename: string): string => {
  */
 export const isDangerousFile = (filename: string): boolean => {
   const ext = getFileExtension(filename);
-  return DANGEROUS_EXTENSIONS.includes(ext);
+  return configDangerousExtensions.includes(ext);
 };
+
+/**
+ * Get configured max file size (for use in components)
+ */
+export const getConfiguredMaxFileSize = (): number => configMaxFileSize;
+export const getConfiguredMaxFolderSize = (): number => configMaxFolderSize;

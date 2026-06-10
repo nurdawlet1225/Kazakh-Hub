@@ -1,16 +1,21 @@
 """Code routes"""
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from typing import Optional
 from models import CodeCreate, CodeUpdate, CommentCreate, CommentUpdate, LikeRequest, ViewRequest, DeleteMultipleRequest
 from services.code_service import CodeService
 from utils.auth import get_current_user, get_optional_user
 from db import User
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/codes")
+@limiter.limit("30/minute")
 async def get_codes(
+    request: Request,
     folderId: Optional[str] = Query(None),
     limit: Optional[int] = Query(None, ge=1, le=1000),
     offset: Optional[int] = Query(0, ge=0),
@@ -21,7 +26,8 @@ async def get_codes(
 
 
 @router.get("/codes/{code_id}")
-async def get_code(code_id: str):
+@limiter.limit("60/minute")
+async def get_code(request: Request, code_id: str):
     """Get a code by ID"""
     code = CodeService.find_code_by_id(code_id)
     if not code:
@@ -30,7 +36,8 @@ async def get_code(code_id: str):
 
 
 @router.post("/codes")
-async def create_code(code_data: CodeCreate, user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def create_code(request: Request, code_data: CodeCreate, user: User = Depends(get_current_user)):
     """Create a new code"""
     try:
         code_dict = code_data.model_dump()
@@ -38,12 +45,14 @@ async def create_code(code_data: CodeCreate, user: User = Depends(get_current_us
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f'POST /api/codes - Error: {e}')
+        import logging
+        logging.getLogger("kazakh_hub").error(f"Code creation error: {e}")
         raise HTTPException(status_code=500, detail="Қате орын алды! Сервер қатесі.")
 
 
 @router.put("/codes/{code_id}")
-async def update_code(code_id: str, code_data: CodeUpdate, user: User = Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def update_code(request: Request, code_id: str, code_data: CodeUpdate, user: User = Depends(get_current_user)):
     """Update a code"""
     try:
         existing_code = CodeService.find_code_by_id(code_id)
@@ -58,7 +67,8 @@ async def update_code(code_id: str, code_data: CodeUpdate, user: User = Depends(
 
 
 @router.delete("/codes/{code_id}")
-async def delete_code(code_id: str, user: User = Depends(get_current_user)):
+@limiter.limit("20/minute")
+async def delete_code(request: Request, code_id: str, user: User = Depends(get_current_user)):
     """Delete a code"""
     try:
         existing_code = CodeService.find_code_by_id(code_id)
@@ -74,23 +84,25 @@ async def delete_code(code_id: str, user: User = Depends(get_current_user)):
 
 
 @router.post("/codes/delete-multiple")
-async def delete_multiple_codes(request: DeleteMultipleRequest, user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def delete_multiple_codes(request: Request, delete_request: DeleteMultipleRequest, user: User = Depends(get_current_user)):
     """Delete multiple codes"""
-    if not request.ids or len(request.ids) == 0:
+    if not delete_request.ids or len(delete_request.ids) == 0:
         raise HTTPException(status_code=400, detail="IDs array required")
 
     # Verify ownership of all codes
-    for code_id in request.ids:
+    for code_id in delete_request.ids:
         existing_code = CodeService.find_code_by_id(code_id)
         if existing_code and existing_code.get('author') != user.username:
             raise HTTPException(status_code=403, detail=f"You can only delete your own codes")
 
-    deleted_count = CodeService.delete_multiple_codes(request.ids)
+    deleted_count = CodeService.delete_multiple_codes(delete_request.ids)
     return {"message": f"{deleted_count} код(тар) жойылды", "deletedCount": deleted_count}
 
 
 @router.post("/codes/{code_id}/like")
-async def like_code(code_id: str, user: User = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def like_code(request: Request, code_id: str, user: User = Depends(get_current_user)):
     """Like a code"""
     try:
         return CodeService.like_code(code_id, user.id)
@@ -99,7 +111,8 @@ async def like_code(code_id: str, user: User = Depends(get_current_user)):
 
 
 @router.post("/codes/{code_id}/unlike")
-async def unlike_code(code_id: str, user: User = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def unlike_code(request: Request, code_id: str, user: User = Depends(get_current_user)):
     """Unlike a code"""
     try:
         return CodeService.unlike_code(code_id, user.id)
@@ -108,16 +121,18 @@ async def unlike_code(code_id: str, user: User = Depends(get_current_user)):
 
 
 @router.post("/codes/{code_id}/view")
-async def view_code(code_id: str, request: ViewRequest):
+@limiter.limit("60/minute")
+async def view_code(request: Request, code_id: str, view_request: ViewRequest):
     """Increment view count for a code"""
     try:
-        return CodeService.view_code(code_id, request.userId)
+        return CodeService.view_code(code_id, view_request.userId)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/codes/{code_id}/comments")
-async def add_comment(code_id: str, comment_data: CommentCreate, user: User = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def add_comment(request: Request, code_id: str, comment_data: CommentCreate, user: User = Depends(get_current_user)):
     """Add a comment to a code"""
     try:
         return CodeService.add_comment(code_id, user.username, comment_data.content, comment_data.parentId)
@@ -126,28 +141,48 @@ async def add_comment(code_id: str, comment_data: CommentCreate, user: User = De
 
 
 @router.put("/codes/{code_id}/comments/{comment_id}")
-async def update_comment(code_id: str, comment_id: str, comment_data: CommentUpdate, user: User = Depends(get_current_user)):
-    """Update a comment"""
+@limiter.limit("20/minute")
+async def update_comment(request: Request, code_id: str, comment_id: str, comment_data: CommentUpdate, user: User = Depends(get_current_user)):
+    """Update a comment (only by comment author)"""
     try:
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise HTTPException(status_code=404, detail="Code file not found")
+        # Verify the user is the comment author
+        comment = next((c for c in code.get('comments', []) if c['id'] == comment_id), None)
+        if not comment:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        if comment.get('author') != user.username:
+            raise HTTPException(status_code=403, detail="You can only edit your own comments")
         return CodeService.update_comment(code_id, comment_id, comment_data.content)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.delete("/codes/{code_id}/comments/{comment_id}")
-async def delete_comment(code_id: str, comment_id: str, user: User = Depends(get_current_user)):
-    """Delete a comment"""
+@limiter.limit("20/minute")
+async def delete_comment(request: Request, code_id: str, comment_id: str, user: User = Depends(get_current_user)):
+    """Delete a comment (only by comment author)"""
     try:
+        code = CodeService.find_code_by_id(code_id)
+        if not code:
+            raise HTTPException(status_code=404, detail="Code file not found")
+        # Verify the user is the comment author or code author
+        comment = next((c for c in code.get('comments', []) if c['id'] == comment_id), None)
+        if not comment:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        if comment.get('author') != user.username and code.get('author') != user.username:
+            raise HTTPException(status_code=403, detail="You can only delete your own comments")
         return CodeService.delete_comment(code_id, comment_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/codes/{code_id}/comments/{comment_id}/like")
-async def like_comment(code_id: str, comment_id: str, user: User = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def like_comment(request: Request, code_id: str, comment_id: str, user: User = Depends(get_current_user)):
     """Like/unlike a comment"""
     try:
         return CodeService.like_comment(code_id, comment_id, user.id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-

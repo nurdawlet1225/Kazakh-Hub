@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -125,7 +125,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
         <div 
           className="w-12 h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 self-start overflow-hidden"
           onClick={handleAvatarClick}
-          title={`${comment.author} профилін көру`}
+          title={t('viewCode.viewProfile', { author: comment.author })}
         >
           {authorAvatar ? (
             <img 
@@ -183,7 +183,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   <button
                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-all duration-200 active:scale-95"
                     onClick={() => setShowActionsMenu(!showActionsMenu)}
-                    title="Әрекеттер"
+                    title={t('viewCode.actionsTitle')}
                   >
                     <FontAwesomeIcon icon={faEllipsisVertical} className="w-4 h-4" />
                   </button>
@@ -247,7 +247,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   }`}
                   onClick={() => onLike(comment.id)}
                   disabled={!currentUser}
-                  title="Лайк"
+                  title={t('common.like')}
                 >
                   <span className="text-xs">👍</span>
                   {likeCount > 0 && <span className="text-xs">{likeCount}</span>}
@@ -433,7 +433,7 @@ const ViewCode: React.FC = () => {
           }
         } catch (err) {
           if (cancelled) return;
-          setError(err instanceof Error ? err.message : 'Кодты жүктеу қатесі');
+          setError(err instanceof Error ? err.message : t('viewCode.errorLoadingCode'));
         } finally {
           if (!cancelled) setLoading(false);
         }
@@ -615,7 +615,7 @@ const ViewCode: React.FC = () => {
         setSelectedFile(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Кодты жүктеу қатесі');
+      setError(err instanceof Error ? err.message : t('viewCode.errorLoadingCode'));
     } finally {
       setLoading(false);
     }
@@ -681,7 +681,7 @@ const ViewCode: React.FC = () => {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Failed to export folder:', err);
-      alert('Папканы экспорттау қатесі');
+      alert(t('viewCode.errorExportFolder'));
     }
   };
 
@@ -701,11 +701,11 @@ const ViewCode: React.FC = () => {
 
     // Тек автор ғана жоя алады (батырма тек авторға ғана көрсетіледі, бірақ қосымша қауіпсіздік үшін тексереміз)
     if (code.author !== currentUser.username) {
-      alert('Тек қана папка/файл авторы жоя алады');
+      alert(t('viewCode.errorOnlyAuthorCanDelete'));
       return;
     }
 
-    const confirmMessage = `"${code.title}" жоюға сенімдісіз бе?`;
+    const confirmMessage = t('viewCode.deleteConfirmTitle', { title: code.title });
 
     if (!confirm(confirmMessage)) {
       return;
@@ -717,7 +717,7 @@ const ViewCode: React.FC = () => {
       navigate('/');
     } catch (err) {
       console.error('Failed to delete code:', err);
-      alert('Кодты жою қатесі');
+      alert(t('viewCode.errorDeleteCode'));
     } finally {
       setIsDeleting(false);
     }
@@ -743,7 +743,7 @@ const ViewCode: React.FC = () => {
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to update code:', err);
-      alert('Папканы өңдеу қатесі');
+      alert(t('viewCode.errorEditFolder'));
     } finally {
       setIsSaving(false);
     }
@@ -845,7 +845,7 @@ const ViewCode: React.FC = () => {
       });
       setCommentText(commentText.trim());
       setCommentImage(commentImage);
-      alert('Пікір қосу қатесі');
+      alert(t('viewCode.errorAddComment'));
     } finally {
       setIsSubmittingComment(false);
     }
@@ -870,7 +870,7 @@ const ViewCode: React.FC = () => {
       setEditingCommentText('');
     } catch (err) {
       console.error('Failed to update comment:', err);
-      alert('Пікірді өңдеу қатесі');
+      alert(t('viewCode.errorEditComment'));
     }
   };
 
@@ -891,7 +891,7 @@ const ViewCode: React.FC = () => {
       setCode(updatedCode);
     } catch (err) {
       console.error('Failed to delete comment:', err);
-      alert('Пікірді жою қатесі');
+      alert(t('viewCode.errorDeleteComment'));
     }
   };
 
@@ -912,13 +912,13 @@ const ViewCode: React.FC = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF, WEBP)');
+      alert(t('viewCode.errorImageFilesOnly'));
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('Сурет өлшемі 10MB-тан аспауы керек');
+      alert(t('viewCode.errorImageSizeLimit'));
       return;
     }
 
@@ -929,12 +929,12 @@ const ViewCode: React.FC = () => {
         setCommentImage(result);
       };
       reader.onerror = () => {
-        alert('Суретті оқу қатесі');
+        alert(t('viewCode.errorReadImage'));
       };
       reader.readAsDataURL(file);
     } catch (err) {
       console.error('Error reading image:', err);
-      alert('Суретті өңдеу қатесі');
+      alert(t('viewCode.errorProcessImage'));
     }
   };
 
@@ -944,13 +944,13 @@ const ViewCode: React.FC = () => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF, WEBP)');
+      alert(t('viewCode.errorImageFilesOnly'));
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('Сурет өлшемі 10MB-тан аспауы керек');
+      alert(t('viewCode.errorImageSizeLimit'));
       return;
     }
 
@@ -961,12 +961,12 @@ const ViewCode: React.FC = () => {
         setReplyImage(result);
       };
       reader.onerror = () => {
-        alert('Суретті оқу қатесі');
+        alert(t('viewCode.errorReadImage'));
       };
       reader.readAsDataURL(file);
     } catch (err) {
       console.error('Error reading image:', err);
-      alert('Суретті өңдеу қатесі');
+      alert(t('viewCode.errorProcessImage'));
     }
   };
 
@@ -1017,7 +1017,7 @@ const ViewCode: React.FC = () => {
       }, 100);
     } catch (err) {
       console.error('Failed to add reply:', err);
-      alert('Жауап қосу қатесі');
+      alert(t('viewCode.errorAddReply'));
     } finally {
       setIsSubmittingReply(false);
     }
@@ -1154,7 +1154,7 @@ const ViewCode: React.FC = () => {
                       <button
                         className="code-description-toggle"
                         onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                        title={isDescriptionExpanded ? 'Жасыру' : 'Көбірек көрсету'}
+                        title={isDescriptionExpanded ? t('common.hide') : t('viewCode.showMore')}
                       >
                         <FontAwesomeIcon icon={isDescriptionExpanded ? faChevronUp : faChevronDown} />
                       </button>
@@ -1168,7 +1168,7 @@ const ViewCode: React.FC = () => {
                 <button
                   className="btn-actions-menu-toggle"
                   onClick={() => setShowActionsMenu(!showActionsMenu)}
-                  title="Әрекеттер"
+                  title={t('viewCode.actionsTitle')}
                 >
                   <FontAwesomeIcon icon={faEllipsisVertical} />
                 </button>
@@ -1211,7 +1211,7 @@ const ViewCode: React.FC = () => {
           </span>
           <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.author')}:</span>
-            <span className="meta-value">{code.author === currentUser?.username ? t('viewCode.you') || 'Сіз' : code.author}</span>
+            <span className="meta-value">{code.author === currentUser?.username ? t('viewCode.youLabel') : code.author}</span>
           </span>
           <span className="meta-item-inline">
             <span className="meta-label">{t('viewCode.created')}:</span>
@@ -1236,7 +1236,7 @@ const ViewCode: React.FC = () => {
             className={`like-button-header ${isLiked ? 'liked' : ''}`}
             onClick={handleLike}
             disabled={!currentUser}
-            title={currentUser ? (isLiked ? 'Лайкты алып тастау' : 'Лайк қосу') : 'Лайк қосу үшін кіру керек'}
+            title={currentUser ? (isLiked ? t('viewCode.unlike') : t('viewCode.likeButton')) : t('viewCode.loginToLike')}
           >
             <FontAwesomeIcon icon={isLiked ? faHeart : faRegHeartRegular} /> {likeCount}
           </button>
@@ -1308,7 +1308,7 @@ const ViewCode: React.FC = () => {
                             target.style.display = 'none';
                             const errorDiv = document.createElement('div');
                             errorDiv.className = 'image-error';
-                            errorDiv.textContent = 'Кескінді көрсету мүмкін емес';
+                            errorDiv.textContent = t('viewCode.errorDisplayImage');
                             target.parentElement?.appendChild(errorDiv);
                           }}
                         />
@@ -1343,7 +1343,7 @@ const ViewCode: React.FC = () => {
                           }
                         }}
                       >
-                        {isCopied ? <><FontAwesomeIcon icon={faCheck} /> Кескін көшірілді</> : <><FontAwesomeIcon icon={faCopy} /> Кескінді көшіру</>}
+                        {isCopied ? <><FontAwesomeIcon icon={faCheck} /> {t('viewCode.imageCopied')}</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyImage')}</>}
                       </button>
                     </div>
                   ) : (
@@ -1366,7 +1366,7 @@ const ViewCode: React.FC = () => {
                           }
                         }}
                       >
-                        {isCopied ? <><FontAwesomeIcon icon={faCheck} /> Код көшірілді</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyCode')}</>}
+                        {isCopied ? <><FontAwesomeIcon icon={faCheck} /> {t('viewCode.codeCopied')}</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyCode')}</>}
                       </button>
                     </div>
                   )}
@@ -1520,29 +1520,29 @@ const ViewCode: React.FC = () => {
         <div className="modal-overlay" onClick={handleCancelEditFolder}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Папканы өңдеу</h3>
+              <h3>{t('viewCode.editFolder')}</h3>
               <button className="modal-close" onClick={handleCancelEditFolder}>×</button>
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label htmlFor="edit-title">Атауы:</label>
+                <label htmlFor="edit-title">{t('viewCode.titleLabel')}</label>
                 <input
                   id="edit-title"
                   type="text"
                   className="form-input"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  placeholder="Папка атауы"
+                  placeholder={t('viewCode.folderNamePlaceholder')}
                 />
               </div>
               <div className="form-group">
-                <label htmlFor="edit-description">Сипаттама:</label>
+                <label htmlFor="edit-description">{t('viewCode.descriptionLabel')}</label>
                 <textarea
                   id="edit-description"
                   className="form-textarea"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Папка сипаттамасы"
+                  placeholder={t('viewCode.folderDescriptionPlaceholder')}
                   rows={4}
                 />
               </div>

@@ -7,6 +7,7 @@ import { CodeFile } from '../utils/api';
 import { apiService } from '../utils/api';
 import { subscribeToCodes, unsubscribe } from '../utils/realtimeService';
 import { isFirestoreBlocked } from '../utils/firebase';
+import { useSiteConfig } from '../contexts/SiteConfigContext';
 import CodeCard from '../components/CodeCard';
 import CodesListModal from '../components/modals/CodesListModal';
 import './Home.css';
@@ -23,6 +24,7 @@ function dayIndexForDailyQuote(): number {
 
 const Home: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { config } = useSiteConfig();
   const [searchParams, setSearchParams] = useSearchParams();
   const [codes, setCodes] = useState<CodeFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,25 +281,31 @@ const Home: React.FC = () => {
 
   // Тілдерді категорияларға бөлу
   const languageCategories = useMemo(() => {
-    const categories: { [key: string]: string[] } = {
+    // Категорияларды бэкенд конфигурациясынан алу, жоқ болса fallback
+    const defaultCategories: { [key: string]: string[] } = {
       'Web': ['html', 'css', 'javascript', 'typescript'],
       'Backend': ['python', 'java', 'cpp', 'c'],
       'Markup': ['json', 'markdown'],
       'Other': []
     };
+    const categories: { [key: string]: string[] } = config?.languageCategories
+      ? Object.fromEntries(
+          Object.entries(config.languageCategories).map(([key, langs]) => [key, [...langs]])
+        )
+      : defaultCategories;
 
     // Барлық тілдерді категорияларға бөлу
     allLanguages.forEach(lang => {
       const langLower = lang.toLowerCase();
       let found = false;
-      
+
       for (const [category, langs] of Object.entries(categories)) {
         if (category !== 'Other' && langs.includes(langLower)) {
           found = true;
           break;
         }
       }
-      
+
       if (!found) {
         categories['Other'].push(lang);
       }
@@ -310,7 +318,7 @@ const Home: React.FC = () => {
         category,
         languages: langs.map(l => allLanguages.find(al => al.toLowerCase() === l.toLowerCase()) || l)
       }));
-  }, [allLanguages]);
+  }, [allLanguages, config?.languageCategories]);
 
   const dailyMotivationalQuote = useMemo(() => {
     const raw = t('home.motivationalQuotes', { returnObjects: true }) as unknown;
@@ -566,7 +574,7 @@ const Home: React.FC = () => {
             )}
 
             {loading ? (
-              <div className="text-center">Жүктелуде...</div>
+              <div className="text-center">{t('common.loading')}</div>
             ) : filteredAndSortedCodes.length === 0 ? (
               <div className="text-center py-20 px-8 text-text-secondary empty-state-bg rounded-[15.4px] border-[1.3px] border-dashed border-primary my-8 animate-fade-in shadow-glow">
                 <p className="text-5xl m-0 mb-6 inline-block animate-bounce drop-shadow-[0_2.6px_5.1px_rgba(0,0,0,0.1)]">

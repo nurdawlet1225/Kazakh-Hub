@@ -1,20 +1,35 @@
 """Kazakh Hub Backend API - Main application file"""
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 import uvicorn
 import os
+import logging
 
 # Import database and config
 from database import load_data, save_codes, save_users, save_friends, save_messages, save_friend_requests, codes
 from config import FIRESTORE_SYNC_AVAILABLE, FIRESTORE_INIT
 from db import init_db
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger("kazakh_hub")
+
 # Import routes
 from routes import api_router
+
+# Rate limiter setup
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -31,14 +46,14 @@ async def lifespan(app: FastAPI):
     migrate_json_users()
 
     load_data()
-    print(f"Loaded {len(codes)} codes from file")
+    logger.info(f"Loaded {len(codes)} codes from file")
     
     # Initialize Firestore if available
     if FIRESTORE_SYNC_AVAILABLE and FIRESTORE_INIT:
         try:
             FIRESTORE_INIT()
         except Exception as e:
-            print(f"Warning: Firestore initialization failed: {e}")
+            logger.warning(f"Firestore initialization failed: {e}")
     
     # Auto-save task
     async def auto_save():
@@ -50,9 +65,9 @@ async def lifespan(app: FastAPI):
                 save_friends()
                 save_messages()
                 save_friend_requests()
-                print("Auto-saved all data")
+                logger.info("Auto-saved all data")
             except Exception as e:
-                print(f"Error in auto-save: {e}")
+                logger.error(f"Error in auto-save: {e}")
     
     # Start auto-save task
     auto_save_task = asyncio.create_task(auto_save())
@@ -66,9 +81,9 @@ async def lifespan(app: FastAPI):
         save_friends()
         save_messages()
         save_friend_requests()
-        print("All data saved on shutdown")
+        logger.info("All data saved on shutdown")
     except Exception as e:
-        print(f"Error saving data on shutdown: {e}")
+        logger.error(f"Error saving data on shutdown: {e}")
     
     # Cancel auto-save task
     auto_save_task.cancel()
@@ -88,10 +103,37 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# Add rate limit exceeded handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Add SlowAPI middleware for rate limiting
+app.add_middleware(SlowAPIMiddleware)
+
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["X-Request-ID"] = os.urandom(16).hex()
+    # Remove server header to avoid fingerprinting
+    try:
+        del response.headers["server"]
+    except KeyError:
+        pass
+    return response
+
+# CORS middleware - use environment variable for allowed origins
+_cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174")
+_cors_origins = [origin.strip() for origin in _cors_origins_str.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -169,19 +211,11 @@ async def health_check():
 # Include API routes
 app.include_router(api_router)
 
-# Handle OPTIONS for uploads endpoint
+# Handle OPTIONS for uploads endpoint - let CORSMiddleware handle CORS headers
 @app.options("/api/uploads/{file_path:path}")
 async def serve_upload_options(file_path: str):
     """Handle CORS preflight for uploads"""
-    return Response(
-        content="",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-            "Access-Control-Allow-Credentials": "true",
-        }
-    )
+    return Response(content="")
 
 # Custom endpoint for serving uploads with CORS headers
 @app.get("/api/uploads/{file_path:path}")
@@ -211,7 +245,6 @@ async def serve_upload(file_path: str):
             content={"error": "File not found"},
             status_code=404
         )
-        response.headers["Access-Control-Allow-Origin"] = "*"
         return response
     
     # Check if file exists
@@ -220,7 +253,6 @@ async def serve_upload(file_path: str):
             content={"error": "File not found"},
             status_code=404
         )
-        response.headers["Access-Control-Allow-Origin"] = "*"
         return response
     
     # Determine content type based on decoded path
@@ -257,6 +289,14 @@ from db import SessionLocal, User
 @app.websocket("/api/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str, token: str = Query(None)):
     """WebSocket endpoint for real-time messaging (requires JWT token)"""
+    # Validate Origin header to prevent cross-site WebSocket hijacking
+    origin = websocket.headers.get("origin", "")
+    allowed_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174")
+    allowed_origins = [o.strip() for o in allowed_origins_str.split(",") if o.strip()]
+    if not origin or origin not in allowed_origins:
+        await websocket.close(code=4003, reason="Origin not allowed")
+        return
+
     # Validate JWT token (required)
     if not token:
         await websocket.close(code=4001, reason="Authentication required")

@@ -53,7 +53,6 @@ class ChatService:
                 'partner': {
                     'id': partner['id'],
                     'username': partner['username'],
-                    'email': partner['email'],
                     'avatar': partner.get('avatar')
                 },
                 'lastMessage': last_message,

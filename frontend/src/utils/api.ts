@@ -107,8 +107,47 @@ export interface SiteConfig {
   fileConfig?: {
     maxFileSizeBytes: number;
     maxFileSizeMB: number;
+    maxFolderSizeBytes?: number;
     supportedExtensions: string[];
+    dangerousExtensions?: string[];
+    allowedExtensions?: string[];
+    allowedMimeTypes?: string[];
   };
+  firebaseConfig?: {
+    apiKey: string;
+    authDomain: string;
+    projectId: string;
+    storageBucket: string;
+    messagingSenderId: string;
+    appId: string;
+    measurementId?: string;
+  };
+  features?: Array<{
+    icon: string;
+    titleKey: string;
+    descriptionKey: string;
+  }>;
+  validationConfig?: {
+    maxFileSizeBytes: number;
+    maxFileSizeMB: number;
+    maxFolderSizeBytes?: number;
+    supportedExtensions: string[];
+    dangerousExtensions: string[];
+    allowedExtensions: string[];
+    allowedMimeTypes: string[];
+  };
+  languageCategories?: { [key: string]: string[] };
+  codeCategoryKeywords?: { [category: string]: string[] };
+  passwordRules?: {
+    minLength: number;
+    requireUppercase?: boolean;
+    requireNumber?: boolean;
+    emailRegex?: string;
+  };
+  googleClientId?: string;
+  aboutContent?: { [locale: string]: { title: string; subtitle: string; sections: Array<{ title: string; description: string }> } };
+  termsContent?: { [locale: string]: { title: string; lastUpdated: string; sections: Array<{ title: string; description: string }> } };
+  privacyContent?: { [locale: string]: { title: string; lastUpdated: string; sections: Array<{ title: string; description: string }> } };
   apiDisplayUrl?: string;
 }
 
@@ -116,6 +155,18 @@ class ApiService {
   private baseUrl: string;
   private connectionChecked: boolean = false;
   private _getToken: (() => string | null) | null = null;
+
+  /**
+   * Read the CSRF token from the csrf_token cookie (set by the server
+   * alongside the HttpOnly refresh_token cookie). Used for the
+   * double-submit cookie pattern on the /auth/refresh endpoint.
+   */
+  private getCsrfToken(): string | null {
+    const match = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('csrf_token='));
+    return match ? decodeURIComponent(match.split('=')[1]) : null;
+  }
 
   setTokenGetter(getter: () => string | null) {
     this._getToken = getter;
@@ -137,6 +188,7 @@ class ApiService {
       const response = await fetch(healthUrl, {
         method: 'GET',
         signal: controller.signal,
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -196,6 +248,7 @@ class ApiService {
         ...options,
         signal: controller.signal,
         headers,
+        credentials: 'include', // Include cookies (HttpOnly refresh_token)
       });
       
       clearTimeout(timeoutId);
@@ -213,7 +266,7 @@ class ApiService {
         const isExpected404 = response.status === 404 && isUserProfileEndpoint;
         
         if (!isExpected401 && !isExpected404) {
-          console.error(`API Error: ${response.status} ${response.statusText}`, errorData);
+          console.error(`API Error: ${response.status} ${response.statusText}`);
         }
         
         let errorMessage = errorData.detail || errorData.error || `API Error: ${response.statusText}`;
@@ -395,7 +448,7 @@ class ApiService {
   }
 
   // Authentication
-  async register(username: string, email: string, password: string): Promise<{ user: User; access_token: string; refresh_token: string; token_type: string; message: string }> {
+  async register(username: string, email: string, password: string): Promise<{ user: User; access_token: string; token_type: string; message: string }> {
     return this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
@@ -414,10 +467,17 @@ class ApiService {
     });
   }
 
-  async refreshToken(refresh_token: string): Promise<{ access_token: string; token_type: string }> {
+  async refreshToken(): Promise<{ access_token: string; token_type: string }> {
+    // Refresh token is sent automatically via HttpOnly cookie (credentials: 'include')
+    // CSRF token is sent as a custom header (double-submit cookie pattern)
+    const csrfToken = this.getCsrfToken();
+    const headers: Record<string, string> = {};
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
     return this.request('/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify({ refresh_token }),
+      headers,
     });
   }
 
@@ -437,7 +497,7 @@ class ApiService {
     });
   }
 
-  async forgotPassword(email: string): Promise<{ message: string; reset_token?: string }> {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     return this.request('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email }),
@@ -621,6 +681,7 @@ class ApiService {
         method: 'POST',
         body: formData,
         signal: controller.signal,
+        credentials: 'include',
         headers: {
           ...(this._getToken && this._getToken() ? { 'Authorization': `Bearer ${this._getToken()}` } : {}),
         },
@@ -746,6 +807,14 @@ class ApiService {
         apiDisplayUrl: API_BASE_URL.replace(/\/api$/, '') + '/api'
       };
     }
+  }
+
+  // Contact form submission
+  async submitContactForm(data: { name: string; email: string; subject: string; message: string }): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/contact', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // User Search - Using Backend API (Firebase fallback removed for reliability)

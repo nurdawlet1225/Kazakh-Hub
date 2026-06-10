@@ -1,17 +1,20 @@
 """Message routes"""
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Request
 from typing import Optional, List
 import json
 from models import MessageCreate
 from services.message_service import MessageService
 from services.friend_service import FriendService
-from utils.auth import get_current_user
+from utils.auth import get_current_user, verify_user_access
 from db import User
 import os
 from datetime import datetime
 from config import DANGEROUS_EXTENSIONS, MAX_FILE_SIZE
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR = "uploads"
@@ -23,19 +26,22 @@ os.makedirs(f"{UPLOAD_DIR}/files", exist_ok=True)
 
 
 @router.get("/messages/{user_id}")
-async def get_messages(user_id: str):
-    """Get all messages for a user"""
+@limiter.limit("30/minute")
+async def get_messages(request: Request, user_id: str, current_user: User = Depends(verify_user_access)):
+    """Get all messages for a user (only own messages)"""
     return MessageService.get_user_messages(user_id)
 
 
 @router.get("/messages/{user_id}/{friend_id}")
-async def get_conversation(user_id: str, friend_id: str):
-    """Get conversation between two users"""
+@limiter.limit("30/minute")
+async def get_conversation(request: Request, user_id: str, friend_id: str, current_user: User = Depends(verify_user_access)):
+    """Get conversation between two users (only own conversations)"""
     return MessageService.get_conversation(user_id, friend_id)
 
 
 @router.post("/messages")
-async def create_message(message_data: MessageCreate, user: User = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def create_message(request: Request, message_data: MessageCreate, user: User = Depends(get_current_user)):
     """Create a new message"""
     if not message_data.toUserId:
         raise HTTPException(status_code=400, detail="Missing required fields")
@@ -61,7 +67,9 @@ async def create_message(message_data: MessageCreate, user: User = Depends(get_c
 
 
 @router.post("/messages/upload")
+@limiter.limit("10/minute")
 async def upload_file(
+    request: Request,
     file: UploadFile = File(...),
     toUserId: str = Form(...),
     messageType: str = Form("file"),
@@ -76,6 +84,25 @@ async def upload_file(
             file_ext = os.path.splitext(file.filename)[1].lower()
             if file_ext in DANGEROUS_EXTENSIONS:
                 raise HTTPException(status_code=400, detail=f"File type '{file_ext}' is not allowed")
+
+            # Double-check: verify content type matches extension for images
+            if file.content_type and file.content_type.startswith('image/'):
+                import filetype
+                content_bytes = await file.read()
+                await file.seek(0)  # Reset position after reading
+                kind = filetype.guess(content_bytes)
+                if kind is None:
+                    # Could not determine file type from magic bytes — reject for safety
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Could not verify file type. Only valid image files are accepted."
+                    )
+                elif kind.mime != file.content_type:
+                    # Content type doesn't match actual file content
+                    raise HTTPException(
+                        status_code=400,
+                        detail="File content does not match the declared file type"
+                    )
 
         # Read file content with size check
         content_bytes = await file.read()
@@ -150,42 +177,53 @@ async def upload_file(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="File upload failed. Please try again.")
 
 
 @router.put("/messages/{message_id}/read")
-async def mark_message_read(message_id: str, user: User = Depends(get_current_user)):
-    """Mark a message as read"""
+@limiter.limit("30/minute")
+async def mark_message_read(request: Request, message_id: str, user: User = Depends(get_current_user)):
+    """Mark a message as read (only the recipient can mark)"""
     try:
+        # Verify the authenticated user is the recipient of this message
+        message = await MessageService.get_message_by_id(message_id)
+        if not message:
+            raise HTTPException(status_code=404, detail="Message not found")
+        if str(user.id) != str(message.get('toUserId')):
+            raise HTTPException(status_code=403, detail="Only the recipient can mark a message as read")
         return await MessageService.mark_message_read(message_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.put("/messages/{user_id}/{friend_id}/mark-read")
-async def mark_conversation_read(user_id: str, friend_id: str, user: User = Depends(get_current_user)):
-    """Mark all messages in a conversation as read"""
+@limiter.limit("30/minute")
+async def mark_conversation_read(request: Request, user_id: str, friend_id: str, current_user: User = Depends(verify_user_access)):
+    """Mark all messages in a conversation as read (only own conversations)"""
     updated_count = await MessageService.mark_conversation_read(user_id, friend_id)
     return {'message': f'{updated_count} messages marked as read', 'count': updated_count}
 
 
 @router.get("/messages/{user_id}/{friend_id}/unread-count")
-async def get_unread_count_for_chat(user_id: str, friend_id: str):
-    """Get unread message count for a specific chat"""
+@limiter.limit("30/minute")
+async def get_unread_count_for_chat(request: Request, user_id: str, friend_id: str, current_user: User = Depends(verify_user_access)):
+    """Get unread message count for a specific chat (only own chats)"""
     unread_count = MessageService.get_unread_count_for_chat(user_id, friend_id)
     return {'unreadCount': unread_count, 'chatId': friend_id}
 
 
 @router.get("/messages/{user_id}/unread-count")
-async def get_total_unread_count(user_id: str):
-    """Get total unread message count for a user"""
+@limiter.limit("30/minute")
+async def get_total_unread_count(request: Request, user_id: str, current_user: User = Depends(verify_user_access)):
+    """Get total unread message count for a user (only own count)"""
     total_count = MessageService.get_total_unread_count(user_id)
     return {'totalUnreadCount': total_count}
 
 
 @router.delete("/messages/{user_id}/{friend_id}")
-async def clear_conversation(user_id: str, friend_id: str, user: User = Depends(get_current_user)):
-    """Delete all messages in a conversation"""
+@limiter.limit("10/minute")
+async def clear_conversation(request: Request, user_id: str, friend_id: str, current_user: User = Depends(verify_user_access)):
+    """Delete all messages in a conversation (only own conversations)"""
     deleted_count = MessageService.clear_conversation(user_id, friend_id)
     return {'message': 'Conversation cleared', 'deletedCount': deleted_count}
 

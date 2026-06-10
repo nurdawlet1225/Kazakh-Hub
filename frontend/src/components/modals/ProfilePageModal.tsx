@@ -91,7 +91,7 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
         try {
           userData = JSON.parse(storedUser);
         } catch {
-          setError(t('profile.loginRequired') || 'Кіру қажет. Қайта кіріңіз.');
+          setError(t('profile.loginRequired'));
           setLoading(false);
           return;
         }
@@ -109,13 +109,13 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
         } catch (err: any) {
           // If user not found in backend, show error
           console.error('Failed to verify user:', err);
-          setError(t('profile.userNotFoundRelogin') || 'Пайдаланушы табылмады. Қайта кіріңіз.');
+          setError(t('profile.userNotFoundRelogin'));
           setLoading(false);
           return;
         }
       } else {
         // No stored user - show error
-        setError(t('profile.loginRequired') || 'Кіру қажет. Қайта кіріңіз.');
+        setError(t('profile.loginRequired'));
         setLoading(false);
         return;
       }
@@ -218,7 +218,7 @@ const ProfilePageModal: React.FC<ProfilePageModalProps> = ({ isOpen, onClose }) 
                         <button 
                           className="copy-id-btn" 
                           onClick={copyId}
-                          title={isIdCopied ? (t('profile.idCopied') || 'Көшірілді') : (t('profile.copyId') || 'ID көшіру')}
+                          title={isIdCopied ? t('profile.idCopied') : t('profile.copyId')}
                         >
                           <FontAwesomeIcon icon={isIdCopied ? faCheck : faCopy} />
                         </button>

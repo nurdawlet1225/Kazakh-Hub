@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faImage } from '@fortawesome/free-solid-svg-icons';
 import { apiService } from '../utils/api';
@@ -10,6 +11,7 @@ interface ImageUploadItemProps {
 }
 
 const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
+  const { t } = useTranslation();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -86,13 +88,13 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Тек сурет файлдарын таңдаңыз (JPG, PNG, GIF, WEBP)');
+      setError(t('imageUpload.onlyImageFiles'));
       return;
     }
 
     // Validate file size (max 30MB before compression)
     if (file.size > 30 * 1024 * 1024) {
-      setError('Сурет өлшемі 30MB-тан аспауы керек');
+      setError(t('imageUpload.imageSizeLimit'));
       return;
     }
 
@@ -109,7 +111,7 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
       setError(null);
     } catch (err) {
       console.error('Error processing image:', err);
-      setError(err instanceof Error ? err.message : 'Суретті өңдеу қатесі');
+      setError(err instanceof Error ? err.message : t('imageUpload.imageProcessingError'));
       setSelectedFile(null);
       setImagePreview(null);
     }
@@ -146,14 +148,14 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
         content: imagePreview, // Base64 image data
         language: 'image',
         author: currentUser.username || 'guest',
-        description: description || `Сурет файлы: ${selectedFile.name}`,
+        description: description || t('imageUpload.defaultDescription', { name: selectedFile.name }),
         tags: tags ? tags.split(',').map(t => t.trim()) : ['image', 'picture'],
       });
 
       handleReset();
       onSuccess?.();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Суретті жүктеу қатесі';
+      const errorMessage = err instanceof Error ? err.message : t('imageUpload.imageUploadError');
       setError(errorMessage);
     } finally {
       setUploading(false);
@@ -175,7 +177,7 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
   return (
     <div className="image-upload-item">
       <div className="image-upload-header">
-        <h3><FontAwesomeIcon icon={faImage} /> Сурет жүктеу</h3>
+        <h3><FontAwesomeIcon icon={faImage} /> {t('imageUpload.title')}</h3>
       </div>
 
       <form onSubmit={handleSubmit} className="image-upload-form">
@@ -207,43 +209,43 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
           ) : (
             <div className="dropzone-content">
               <span className="dropzone-icon"><FontAwesomeIcon icon={faImage} /></span>
-              <p>Суретті осы жерге тартып тастаңыз немесе таңдау үшін басыңыз</p>
-              <p className="dropzone-hint">JPG, PNG, GIF, WEBP форматындағы суреттер</p>
+              <p>{t('imageUpload.dropzoneText')}</p>
+              <p className="dropzone-hint">{t('imageUpload.dropzoneHint')}</p>
             </div>
           )}
         </div>
 
         <div className="form-group">
-          <label htmlFor="image-title">Атауы</label>
+          <label htmlFor="image-title">{t('imageUpload.titleLabel')}</label>
           <input
             id="image-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Суреттің атауын енгізіңіз"
+            placeholder={t('imageUpload.titlePlaceholder')}
             required
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="image-description">Сипаттама (міндетті емес)</label>
+          <label htmlFor="image-description">{t('imageUpload.descriptionLabel')}</label>
           <textarea
             id="image-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Суреттің сипаттамасын енгізіңіз..."
+            placeholder={t('imageUpload.descriptionPlaceholder')}
             rows={3}
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="image-tags">Тегтер</label>
+          <label htmlFor="image-tags">{t('imageUpload.tagsLabel')}</label>
           <input
             id="image-tags"
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            placeholder="image, photo, picture (үтірмен бөлінген)"
+            placeholder={t('imageUpload.tagsPlaceholder')}
           />
         </div>
 
@@ -255,14 +257,14 @@ const ImageUploadItem: React.FC<ImageUploadItemProps> = ({ onSuccess }) => {
 
         <div className="form-actions">
           <Button type="button" onClick={handleReset} variant="secondary">
-            Тазалау
+            {t('imageUpload.clear')}
           </Button>
-          <Button 
-            type="submit" 
-            variant="primary" 
+          <Button
+            type="submit"
+            variant="primary"
             disabled={!selectedFile || !imagePreview || uploading}
           >
-            {uploading ? 'Жүктелуде...' : 'Жүктеу'}
+            {uploading ? t('imageUpload.uploading') : t('imageUpload.upload')}
           </Button>
         </div>
       </form>

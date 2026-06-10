@@ -90,8 +90,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       <div className="file-explorer-content">
         {Object.keys(groupedFiles).length === 0 ? (
           <div className="file-explorer-empty">
-            <p>Әлі файлдар жоқ</p>
-            <p className="empty-hint">Бастау үшін алғашқы файлыңызды жүктеңіз</p>
+            <p>{t('viewCode.noFilesYet')}</p>
+            <p className="empty-hint">{t('viewCode.uploadFirstFile')}</p>
           </div>
         ) : (
           Object.entries(groupedFiles).map(([language, langFiles]) => (

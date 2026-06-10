@@ -81,8 +81,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, buttonRef 
     }
 
     localStorage.removeItem('user');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('access_token');
+    // Note: refresh_token is now in HttpOnly cookie, cleared by backend logout endpoint
     onClose();
     window.location.href = '/login';
   };

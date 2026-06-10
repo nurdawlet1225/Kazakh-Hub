@@ -1,204 +1,70 @@
 /**
- * Utility to suppress known Firebase console errors that are expected
- * and don't affect functionality (e.g., COOP errors, ad blocker blocks)
- * 
- * Note: ERR_BLOCKED_BY_CLIENT errors in the browser console are caused by
- * ad blockers or security extensions blocking Firestore requests. These errors
- * are non-critical - the app will continue to work using backend API instead.
- * These errors cannot be completely suppressed as they appear in browser DevTools,
- * but they don't affect the application functionality.
+ * Targeted suppression of known Firebase SDK console noise.
+ *
+ * Firebase Firestore and Auth SDKs produce noisy console output when:
+ * - Ad blockers block requests to firestore.googleapis.com
+ * - Firebase API keys are invalid or not configured
+ * - Cross-Origin-Opener-Policy interactions occur
+ *
+ * This module ONLY filters console output. It does NOT monkey-patch
+ * fetch, XMLHttpRequest, or global error/rejection handlers — those
+ * aggressive patches hide real bugs and break error reporting.
  */
 
 // Store original console methods
 const originalError = console.error;
 const originalWarn = console.warn;
-const originalLog = console.log;
 
-// Expose original methods for debugging (to avoid suppression)
-(console as any).__originalError = originalError;
-(console as any).__originalWarn = originalWarn;
-(console as any).__originalLog = originalLog;
-
-// Patterns to suppress
-const SUPPRESSED_ERROR_PATTERNS = [
-  /Cross-Origin-Opener-Policy.*would block.*window\.(closed|close)/i,
-  /Cross-Origin-Opener-Policy.*policy would block/i,
-  /policy would block.*window\.(closed|close)/i,
-  /window\.closed.*Cross-Origin-Opener-Policy/i,
-  /window\.close.*Cross-Origin-Opener-Policy/i,
-  /firebase_auth\.js.*Cross-Origin-Opener-Policy/i,
+// Firebase-specific patterns that are safe to suppress
+const FIREBASE_NOISE_PATTERNS: RegExp[] = [
+  // Ad-blocker blocked requests
+  /ERR_BLOCKED_BY_CLIENT/i,
+  /net::ERR_BLOCKED_BY_CLIENT/i,
+  /net::ERR_CONNECTION_CLOSED/i,
+  // Firestore channel errors (ad blocker related)
+  /firestore\.googleapis\.com.*ERR_BLOCKED_BY_CLIENT/i,
+  /firebase_firestore\.js/i,
+  /google\.firestore\.v1\.Firestore/i,
+  /Listen\/channel/i,
+  /Write\/channel/i,
+  /TYPE=terminate/i,
+  /gsessionid/i,
+  // Firebase Auth COOP issues
+  /Cross-Origin-Opener-Policy/i,
   /firebase_auth\.js.*window\.(closed|close)/i,
   /poll @ firebase_auth\.js/i,
   /close @ firebase_auth\.js/i,
-  /ERR_BLOCKED_BY_CLIENT/i,
-  /BLOCKED_BY_CLIENT/i,
-  /net::ERR_BLOCKED_BY_CLIENT/i,
-  /net::ERR_CONNECTION_CLOSED/i,
-  /ERR_CONNECTION_CLOSED/i,
-  /Failed to load resource.*apis\.google\.com/i,
-  /Failed to load resource.*firestore\.googleapis\.com/i,
-  /Failed to load resource.*401.*Unauthorized/i,
-  /Failed to load resource.*400.*Bad Request/i,
-  /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
-  /Failed to load resource.*Write\/channel/i,
-  /Failed to load resource.*TYPE=terminate/i,
+  // Firebase API key issues
   /API key not valid/i,
-  /INVALID_ARGUMENT/i,
-  /identitytoolkit\.googleapis\.com.*400/i,
-  /getProjectConfig.*400/i,
-  /projects\?key=.*400/i,
-  /the server responded with a status of 400/i,
-  /Failed to load resource.*gsessionid/i,
-  /Failed to load resource.*SID=/i,
-  /Failed to load resource.*RID=/i,
-  /Failed to load resource.*127\.0\.0\.1.*401/i,
-  /Failed to load resource.*localhost.*401/i,
-  /Failed to load resource.*auth\/login/i,
-  /127\.0\.0\.1.*auth\/login.*401/i,
-  /localhost.*auth\/login.*401/i,
-  /firestore\.googleapis\.com.*ERR_BLOCKED_BY_CLIENT/i,
-  /apis\.google\.com.*ERR_CONNECTION_CLOSED/i,
-  /apis\.google\.com.*Failed to load resource/i,
-  /firestore\.googleapis\.com.*Write\/channel.*ERR_BLOCKED_BY_CLIENT/i,
-  /firestore\.googleapis\.com.*Write\/channel.*TYPE=terminate/i,
-  /firestore\.googleapis\.com.*Listen\/channel.*TYPE=terminate/i,
-  /firestore\.googleapis\.com.*Listen\/channel.*ERR_BLOCKED_BY_CLIENT/i,
-  /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
-  /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
-  /Failed to load resource.*net::ERR_BLOCKED_BY_CLIENT/i,
-  /google\.firestore\.v1\.Firestore.*ERR_BLOCKED_BY_CLIENT/i,
-  /google\.firestore\.v1\.Firestore\/Listen\/channel/i,
-  /POST.*firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen/i,
-  /POST.*firestore\.googleapis\.com.*Listen\/channel/i,
-  /POST.*firestore\.googleapis\.com.*TYPE=terminate/i,
-  /POST.*firestore\.googleapis\.com.*SID=/i,
-  /POST.*firestore\.googleapis\.com.*RID=/i,
-  /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
-  /Request URL.*firestore\.googleapis\.com.*Listen.*channel/i,
-  /Request URL.*firestore\.googleapis\.com.*TYPE=terminate/i,
-  // Suppress expected API errors that are handled gracefully
-  /Failed to load resource.*401.*Unauthorized/i,
-  /Failed to load resource.*400.*Bad Request/i,
-  /API Error: 401 Unauthorized/i,
-  /API Error: 400 Bad Request/i,
-  /\[LOGIN\].*Backend login failed.*trying Firebase/i,
-  /\[LOGIN\].*Attempting Firebase authentication/i,
-  // Suppress invalid API key errors (user needs to fix in .env)
-  /API key not valid.*Please pass a valid API key/i,
-  /badRequest.*API key/i,
-  /INVALID_ARGUMENT.*API key/i,
   /identitytoolkit\.googleapis\.com/i,
   /getProjectConfig/i,
-  // Suppress Firestore channel errors (ad blocker related)
-  /firebase_firestore\.js.*POST.*firestore\.googleapis\.com/i,
-  /firebase_firestore\.js.*Write\/channel/i,
-  /firebase_firestore\.js.*ERR_BLOCKED_BY_CLIENT/i,
-  /Y2\.close|Y2\.m|cc @ firebase_firestore/i,
-  /gsessionid.*ERR_BLOCKED_BY_CLIENT/i,
-  /TYPE=terminate.*ERR_BLOCKED_BY_CLIENT/i,
-  /Write\/channel.*TYPE=terminate/i,
-  /Listen\/channel.*TYPE=terminate/i,
-  // Suppress Firestore stack traces
-  /firebase_firestore\.js.*Y2\.close/i,
-  /firebase_firestore\.js.*Y2\.m/i,
-  /firebase_firestore\.js.*cc @/i,
-  /firebase_firestore\.js.*Va @/i,
-  /firebase_firestore\.js.*D @/i,
-  /firebase_firestore\.js.*Qc @/i,
-  /firebase_firestore\.js.*h\.Xa/i,
-  /firebase_firestore\.js.*h\.Ca/i,
-  /firebase_firestore\.js.*Gc @/i,
-  /firebase_firestore\.js.*h\.Ma/i,
-  /firebase_firestore\.js.*Ic @/i,
-  /firebase_firestore\.js.*h\.Pa/i,
-  /firebase_firestore\.js.*h\.send/i,
-  /firebase_firestore\.js.*h\.ea/i,
-  /firebase_firestore\.js.*Eb @/i,
-  /firebase_firestore\.js.*\$c @/i,
-  /firebase_firestore\.js.*h\.Da/i,
-  /firebase_firestore\.js.*sa @/i,
-  /firebase_firestore\.js.*u @/i,
-  /firebase_firestore\.js.*ac @/i,
-  /firebase_firestore\.js.*Lb @/i,
-  /firebase_firestore\.js.*N2\.Y/i,
-  /firebase_firestore\.js.*N2\.ba/i,
-  /firebase_firestore\.js.*Yo @/i,
-  /firebase_firestore\.js.*send @/i,
-  /firebase_firestore\.js.*q_ @/i,
-  /firebase_firestore\.js.*ra @/i,
-  /firebase_firestore\.js.*__PRIVATE_onWriteStreamOpen/i,
-  /firebase_firestore\.js.*enqueue/i,
-  /firebase_firestore\.js.*enqueueAndForget/i,
-  /firebase_firestore\.js.*handleDelayElapsed/i,
-  /firebase_firestore\.js.*setTimeout/i,
-  /firebase_firestore\.js.*T_ @/i,
-  /firebase_firestore\.js.*j_ @/i,
-  /firebase_firestore\.js.*G_ @/i,
-  /firebase_firestore\.js.*auth @/i,
-  /firebase_firestore\.js.*start @/i,
-  /firebase_firestore\.js.*Promise\.then/i,
-  /firebase_firestore\.js.*Cb @/i,
-  /firebase_firestore\.js.*h\.Ea/i,
-  /firebase_firestore\.js.*bc @/i,
-  /firebase_firestore\.js.*h\.connect/i,
-  // More comprehensive Firestore error patterns
-  /POST.*firestore\.googleapis\.com.*net::ERR_BLOCKED_BY_CLIENT/i,
-  /firebase_firestore\.js.*POST.*firestore\.googleapis\.com.*net::ERR_BLOCKED_BY_CLIENT/i,
-  /firebase_firestore\.js.*__PRIVATE_sendWatchRequest/i,
-  /firebase_firestore\.js.*__PRIVATE_onWatchStreamOpen/i,
-  /firebase_firestore\.js.*__PRIVATE_onWriteStreamOpen/i,
-  // Catch any error containing firebase_firestore.js with ERR_BLOCKED_BY_CLIENT
-  /firebase_firestore.*ERR_BLOCKED_BY_CLIENT/i,
-  /ERR_BLOCKED_BY_CLIENT.*firebase_firestore/i,
-  // Catch stack trace patterns
-  /\(анонимная\) @ firebase_firestore/i,
-  /анонимная.*firebase_firestore/i,
-  // Catch any line that contains firebase_firestore.js and error indicators
-  /firebase_firestore\.js.*:\d+.*ERR_BLOCKED_BY_CLIENT/i,
-  /firebase_firestore\.js.*:\d+.*net::ERR/i,
-  /firebase_firestore\.js.*:\d+.*POST/i,
-  // Catch Russian error text "Пояснение к ошибке" (Error explanation)
+  /INVALID_ARGUMENT/i,
+  // Failed resource loads from Firebase domains
+  /Failed to load resource.*apis\.google\.com/i,
+  /Failed to load resource.*firestore\.googleapis\.com/i,
+  // Russian localized Firebase errors
   /Пояснение к ошибке/i,
-  /Пояснение.*ошибке/i,
-  // More specific Listen/channel patterns
-  /firebase_firestore\.js.*__PRIVATE_onWatchStreamClose/i,
-  /firebase_firestore\.js.*z_ @/i,
-  /firebase_firestore\.js.*close @/i,
-  /firebase_firestore\.js.*Y_ @/i,
-  /firebase_firestore\.js.*__PRIVATE_startWatchStream/i,
-  /firebase_firestore\.js.*net::ERR_BLOCKED_BY_CLIENT/i,
-  // Catch the specific error format from user's console
-  /POST.*firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen\/channel.*net::ERR_BLOCKED_BY_CLIENT/i,
-  /firestore\.googleapis\.com.*google\.firestore\.v1\.Firestore\/Listen\/channel.*VER=8/i,
 ];
 
-// Patterns to suppress warnings
-const SUPPRESSED_WARN_PATTERNS = [
+const FIREBASE_WARN_PATTERNS: RegExp[] = [
   /Firestore connection blocked.*ad blocker/i,
   /Firestore.*blocked.*non-critical/i,
 ];
 
-// Patterns to suppress console.log messages
-const SUPPRESSED_LOG_PATTERNS = [
-  /Retrying loadCodes/i,
-  /Retrying.*attempt/i,
-];
+/**
+ * Check if a message matches Firebase noise patterns
+ */
+function isFirebaseNoise(message: string): boolean {
+  return FIREBASE_NOISE_PATTERNS.some(pattern => pattern.test(message));
+}
+
+function isFirebaseWarning(message: string): boolean {
+  return FIREBASE_WARN_PATTERNS.some(pattern => pattern.test(message));
+}
 
 /**
- * Check if an error message should be suppressed
+ * Store reference to Firestore blocking callback (set by firebase.ts)
  */
-export const shouldSuppressError = (message: string): boolean => {
-  return SUPPRESSED_ERROR_PATTERNS.some(pattern => pattern.test(message));
-};
-
-/**
- * Check if a warning message should be suppressed
- */
-export const shouldSuppressWarning = (message: string): boolean => {
-  return SUPPRESSED_WARN_PATTERNS.some(pattern => pattern.test(message));
-};
-
-// Import Firestore blocking detection
 let markFirestoreBlockedFn: (() => void) | null = null;
 
 /**
@@ -209,328 +75,67 @@ export const setMarkFirestoreBlockedFn = (fn: () => void) => {
 };
 
 /**
- * Initialize error suppression for known Firebase issues
- * This should be called early in the app lifecycle
- */
-export const initErrorSuppression = () => {
-  // Override console.error
-  console.error = (...args: any[]) => {
-    // Check all arguments for Firestore errors (including stack traces)
-    const allArgs = args.map(arg => {
-      if (typeof arg === 'string') return arg;
-      if (arg instanceof Error) return `${arg.message} ${arg.stack || ''}`;
-      if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg);
-        } catch {
-          return String(arg);
-        }
-      }
-      return String(arg);
-    }).join(' ');
-    
-    const message = args.join(' ');
-    const fullMessage = `${message} ${allArgs}`;
-    
-    // Check if any argument contains firebase_firestore.js and ERR_BLOCKED_BY_CLIENT
-    const hasFirestoreBlocked = args.some(arg => {
-      const argStr = typeof arg === 'string' ? arg : String(arg);
-      return (argStr.includes('firebase_firestore') || argStr.includes('firestore.googleapis.com')) && 
-             (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
-              argStr.includes('net::ERR_BLOCKED_BY_CLIENT') ||
-              argStr.includes('BLOCKED_BY_CLIENT') ||
-              argStr.includes('Listen/channel') ||
-              argStr.includes('TYPE=terminate') ||
-              argStr.includes('Пояснение к ошибке'));
-    });
-    
-    // Also check individual arguments
-    const shouldSuppress = 
-      shouldSuppressError(message) || 
-      shouldSuppressError(allArgs) || 
-      shouldSuppressError(fullMessage) ||
-      hasFirestoreBlocked ||
-      args.some(arg => {
-        const argStr = typeof arg === 'string' ? arg : String(arg);
-        // Aggressively suppress any firebase_firestore.js errors
-        if ((argStr.includes('firebase_firestore.js') || argStr.includes('firestore.googleapis.com')) && 
-            (argStr.includes('ERR_BLOCKED_BY_CLIENT') || 
-             argStr.includes('net::ERR') ||
-             argStr.includes('POST') ||
-             argStr.includes('Listen/channel') ||
-             argStr.includes('Write/channel') ||
-             argStr.includes('TYPE=terminate') ||
-             argStr.includes('gsessionid') ||
-             argStr.includes('Пояснение к ошибке'))) {
-          return true;
-        }
-        return shouldSuppressError(argStr);
-      });
-    
-    if (shouldSuppress) {
-      // If this is a Firestore blocking error, mark Firestore as blocked
-      if (hasFirestoreBlocked && markFirestoreBlockedFn) {
-        markFirestoreBlockedFn();
-      }
-      // Suppress known errors silently
-      return;
-    }
-    // Call original for other errors
-    originalError.apply(console, args);
-  };
-
-  // Override console.warn for known warnings
-  console.warn = (...args: any[]) => {
-    const message = args.join(' ');
-    if (shouldSuppressWarning(message)) {
-      // Suppress known warnings silently
-      return;
-    }
-    // Call original for other warnings
-    originalWarn.apply(console, args);
-  };
-
-  // Override console.log for known log messages
-  console.log = (...args: any[]) => {
-    const message = args.join(' ');
-    const shouldSuppress = SUPPRESSED_LOG_PATTERNS.some(pattern => pattern.test(message));
-    if (shouldSuppress) {
-      // Suppress known log messages silently
-      return;
-    }
-    // Call original for other log messages
-    originalLog.apply(console, args);
-  };
-
-  // Add global error handler for unhandled errors
-  window.addEventListener('error', (event) => {
-    const errorMessage = event.message || event.filename || event.target?.toString() || '';
-    const target = event.target;
-    const errorSource = 
-      (target && 'src' in target ? (target as HTMLImageElement | HTMLScriptElement | HTMLSourceElement).src : '') ||
-      (target && 'href' in target ? (target as HTMLAnchorElement | HTMLLinkElement).href : '') ||
-      '';
-    const fullMessage = `${errorMessage} ${errorSource}`;
-    
-    // Check stack trace for Firestore errors
-    const stackTrace = (event.error as Error)?.stack || '';
-    const fullErrorText = `${fullMessage} ${stackTrace}`;
-    
-    // Also check the error filename/path
-    const errorFilename = event.filename || '';
-    const errorColno = event.colno || 0;
-    const errorLineno = event.lineno || 0;
-    const errorPath = `${errorFilename}:${errorLineno}:${errorColno}`;
-    
-    // Check URL if available (for network errors)
-    const errorUrl = (event.target as any)?.url || (event.target as any)?.src || '';
-    
-    // Combine all error information
-    const allErrorInfo = `${fullMessage} ${fullErrorText} ${errorPath} ${errorUrl}`;
-    
-    // Check if error is from Firebase Auth (COOP errors)
-    const isFirebaseAuthError = errorFilename.includes('firebase_auth') || 
-                                errorMessage.includes('firebase_auth') ||
-                                stackTrace.includes('firebase_auth');
-    
-    // Check if error is from Firestore (blocked by ad blocker)
-    const isFirestoreBlockedError = errorFilename.includes('firebase_firestore') ||
-                                     errorMessage.includes('firebase_firestore') ||
-                                     errorUrl.includes('firestore.googleapis.com') ||
-                                     errorUrl.includes('google.firestore.v1.Firestore') ||
-                                     errorUrl.includes('Listen/channel') ||
-                                     errorUrl.includes('Write/channel') ||
-                                     stackTrace.includes('firebase_firestore') ||
-                                     errorMessage.includes('Пояснение к ошибке') ||
-                                     (errorMessage.includes('ERR_BLOCKED_BY_CLIENT') && 
-                                      (errorUrl.includes('firestore') || errorFilename.includes('firestore'))) ||
-                                     (errorMessage.includes('net::ERR_BLOCKED_BY_CLIENT') && 
-                                      (errorUrl.includes('firestore') || errorUrl.includes('googleapis')));
-    
-    if (shouldSuppressError(fullMessage) || 
-        shouldSuppressError(errorMessage) || 
-        shouldSuppressError(errorSource) || 
-        shouldSuppressError(fullErrorText) || 
-        shouldSuppressError(errorPath) || 
-        shouldSuppressError(errorUrl) ||
-        shouldSuppressError(allErrorInfo) ||
-        isFirestoreBlockedError ||
-        (isFirebaseAuthError && (errorMessage.includes('Cross-Origin-Opener-Policy') ||
-                                 errorMessage.includes('window.closed') ||
-                                 errorMessage.includes('window.close')))) {
-      if (isFirestoreBlockedError && markFirestoreBlockedFn) {
-        markFirestoreBlockedFn();
-      }
-      event.preventDefault();
-      event.stopPropagation();
-      return false;
-    }
-  }, true);
-
-  // Suppress network request errors from fetch/XHR
-  const originalFetch = window.fetch;
-  window.fetch = async (...args) => {
-    try {
-      return await originalFetch(...args);
-    } catch (error: any) {
-      const errorMessage = error?.message || error?.toString() || '';
-      const url = args[0]?.toString() || '';
-      if (shouldSuppressError(errorMessage) || shouldSuppressError(url)) {
-        // Suppress console output but preserve original error for callers
-        throw Object.assign(error, { _suppressed: true });
-      }
-      throw error;
-    }
-  };
-  
-  // Intercept XMLHttpRequest errors (Firebase uses XHR internally)
-  const originalXHROpen = XMLHttpRequest.prototype.open;
-  const originalXHRSend = XMLHttpRequest.prototype.send;
-  
-  XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
-    const errorUrl = typeof url === 'string' ? url : url.toString();
-    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com') || 
-                               errorUrl.includes('google.firestore.v1.Firestore');
-    const isIdentityToolkitRequest = errorUrl.includes('identitytoolkit.googleapis.com') || 
-                                     errorUrl.includes('getProjectConfig');
-    
-    if (isFirestoreRequest || isIdentityToolkitRequest) {
-      // Mark Firestore as blocked immediately if URL suggests it's a Firestore request
-      if (isFirestoreRequest && markFirestoreBlockedFn) {
-        // Don't mark immediately, wait for error to confirm
-      }
-      
-      this.addEventListener('error', function(event: Event) {
-        if (markFirestoreBlockedFn) {
-          markFirestoreBlockedFn();
-        }
-        // Suppress error event
-        event.stopImmediatePropagation();
-        event.preventDefault();
-      }, true);
-
-      // Also check for blocked status on loadend
-      this.addEventListener('loadend', function() {
-        // Status 0 often indicates blocked request
-        if (this.status === 0 && markFirestoreBlockedFn) {
-          markFirestoreBlockedFn();
-        }
-      });
-    } else {
-      this.addEventListener('error', function(event: Event) {
-        if (shouldSuppressError(errorUrl)) {
-          // Suppress error event
-          event.stopImmediatePropagation();
-          event.preventDefault();
-        }
-      }, true);
-    }
-    return originalXHROpen.apply(this, [method, url, ...rest] as any);
-  };
-  
-  XMLHttpRequest.prototype.send = function(...args: any[]) {
-    const errorUrl = (this as any)._url || this.responseURL || '';
-    const isFirestoreRequest = errorUrl.includes('firestore.googleapis.com') || 
-                               errorUrl.includes('google.firestore.v1.Firestore') ||
-                               errorUrl.includes('Listen/channel') ||
-                               errorUrl.includes('Write/channel');
-    const isIdentityToolkitRequest = errorUrl.includes('identitytoolkit.googleapis.com') || 
-                                     errorUrl.includes('getProjectConfig');
-    
-    this.addEventListener('error', function(event) {
-      if (shouldSuppressError(errorUrl) || isFirestoreRequest || isIdentityToolkitRequest) {
-        if ((isFirestoreRequest || isIdentityToolkitRequest) && markFirestoreBlockedFn) {
-          markFirestoreBlockedFn();
-        }
-        event.stopImmediatePropagation();
-        event.preventDefault();
-      }
-    });
-    
-    // Check for blocked status or invalid API key (400 status)
-    this.addEventListener('loadend', function() {
-      // Status 0 often indicates blocked request
-      if (this.status === 0 && (isFirestoreRequest || isIdentityToolkitRequest) && markFirestoreBlockedFn) {
-        markFirestoreBlockedFn();
-      }
-      // Status 400 with API key errors indicates invalid API key
-      if (this.status === 400 && isIdentityToolkitRequest && markFirestoreBlockedFn) {
-        markFirestoreBlockedFn();
-      }
-    });
-    
-    // Store URL for later reference
-    (this as any)._url = errorUrl;
-    
-    return originalXHRSend.call(this, args[0]);
-  };
-  
-  // Suppress network errors from Performance API
-  if ('PerformanceObserver' in window) {
-    try {
-      const observer = new PerformanceObserver((list) => {
-        list.getEntries().forEach((entry: any) => {
-          if (entry.name && shouldSuppressError(entry.name)) {
-            // Suppress this entry silently
-            return;
-          }
-        });
-      });
-      observer.observe({ entryTypes: ['resource'] });
-    } catch (e) {
-      // PerformanceObserver might not be available or supported
-    }
-  }
-
-  // Add global handler for unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    const errorMessage = event.reason?.message || event.reason?.toString() || '';
-    const stackTrace = event.reason?.stack || '';
-    const errorString = JSON.stringify(event.reason) || '';
-    const fullErrorText = `${errorMessage} ${stackTrace} ${errorString}`;
-    
-    // Check all possible error representations
-    if (shouldSuppressError(errorMessage) || 
-        shouldSuppressError(fullErrorText) || 
-        shouldSuppressError(stackTrace) ||
-        shouldSuppressError(errorString)) {
-      event.preventDefault();
-      event.stopPropagation();
-      return false;
-    }
-  }, true);
-};
-
-/**
  * Check if COOP (Cross-Origin-Opener-Policy) is likely blocking popups
- * This can be detected by checking if we're in a cross-origin context
  */
 export const isCOOPBlockingPopups = (): boolean => {
   try {
-    // Check if we can access opener (indicates COOP might be blocking)
     if (window.opener && window.opener !== window) {
       try {
-        // Try to access a property - if COOP is blocking, this might fail
         void window.opener.location;
         return false;
-      } catch (e) {
-        // If we can't access opener location, COOP is likely blocking
+      } catch {
         return true;
       }
     }
     return false;
-  } catch (e) {
-    // If any error occurs, assume COOP might be an issue
+  } catch {
     return true;
   }
 };
 
 /**
- * Check if ad blocker is likely active (by checking for blocked requests)
+ * Check if ad blocker is likely active (heuristic)
  */
 export const isAdBlockerActive = (): boolean => {
-  // This is a heuristic - we can't definitively detect ad blockers
-  // but we can check if certain patterns suggest it
-  return false; // Return false by default, let error handling deal with it
+  return false;
 };
 
+/**
+ * Initialize targeted Firebase console noise suppression.
+ *
+ * Only filters console.error and console.warn output that matches known
+ * Firebase SDK noise patterns. All other console output, errors, and
+ * rejections pass through normally.
+ */
+export const initErrorSuppression = () => {
+  // Filter console.error for Firebase noise
+  console.error = (...args: any[]) => {
+    const message = args.map(arg => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return `${arg.message} ${arg.stack || ''}`;
+      try { return JSON.stringify(arg); } catch { return String(arg); }
+    }).join(' ');
+
+    if (isFirebaseNoise(message)) {
+      // Notify firebase.ts that Firestore may be blocked
+      if (markFirestoreBlockedFn &&
+          (message.includes('firebase_firestore') || message.includes('firestore.googleapis.com'))) {
+        markFirestoreBlockedFn();
+      }
+      return; // suppress
+    }
+
+    originalError.apply(console, args);
+  };
+
+  // Filter console.warn for Firebase noise
+  console.warn = (...args: any[]) => {
+    const message = args.join(' ');
+
+    if (isFirebaseWarning(message)) {
+      return; // suppress
+    }
+
+    originalWarn.apply(console, args);
+  };
+};

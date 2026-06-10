@@ -96,29 +96,39 @@ const Register: React.FC = () => {
     setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Құпия сөздер сәйкес келмейді');
+      setError(t('register.passwordMismatch'));
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Құпия сөз кемінде 6 таңбадан тұруы керек');
+    if (formData.password.length < 8) {
+      setError(t('register.passwordMinLength'));
+      return;
+    }
+
+    if (!/[A-ZА-ЯЁҰҒҚҢҺҮІ]/.test(formData.password)) {
+      setError(t('register.passwordUppercase'));
+      return;
+    }
+
+    if (!/[0-9]/.test(formData.password)) {
+      setError(t('register.passwordDigit'));
       return;
     }
 
     if (!formData.username.trim()) {
-      setError('Пайдаланушы атын енгізіңіз');
+      setError(t('register.usernameRequired'));
       return;
     }
 
     if (!formData.email.trim()) {
-      setError('Электрондық поштаны енгізіңіз');
+      setError(t('register.emailRequired'));
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      setError('Электрондық пошта дұрыс емес');
+      setError(t('register.emailInvalid'));
       return;
     }
 
@@ -152,7 +162,7 @@ const Register: React.FC = () => {
 
       // Save via AuthContext
       authLogin(
-        { access_token: response.access_token, refresh_token: response.refresh_token, token_type: response.token_type },
+        { access_token: response.access_token, token_type: response.token_type },
         userForStorage,
       );
 
@@ -164,17 +174,17 @@ const Register: React.FC = () => {
     } catch (err: any) {
       console.error('Registration error:', err);
       
-      let errorMessage = 'Тіркелу қатесі';
+      let errorMessage = t('register.error');
       
       if (err.message) {
-        if (err.message.includes('already exists') || err.message.includes('User already exists') || err.message.includes('Пайдаланушы бар')) {
-          errorMessage = 'Бұл электрондық пошта немесе пайдаланушы аты бойынша тіркелгі бар';
+        if (err.message.includes('already exists') || err.message.includes('User already exists')) {
+          errorMessage = t('register.accountExists');
         } else if (err.message.includes('Password must be at least')) {
-          errorMessage = 'Құпия сөз кемінде 6 таңбадан тұруы керек';
+          errorMessage = t('register.passwordMinLength');
         } else if (err.message.includes('required')) {
-          errorMessage = 'Барлық өрістерді толтырыңыз';
+          errorMessage = t('register.allFieldsRequired');
         } else if (err.message.includes('QuotaExceededError') || err.message.includes('quota')) {
-          errorMessage = 'Жад шегінен асып кетті. Браузердің кэшін тазалап көріңіз.';
+          errorMessage = t('register.quotaExceeded');
         } else {
           errorMessage = err.message;
         }
@@ -247,7 +257,7 @@ const Register: React.FC = () => {
       
       <div className="landing-auth">
         <div className="auth-card">
-          <h2 className="auth-title">Тіркелу</h2>
+          <h2 className="auth-title">{t('register.title')}</h2>
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
@@ -281,13 +291,13 @@ const Register: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder={t('register.password')}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Парольді жасыру" : "Парольді көрсету"}
+                  aria-label={showPassword ? t('register.passwordHide') : t('register.passwordShow')}
                 >
                   <FontAwesomeIcon icon={showPassword ? faEye : faEyeSlash} />
                 </button>
@@ -308,7 +318,7 @@ const Register: React.FC = () => {
                   type="button"
                   className="password-toggle-btn"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Парольді жасыру" : "Парольді көрсету"}
+                  aria-label={showConfirmPassword ? t('register.passwordHide') : t('register.passwordShow')}
                 >
                   <FontAwesomeIcon icon={showConfirmPassword ? faEye : faEyeSlash} />
                 </button>
@@ -322,12 +332,12 @@ const Register: React.FC = () => {
             )}
 
             <Button type="submit" variant="primary" fullWidth disabled={loading}>
-              {loading ? 'Тіркелу...' : 'Тіркелу'}
+              {loading ? t('register.submitting') : t('register.title')}
             </Button>
           </form>
 
           <p className="auth-footer">
-            <Link to="/login" className="auth-footer-link-black">Кіру</Link>
+            <Link to="/login" className="auth-footer-link-black">{t('register.login')}</Link>
           </p>
         </div>
       </div>

@@ -1,66 +1,63 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCode, faUsers, faGraduationCap, faUserFriends, faComments, faHeart, faUser, faSearch, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faCode, faUsers, faGraduationCap, faUserFriends, faComments, faHeart, faUser, faSearch, faArrowLeft, faShieldAlt, faGlobe, faRocket, faMobileAlt, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { useSiteConfig } from '../contexts/SiteConfigContext';
 import './FeaturesPage.css';
+
+// Icon mapping from string names to FontAwesome icons
+const iconMap: { [key: string]: any } = {
+  faCode,
+  faUsers,
+  faGraduationCap,
+  faUserFriends,
+  faComments,
+  faHeart,
+  faUser,
+  faSearch,
+  faShieldAlt,
+  faGlobe,
+  faRocket,
+  faMobileAlt,
+  faLock,
+};
+
+// Default features when config is not available
+const defaultFeatures = [
+  { icon: 'faCode', titleKey: 'footer.codeSharing', descriptionKey: 'features.codeSharingDesc' },
+  { icon: 'faUsers', titleKey: 'footer.collaboration', descriptionKey: 'features.collaborationDesc' },
+  { icon: 'faGraduationCap', titleKey: 'footer.learning', descriptionKey: 'features.learningDesc' },
+  { icon: 'faUserFriends', titleKey: 'footer.friendsSystem', descriptionKey: 'features.friendsSystemDesc' },
+  { icon: 'faComments', titleKey: 'footer.messaging', descriptionKey: 'features.messagingDesc' },
+  { icon: 'faHeart', titleKey: 'footer.commentsLikes', descriptionKey: 'features.commentsLikesDesc' },
+  { icon: 'faUser', titleKey: 'footer.userProfiles', descriptionKey: 'features.userProfilesDesc' },
+  { icon: 'faSearch', titleKey: 'footer.searchFilter', descriptionKey: 'features.searchFilterDesc' },
+];
 
 const FeaturesPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { config } = useSiteConfig();
 
-  const features = [
-    {
-      icon: faCode,
-      title: t('footer.codeSharing'),
-      description: t('features.codeSharingDesc', 'Код файлдарыңызды оңай бөлісіп, басқа дамытушылармен бөлісіңіз')
-    },
-    {
-      icon: faUsers,
-      title: t('footer.collaboration'),
-      description: t('features.collaborationDesc', 'Басқа дамытушылармен бірге жұмыс істеп, жобаларды бірге дамытыңыз')
-    },
-    {
-      icon: faGraduationCap,
-      title: t('footer.learning'),
-      description: t('features.learningDesc', 'Басқалардың кодтарынан үйреніп, дағдыларыңызды дамытыңыз')
-    },
-    {
-      icon: faUserFriends,
-      title: t('footer.friendsSystem'),
-      description: t('features.friendsSystemDesc', 'Достар қосып, олармен байланысыңызды сақтаңыз')
-    },
-    {
-      icon: faComments,
-      title: t('footer.messaging'),
-      description: t('features.messagingDesc', 'Достармен хабарламалар алмасып, байланысыңызды сақтаңыз')
-    },
-    {
-      icon: faHeart,
-      title: t('footer.commentsLikes'),
-      description: t('features.commentsLikesDesc', 'Кодтарға пікір қалдырып, лайк қойыңыз')
-    },
-    {
-      icon: faUser,
-      title: t('footer.userProfiles'),
-      description: t('features.userProfilesDesc', 'Профильіңізді баптап, статистикаларыңызды қараңыз')
-    },
-    {
-      icon: faSearch,
-      title: t('footer.searchFilter'),
-      description: t('features.searchFilterDesc', 'Кодтарды тіл, тег немесе атау бойынша іздеп, сүзгілеңіз')
-    }
-  ];
+  const features = useMemo(() => {
+    const featureList = config?.features || defaultFeatures;
+    return featureList.map(f => ({
+      icon: iconMap[f.icon] || faCode,
+      title: t(f.titleKey),
+      description: t(f.descriptionKey),
+    }));
+  }, [config?.features, t]);
 
   return (
     <div className="features-page">
       <div className="features-container">
-        <button 
+        <button
           className="features-back-button"
           onClick={() => navigate(-1)}
         >
           <FontAwesomeIcon icon={faArrowLeft} />
-          <span>{t('common.back', 'Артқа')}</span>
+          <span>{t('common.back')}</span>
         </button>
 
         <div className="features-header">

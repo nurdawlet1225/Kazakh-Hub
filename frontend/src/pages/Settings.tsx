@@ -73,8 +73,16 @@ const Settings: React.FC = () => {
       setPasswordError(t('settings.currentPassword') + ' is required');
       return;
     }
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       setPasswordError(t('register.passwordMinLength'));
+      return;
+    }
+    if (!/[A-ZА-ЯЁҰҒҚҢҺҮІ]/.test(newPassword)) {
+      setPasswordError(t('register.passwordUppercase'));
+      return;
+    }
+    if (!/[0-9]/.test(newPassword)) {
+      setPasswordError(t('register.passwordDigit'));
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -160,14 +168,14 @@ const Settings: React.FC = () => {
   if (!isAuthenticated) return null;
 
   const tabs: { key: SettingsTab; label: string }[] = [
-    { key: 'general', label: t('settings.general') || 'Жалпы' },
-    { key: 'account', label: t('settings.account') || 'Аккаунт' },
-    { key: 'danger', label: t('settings.dangerZone') || 'Қауіпті аймақ' },
+    { key: 'general', label: t('settings.general') },
+    { key: 'account', label: t('settings.account') },
+    { key: 'danger', label: t('settings.dangerZone') },
   ];
 
   return (
     <div className="settings-container">
-      <h1 className="settings-title">{t('common.settings') || 'Баптаулар'}</h1>
+      <h1 className="settings-title">{t('common.settings')}</h1>
 
       <div className="settings-tabs">
         {tabs.map(tab => (
@@ -186,9 +194,9 @@ const Settings: React.FC = () => {
         {activeTab === 'general' && (
           <>
             <div className="settings-section">
-              <h2 className="section-title">{t('settings.general') || 'Жалпы'}</h2>
+              <h2 className="section-title">{t('settings.general')}</h2>
               <div className="setting-item">
-                <label className="setting-label">{t('settings.language') || 'Тіл'}</label>
+                <label className="setting-label">{t('settings.language')}</label>
                 <select
                   className="setting-input"
                   value={language}
@@ -200,21 +208,21 @@ const Settings: React.FC = () => {
                 </select>
               </div>
               <div className="setting-item">
-                <label className="setting-label">{t('settings.theme') || 'Тақырып'}</label>
+                <label className="setting-label">{t('settings.theme')}</label>
                 <select
                   className="setting-input"
                   value={preference}
                   onChange={(e) => setThemePreference(e.target.value as 'auto' | 'light' | 'dark')}
                 >
-                  <option value="auto">{t('settings.themeAuto') || 'Автоматты'}</option>
-                  <option value="light">{t('settings.themeLight') || 'Күн'}</option>
-                  <option value="dark">{t('settings.themeDark') || 'Түн'}</option>
+                  <option value="auto">{t('settings.themeAuto')}</option>
+                  <option value="light">{t('settings.themeLight')}</option>
+                  <option value="dark">{t('settings.themeDark')}</option>
                 </select>
               </div>
             </div>
 
             <div className="settings-section">
-              <h2 className="section-title">{t('settings.notifications') || 'Хабарландырулар'}</h2>
+              <h2 className="section-title">{t('settings.notifications')}</h2>
               <div className="setting-item">
                 <label className="setting-toggle">
                   <input
@@ -222,7 +230,7 @@ const Settings: React.FC = () => {
                     checked={notifications}
                     onChange={(e) => setNotifications(e.target.checked)}
                   />
-                  <span>{t('settings.enableNotifications') || 'Хабарландыруларды қосу'}</span>
+                  <span>{t('settings.enableNotifications')}</span>
                 </label>
               </div>
               <div className="setting-item">
@@ -232,7 +240,7 @@ const Settings: React.FC = () => {
                     checked={emailNotifications}
                     onChange={(e) => setEmailNotifications(e.target.checked)}
                   />
-                  <span>{t('settings.emailNotifications') || 'Электрондық пошта хабарландырулары'}</span>
+                  <span>{t('settings.emailNotifications')}</span>
                 </label>
               </div>
             </div>
@@ -243,9 +251,9 @@ const Settings: React.FC = () => {
         {activeTab === 'account' && (
           <>
             <div className="settings-section">
-              <h2 className="section-title">{t('settings.changePassword') || 'Құпия сөзді өзгерту'}</h2>
+              <h2 className="section-title">{t('settings.changePassword')}</h2>
               <div className="setting-item">
-                <label className="setting-label">{t('settings.currentPassword') || 'Ағымдағы құпия сөз'}</label>
+                <label className="setting-label">{t('settings.currentPassword')}</label>
                 <input
                   type="password"
                   className="setting-input"
@@ -254,36 +262,36 @@ const Settings: React.FC = () => {
                 />
               </div>
               <div className="setting-item">
-                <label className="setting-label">{t('settings.newPassword') || 'Жаңа құпия сөз'}</label>
+                <label className="setting-label">{t('settings.newPassword')}</label>
                 <input
                   type="password"
                   className="setting-input"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
               <div className="setting-item">
-                <label className="setting-label">{t('settings.confirmNewPassword') || 'Жаңа құпия сөзді растау'}</label>
+                <label className="setting-label">{t('settings.confirmNewPassword')}</label>
                 <input
                   type="password"
                   className="setting-input"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  minLength={6}
+                  minLength={8}
                 />
               </div>
               {passwordError && <p className="settings-error">{passwordError}</p>}
               {passwordSuccess && <p className="settings-success">{passwordSuccess}</p>}
               <div className="settings-actions">
                 <Button variant="primary" onClick={handleChangePassword} disabled={passwordLoading}>
-                  {passwordLoading ? '...' : t('common.save') || 'Сақтау'}
+                  {passwordLoading ? '...' : t('common.save')}
                 </Button>
               </div>
             </div>
 
             <div className="settings-section">
-              <h2 className="section-title">{t('settings.twoFactorAuth') || 'Екі факторлы аутентификация'}</h2>
+              <h2 className="section-title">{t('settings.twoFactorAuth')}</h2>
               {twoFARecoveryCodes.length > 0 && (
                 <div className="twofa-recovery-codes">
                   <p className="settings-success">{t('auth.2fa.recoveryCodes')}:</p>
@@ -297,29 +305,29 @@ const Settings: React.FC = () => {
               )}
               {totpEnabled ? (
                 <div className="twofa-status">
-                  <p className="settings-success">{t('auth.2fa.enabled') || '2FA қосылған'}</p>
+                  <p className="settings-success">{t('auth.2fa.enabled')}</p>
                   {show2FADisable ? (
                     <div className="twofa-disable-form">
                       <input
                         type="password"
                         className="setting-input"
-                        placeholder={t('settings.currentPassword') || 'Ағымдағы құпия сөз'}
+                        placeholder={t('settings.currentPassword')}
                         value={twoFADisablePassword}
                         onChange={(e) => setTwoFADisablePassword(e.target.value)}
                       />
                       <Button variant="primary" onClick={handle2FADisable}>
-                        {t('auth.2fa.disableTitle') || '2FA өшіру'}
+                        {t('auth.2fa.disableTitle')}
                       </Button>
                     </div>
                   ) : (
                     <Button variant="secondary" onClick={() => setShow2FADisable(true)}>
-                      {t('settings.disable2FA') || '2FA өшіру'}
+                      {t('settings.disable2FA')}
                     </Button>
                   )}
                 </div>
               ) : show2FASetup ? (
                 <div className="twofa-setup">
-                  <p>{t('auth.2fa.scanQR') || 'QR кодты сканерлеңіз'}</p>
+                  <p>{t('auth.2fa.scanQR')}</p>
                   <div className="twofa-qr-container">
                     {twoFAUri && (
                       <a href={twoFAUri} target="_blank" rel="noopener noreferrer" className="twofa-qr-link">
@@ -342,21 +350,21 @@ const Settings: React.FC = () => {
                       onClick={handle2FAVerifySetup}
                       disabled={twoFACode.length !== 6}
                     >
-                      {t('auth.2fa.enterCode') || 'Код енгізіңіз'}
+                      {t('auth.2fa.enterCode')}
                     </Button>
                   </div>
                   {twoFAError && <p className="settings-error">{twoFAError}</p>}
                 </div>
               ) : (
                 <Button variant="primary" onClick={handle2FASetup}>
-                  {t('settings.enable2FA') || '2FA қосу'}
+                  {t('settings.enable2FA')}
                 </Button>
               )}
             </div>
 
             <div className="settings-section">
-              <h2 className="section-title">{t('settings.activeSession') || 'Белсі сессия'}</h2>
-              <p className="setting-info">{t('settings.singleSessionNote') || 'Бір аккаунтпен бір мезгілде бір ғана сессия жұмыс істей алады. Басқа құрылғыдан кіргенде бұл сессия жабылады.'}</p>
+              <h2 className="section-title">{t('settings.activeSession')}</h2>
+              <p className="setting-info">{t('settings.singleSessionNote')}</p>
             </div>
           </>
         )}
@@ -367,27 +375,27 @@ const Settings: React.FC = () => {
             <div className="settings-danger-zone">
               <div className="danger-zone-header">
                 <div className="danger-zone-icon">!</div>
-                <h2 className="danger-zone-title">{t('settings.dangerZone') || 'Қауіпті аймақ'}</h2>
+                <h2 className="danger-zone-title">{t('settings.dangerZone')}</h2>
               </div>
               <p className="danger-zone-description">
-                {t('settings.dangerZoneDescription') || 'Аккаунтты жою - бұл қайтару мүмкін емес әрекет. Барлық деректеріңіз мәңгілікке жойылады.'}
+                {t('settings.dangerZoneDescription')}
               </p>
               <div className="danger-zone-warning">
                 <div className="warning-item">
                   <span className="warning-icon">&times;</span>
-                  <span>{t('settings.deleteAccountWarning1') || 'Барлық код файлдарыңыз жойылады'}</span>
+                  <span>{t('settings.deleteAccountWarning1')}</span>
                 </div>
                 <div className="warning-item">
                   <span className="warning-icon">&times;</span>
-                  <span>{t('settings.deleteAccountWarning2') || 'Барлық пікірлеріңіз жойылады'}</span>
+                  <span>{t('settings.deleteAccountWarning2')}</span>
                 </div>
                 <div className="warning-item">
                   <span className="warning-icon">&times;</span>
-                  <span>{t('settings.deleteAccountWarning3') || 'Барлық достар деректері жойылады'}</span>
+                  <span>{t('settings.deleteAccountWarning3')}</span>
                 </div>
                 <div className="warning-item">
                   <span className="warning-icon">&times;</span>
-                  <span>{t('settings.deleteAccountWarning4') || 'Барлық хабарламалар жойылады'}</span>
+                  <span>{t('settings.deleteAccountWarning4')}</span>
                 </div>
               </div>
               <button
@@ -396,30 +404,29 @@ const Settings: React.FC = () => {
                 disabled={deleteLoading}
               >
                 {deleteLoading
-                  ? (t('settings.deletingAccount') || 'Жойылуда...')
+                  ? t('settings.deletingAccount')
                   : deleteConfirmStep === 0
-                    ? (t('settings.deleteAccountButton') || 'Аккаунтты толықтай жою')
+                    ? t('settings.deleteAccountButton')
                     : deleteConfirmStep === 1
-                      ? (t('settings.deleteAccountConfirm') || 'Аккаунтты жоюға сенімдісіз бе?')
-                      : (t('settings.deleteAccountDoubleConfirm') || 'ШЫНЫМЕН ДЕ жоюға дайынсыз ба?')
-                }
+                      ? t('settings.deleteAccountConfirm')
+                      : t('settings.deleteAccountDoubleConfirm')}
               </button>
             </div>
 
             <div className="settings-section" style={{ marginTop: '1.5rem' }}>
-              <h2 className="section-title">{t('settings.logout') || 'Шығу'}</h2>
-              <p className="setting-info">{t('settings.logoutDescription') || 'Аккаунттан шығу'}</p>
+              <h2 className="section-title">{t('settings.logout')}</h2>
+              <p className="setting-info">{t('settings.logoutDescription')}</p>
               <div className="settings-actions">
                 <Button
                   variant="secondary"
                   onClick={async () => {
-                    if (window.confirm(t('settings.logoutConfirm') || 'Шығуға сенімдісіз бе?')) {
+                    if (window.confirm(t('settings.logoutConfirm'))) {
                       await logout();
                       navigate('/login');
                     }
                   }}
                 >
-                  {t('settings.logout') || 'Шығу'}
+                  {t('settings.logout')}
                 </Button>
               </div>
             </div>

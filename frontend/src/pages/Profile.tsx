@@ -249,7 +249,7 @@ const Profile: React.FC = () => {
           userData = await apiService.getUserByUsername(urlUsername);
         } catch (err: any) {
           console.error('Failed to load user by username:', err);
-          setError('Пайдаланушы табылмады');
+          setError(t('profile.userNotFound'));
           setLoading(false);
           return;
         }
@@ -404,7 +404,7 @@ const Profile: React.FC = () => {
                 onClick={handleChangeBackgroundClick}
               >
                 <FontAwesomeIcon icon={faImage} />
-                <span>Фон өзгерту</span>
+                <span>{t('profile.changeBackground')}</span>
               </button>
             </div>
           )}
@@ -431,7 +431,7 @@ const Profile: React.FC = () => {
               <button 
                 className="copy-id-btn" 
                 onClick={copyId}
-                title={isIdCopied ? 'Көшірілді' : 'ID көшіру'}
+                title={isIdCopied ? t('profile.copied') : t('profile.copyId')}
               >
                 <FontAwesomeIcon icon={isIdCopied ? faCheck : faCopy} />
               </button>

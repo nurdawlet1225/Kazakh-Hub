@@ -1,8 +1,10 @@
 """Authentication routes"""
+import os
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from models import (
     UserRegister, UserLogin, ChangePassword,
@@ -16,8 +18,59 @@ from utils.auth import (
     decode_token, get_current_user, oauth2_scheme,
 )
 from config import JWT_SECRET_KEY, JWT_ALGORITHM
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
+limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
+
+
+# Cookie settings for refresh token
+REFRESH_TOKEN_COOKIE = "refresh_token"
+CSRF_TOKEN_COOKIE = "csrf_token"
+COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"  # MUST be "true" in production with HTTPS
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "strict")
+
+
+def _set_refresh_token_cookie(response: JSONResponse, refresh_token: str) -> JSONResponse:
+    """Set HttpOnly cookie with refresh token and a CSRF double-submit cookie."""
+    # Generate a random CSRF token for double-submit cookie pattern
+    csrf_token = secrets.token_hex(32)
+    response.set_cookie(
+        key=REFRESH_TOKEN_COOKIE,
+        value=refresh_token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/api/auth",
+    )
+    # CSRF token cookie: readable by JS (not HttpOnly) so the frontend can
+    # send it back as a custom header. Same lifetime as the refresh token.
+    response.set_cookie(
+        key=CSRF_TOKEN_COOKIE,
+        value=csrf_token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=False,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/api/auth",
+    )
+    return response
+
+
+def _clear_refresh_token_cookie(response: JSONResponse) -> JSONResponse:
+    """Clear the refresh token and CSRF cookies on logout."""
+    response.delete_cookie(
+        key=REFRESH_TOKEN_COOKIE,
+        path="/api/auth",
+    )
+    response.delete_cookie(
+        key=CSRF_TOKEN_COOKIE,
+        path="/api/auth",
+    )
+    return response
 
 
 def generate_user_id() -> str:
@@ -56,7 +109,8 @@ def _create_tokens(user: User, db: Session) -> dict:
 
 
 @router.post("/auth/register")
-async def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+async def register(request: Request, user_data: UserRegister, db: Session = Depends(get_db)):
     try:
         if not user_data.username or not user_data.username.strip():
             raise HTTPException(status_code=400, detail="Username is required")
@@ -64,8 +118,12 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Email is required")
         if not user_data.password or not user_data.password.strip():
             raise HTTPException(status_code=400, detail="Password is required")
-        if len(user_data.password) < 6:
-            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        if len(user_data.password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+        if not any(c.isupper() for c in user_data.password):
+            raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
+        if not any(c.isdigit() for c in user_data.password):
+            raise HTTPException(status_code=400, detail="Password must contain at least one digit")
 
         username = user_data.username.strip()
         email = user_data.email.strip().lower()
@@ -93,25 +151,28 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
         db.refresh(new_user)
 
         tokens = _create_tokens(new_user, db)
-        return {
+        response = JSONResponse(content={
             "user": _user_dict(new_user),
             "access_token": tokens["access_token"],
-            "refresh_token": tokens["refresh_token"],
             "token_type": "bearer",
             "message": "User registered successfully",
-        }
+        })
+        _set_refresh_token_cookie(response, tokens["refresh_token"])
+        return response
     except HTTPException:
         raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"Registration error: {e}")
+        import logging
+        logging.getLogger("kazakh_hub").error(f"Registration error: {e}")
         db.rollback()
         raise HTTPException(status_code=500, detail="Registration failed")
 
 
 @router.post("/auth/login")
-async def login(login_data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, login_data: UserLogin, db: Session = Depends(get_db)):
     if not login_data.email and not login_data.username:
         raise HTTPException(status_code=400, detail="Email or username required")
     if not login_data.password:
@@ -138,18 +199,32 @@ async def login(login_data: UserLogin, db: Session = Depends(get_db)):
         }
 
     tokens = _create_tokens(user, db)
-    return {
+    response = JSONResponse(content={
         "user": _user_dict(user),
         "access_token": tokens["access_token"],
-        "refresh_token": tokens["refresh_token"],
         "token_type": "bearer",
-    }
+    })
+    _set_refresh_token_cookie(response, tokens["refresh_token"])
+    return response
 
 
 @router.post("/auth/refresh")
-async def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh_token(request: Request, db: Session = Depends(get_db)):
+    # CSRF protection: double-submit cookie pattern
+    csrf_cookie = request.cookies.get(CSRF_TOKEN_COOKIE)
+    csrf_header = request.headers.get("X-CSRF-Token")
+    if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    # Read refresh token from HttpOnly cookie
+    refresh_token_value = request.cookies.get(REFRESH_TOKEN_COOKIE)
+
+    if not refresh_token_value:
+        raise HTTPException(status_code=401, detail="Refresh token required")
+
     try:
-        payload = decode_token(request.refresh_token)
+        payload = decode_token(refresh_token_value)
     except HTTPException:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
@@ -162,41 +237,51 @@ async def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_
         raise HTTPException(status_code=401, detail="User not found")
 
     # Validate the refresh token hash
-    if not user.refresh_token_hash or not verify_password(request.refresh_token, user.refresh_token_hash):
+    if not user.refresh_token_hash or not verify_password(refresh_token_value, user.refresh_token_hash):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
 
     access_token = create_access_token(
         data={"sub": user.id, "username": user.username, "session_id": user.session_id}
     )
-    return {
+    response = JSONResponse(content={
         "access_token": access_token,
         "token_type": "bearer",
-    }
+    })
+    return response
 
 
 @router.post("/auth/logout")
-async def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+async def logout(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user.session_id = None
     user.refresh_token_hash = None
     db.commit()
-    return {"message": "Logged out successfully"}
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    _clear_refresh_token_cookie(response)
+    return response
 
 
 @router.post("/auth/change-password")
+@limiter.limit("5/minute")
 async def change_password(
-    request: ChangePassword,
+    request: Request,
+    body: ChangePassword,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not request.currentPassword:
+    if not body.currentPassword:
         raise HTTPException(status_code=400, detail="Current password is required")
-    if len(request.newPassword) < 6:
-        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    if len(body.newPassword) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+    if not any(c.isupper() for c in body.newPassword):
+        raise HTTPException(status_code=400, detail="New password must contain at least one uppercase letter")
+    if not any(c.isdigit() for c in body.newPassword):
+        raise HTTPException(status_code=400, detail="New password must contain at least one digit")
 
-    if not user.password_hash or not verify_password(request.currentPassword, user.password_hash):
+    if not user.password_hash or not verify_password(body.currentPassword, user.password_hash):
         raise HTTPException(status_code=401, detail="Current password is incorrect")
 
-    user.password_hash = hash_password(request.newPassword)
+    user.password_hash = hash_password(body.newPassword)
     # Invalidate sessions after password change
     user.session_id = None
     user.refresh_token_hash = None
@@ -206,8 +291,9 @@ async def change_password(
 
 
 @router.post("/auth/forgot-password")
-async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email.strip().lower()).first()
+@limiter.limit("3/minute")
+async def forgot_password(request: Request, forgot_request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == forgot_request.email.strip().lower()).first()
     if not user:
         # Don't reveal whether email exists
         return {"message": "If the email exists, a reset link has been sent."}
@@ -223,20 +309,26 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
     db.commit()
 
     # In production, send via email. For now, return token in response.
-    # TODO: Send reset link via email instead of returning token
+    # Security: reset_token is no longer returned in the API response.
+    # In a production system, this token should be sent via email as part of a reset link.
+    # For development/testing, the token can be checked in the database directly.
     return {
         "message": "If the email exists, a reset link has been sent.",
-        "reset_token": token,  # TODO: Remove this in production - send via email instead
     }
 
 
 @router.post("/auth/reset-password")
-async def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
-    if len(request.new_password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+@limiter.limit("5/minute")
+async def reset_password(request: Request, body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if not any(c.isupper() for c in body.new_password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
+    if not any(c.isdigit() for c in body.new_password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one digit")
 
     reset_entry = db.query(PasswordReset).filter(
-        PasswordReset.token == request.token,
+        PasswordReset.token == body.token,
         PasswordReset.used == False,
     ).first()
 
@@ -249,7 +341,7 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user.password_hash = hash_password(request.new_password)
+    user.password_hash = hash_password(body.new_password)
     user.session_id = None
     user.refresh_token_hash = None
     reset_entry.used = True
@@ -261,7 +353,8 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
 # ── 2FA endpoints ──
 
 @router.post("/auth/2fa/setup")
-async def setup_2fa(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def setup_2fa(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.totp_enabled:
         raise HTTPException(status_code=400, detail="2FA is already enabled")
 
@@ -279,8 +372,10 @@ async def setup_2fa(user: User = Depends(get_current_user), db: Session = Depend
 
 
 @router.post("/auth/2fa/verify-setup")
+@limiter.limit("5/minute")
 async def verify_2fa_setup(
-    request: TwoFASetupVerify,
+    request: Request,
+    two_fa_request: TwoFASetupVerify,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -290,7 +385,7 @@ async def verify_2fa_setup(
     if not user.totp_secret:
         raise HTTPException(status_code=400, detail="2FA not set up. Call /auth/2fa/setup first.")
 
-    if not verify_totp_code(user.totp_secret, request.code):
+    if not verify_totp_code(user.totp_secret, two_fa_request.code):
         raise HTTPException(status_code=400, detail="Invalid verification code")
 
     user.totp_enabled = True
@@ -305,15 +400,17 @@ async def verify_2fa_setup(
 
 
 @router.post("/auth/2fa/disable")
+@limiter.limit("5/minute")
 async def disable_2fa(
-    request: TwoFADisable,
+    request: Request,
+    two_fa_request: TwoFADisable,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if not user.totp_enabled:
         raise HTTPException(status_code=400, detail="2FA is not enabled")
 
-    if not user.password_hash or not verify_password(request.password, user.password_hash):
+    if not user.password_hash or not verify_password(two_fa_request.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Incorrect password")
 
     user.totp_secret = None
@@ -325,12 +422,13 @@ async def disable_2fa(
 
 
 @router.post("/auth/2fa/verify")
-async def verify_2fa_login(request: TwoFALoginVerify, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def verify_2fa_login(request: Request, two_fa_request: TwoFALoginVerify, db: Session = Depends(get_db)):
     from utils.totp import verify_totp_code, verify_recovery_code
     import json
 
     try:
-        payload = decode_token(request.temp_token)
+        payload = decode_token(two_fa_request.temp_token)
     except HTTPException:
         raise HTTPException(status_code=401, detail="Invalid or expired 2FA token")
 
@@ -344,7 +442,7 @@ async def verify_2fa_login(request: TwoFALoginVerify, db: Session = Depends(get_
 
     # Check TOTP code first
     code_valid = False
-    if user.totp_secret and verify_totp_code(user.totp_secret, request.code):
+    if user.totp_secret and verify_totp_code(user.totp_secret, two_fa_request.code):
         code_valid = True
     else:
         # Check recovery codes
@@ -352,7 +450,7 @@ async def verify_2fa_login(request: TwoFALoginVerify, db: Session = Depends(get_
             try:
                 stored_codes = json.loads(user.recovery_codes)
                 for i, hashed in enumerate(stored_codes):
-                    if verify_recovery_code(request.code, hashed):
+                    if verify_recovery_code(two_fa_request.code, hashed):
                         # Remove used recovery code
                         stored_codes.pop(i)
                         user.recovery_codes = json.dumps(stored_codes) if stored_codes else None
@@ -366,9 +464,10 @@ async def verify_2fa_login(request: TwoFALoginVerify, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail="Invalid 2FA code")
 
     tokens = _create_tokens(user, db)
-    return {
+    response = JSONResponse(content={
         "user": _user_dict(user),
         "access_token": tokens["access_token"],
-        "refresh_token": tokens["refresh_token"],
         "token_type": "bearer",
-    }
+    })
+    _set_refresh_token_cookie(response, tokens["refresh_token"])
+    return response

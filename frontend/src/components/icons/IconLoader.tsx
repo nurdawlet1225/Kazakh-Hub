@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import SvgIcon from '../ui/SvgIcon';
 
 interface IconLoaderProps {
@@ -12,6 +13,7 @@ interface IconLoaderProps {
 /**
  * Component to load and display SVG icons from external sources
  * Supports icons from oyji.org and other SVG sources
+ * Uses DOMPurify to sanitize SVG content and prevent XSS attacks
  */
 const IconLoader: React.FC<IconLoaderProps> = ({
   src,
@@ -31,10 +33,14 @@ const IconLoader: React.FC<IconLoaderProps> = ({
           throw new Error('Failed to load SVG');
         }
         const text = await response.text();
-        setSvgContent(text);
+        // Sanitize SVG content with DOMPurify to prevent XSS
+        const sanitized = DOMPurify.sanitize(text, {
+          USE_PROFILES: { svg: true, svgFilters: true },
+          RETURN_DOM: false,
+        });
+        setSvgContent(sanitized);
         setError(false);
       } catch (err) {
-        console.error('Error loading SVG icon:', err);
         setError(true);
       }
     };
@@ -56,15 +62,15 @@ const IconLoader: React.FC<IconLoaderProps> = ({
   const parser = new DOMParser();
   const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
   const svgElement = svgDoc.querySelector('svg');
-  
+
   if (!svgElement) {
     return fallback ? <>{fallback}</> : null;
   }
 
   // Extract viewBox if not provided
   const extractedViewBox = viewBox || svgElement.getAttribute('viewBox') || '0 0 24 24';
-  
-  // Get inner HTML content (paths, circles, etc.)
+
+  // Get inner HTML content (paths, circles, etc.) - already sanitized by DOMPurify
   const innerHTML = svgElement.innerHTML;
 
   return (

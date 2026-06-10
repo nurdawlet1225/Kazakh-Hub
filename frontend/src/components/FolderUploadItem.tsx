@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { useFileUpload } from '../hooks/useFileUpload';
@@ -10,6 +11,7 @@ interface FolderUploadItemProps {
 }
 
 const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
+  const { t } = useTranslation();
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [title, setTitle] = useState('');
@@ -83,7 +85,7 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
   return (
     <div className="folder-upload-item">
       <div className="folder-upload-header">
-        <h3><FontAwesomeIcon icon={faFolder} /> Папка жүктеу</h3>
+        <h3><FontAwesomeIcon icon={faFolder} /> {t('folderUpload.title')}</h3>
       </div>
 
       <form onSubmit={handleSubmit} className="folder-upload-form">
@@ -106,50 +108,50 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
             <div className="folder-selected">
               <span className="folder-icon"><FontAwesomeIcon icon={faFolder} /></span>
               <span className="folder-name">
-                {selectedFiles[0]?.webkitRelativePath?.split('/')[0] || 'Папка'}
+                {selectedFiles[0]?.webkitRelativePath?.split('/')[0] || t('folderUpload.folderLabel')}
               </span>
-              <span className="folder-size">{selectedFiles.length} файл</span>
+              <span className="folder-size">{selectedFiles.length} {t('folderUpload.fileCount')}</span>
             </div>
           ) : (
             <div className="dropzone-content">
               <span className="dropzone-icon"><FontAwesomeIcon icon={faFolder} /></span>
-              <p>Папканы осы жерге тартып тастаңыз немесе таңдау үшін басыңыз</p>
-              <p className="dropzone-hint">Папкадағы барлық файлдар өңделеді</p>
+              <p>{t('folderUpload.dropzoneText')}</p>
+              <p className="dropzone-hint">{t('folderUpload.dropzoneHint')}</p>
             </div>
           )}
         </div>
 
         <div className="form-group">
-          <label htmlFor="folder-title">Атауы</label>
+          <label htmlFor="folder-title">{t('folderUpload.titleLabel')}</label>
           <input
             id="folder-title"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Папканың атауын енгізіңіз"
+            placeholder={t('folderUpload.titlePlaceholder')}
             required
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="folder-description">Сипаттама</label>
+          <label htmlFor="folder-description">{t('folderUpload.descriptionLabel')}</label>
           <textarea
             id="folder-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Папканың сипаттамасын енгізіңіз..."
+            placeholder={t('folderUpload.descriptionPlaceholder')}
             rows={3}
           />
         </div>
 
         <div className="form-group">
-          <label htmlFor="folder-tags">Тегтер</label>
+          <label htmlFor="folder-tags">{t('folderUpload.tagsLabel')}</label>
           <input
             id="folder-tags"
             type="text"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
-            placeholder="folder, project, code (үтірмен бөлінген)"
+            placeholder={t('folderUpload.tagsPlaceholder')}
           />
         </div>
 
@@ -161,14 +163,14 @@ const FolderUploadItem: React.FC<FolderUploadItemProps> = ({ onSuccess }) => {
 
         <div className="form-actions">
           <Button type="button" onClick={handleReset} variant="secondary">
-            Тазалау
+            {t('folderUpload.clear')}
           </Button>
-          <Button 
-            type="submit" 
-            variant="primary" 
+          <Button
+            type="submit"
+            variant="primary"
             disabled={!selectedFiles || uploading}
           >
-            {uploading ? 'Жүктелуде...' : 'Жүктеу'}
+            {uploading ? t('folderUpload.uploading') : t('folderUpload.upload')}
           </Button>
         </div>
       </form>

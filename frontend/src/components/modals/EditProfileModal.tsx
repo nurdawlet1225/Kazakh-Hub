@@ -296,25 +296,25 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       if (isPasswordChange) {
         // Validate password fields
         if (!formData.currentPassword) {
-          setPasswordError('Ағымдағы құпия сөзді енгізіңіз');
+          setPasswordError(t('editProfile.enterCurrentPassword'));
           setLoading(false);
           return;
         }
 
         if (!formData.newPassword) {
-          setPasswordError('Жаңа құпия сөз енгізіңіз');
+          setPasswordError(t('editProfile.enterNewPassword'));
           setLoading(false);
           return;
         }
 
         if (formData.newPassword.length < 6) {
-          setPasswordError('Жаңа құпия сөз кемінде 6 таңбадан тұруы керек');
+          setPasswordError(t('editProfile.passwordMinLength'));
           setLoading(false);
           return;
         }
 
         if (formData.newPassword !== formData.confirmPassword) {
-          setPasswordError('Құпия сөздер сәйкес келмейді');
+          setPasswordError(t('editProfile.passwordsDoNotMatch'));
           setLoading(false);
           return;
         }
@@ -349,21 +349,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         updateData.avatar = undefined; // Explicitly set to undefined to remove avatar
       }
 
-      console.log('Updating profile with:', { 
-        ...updateData, 
-        avatar: updateData.avatar ? 'base64 image (length: ' + updateData.avatar.length + ')' : 'null',
-        bio: updateData.bio || 'empty'
-      });
-
       const updatedUser = await apiService.updateUserProfile(updateData);
-      
-      console.log('Profile updated successfully:', { 
-        id: updatedUser.id, 
-        username: updatedUser.username, 
-        email: updatedUser.email,
-        bio: updatedUser.bio || 'empty',
-        hasAvatar: !!updatedUser.avatar 
-      });
 
       // Save avatar separately using imageStorage if present
       if (formData.avatar && formData.avatar.trim() !== '') {
@@ -390,12 +376,6 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
         bio: updatedUser.bio || formData.bio || undefined, // Ensure bio is included
         avatar: avatar ? 'stored' : undefined // Just a flag, not the actual image
       };
-      
-      console.log('Saving to localStorage:', {
-        id: userForStorage.id,
-        username: userForStorage.username,
-        bio: userForStorage.bio || 'empty'
-      });
       
       try {
         localStorage.setItem('user', JSON.stringify(userForStorage));
@@ -548,7 +528,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 id="bio"
                 value={formData.bio}
                 onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                placeholder={t('editProfile.bioPlaceholder') || 'Сипаттама'}
+                placeholder={t('editProfile.bioPlaceholder')}
                 rows={1}
                 maxLength={500}
                 style={{
@@ -629,7 +609,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="password"
                 value={formData.currentPassword}
                 onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                placeholder={t('editProfile.currentPasswordPlaceholder') || 'Ағымдағы құпия сөз'}
+                placeholder={t('editProfile.currentPasswordPlaceholder')}
                 required
               />
             </div>
@@ -639,8 +619,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="password"
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                placeholder={t('editProfile.newPasswordPlaceholder') || 'Жаңа құпия сөз'}
-                minLength={6}
+                placeholder={t('editProfile.newPasswordPlaceholder')}
+                minLength={8}
               />
             </div>
             <div className="form-group">
@@ -649,8 +629,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 type="password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                placeholder={t('editProfile.confirmPasswordPlaceholder') || 'Құпия сөзді қайталаңыз'}
-                minLength={6}
+                placeholder={t('editProfile.confirmPasswordPlaceholder')}
+                minLength={8}
               />
             </div>
             {passwordError && (
@@ -670,10 +650,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
           <div className="form-actions">
             <Button type="button" onClick={onClose} variant="secondary">
-              {t('common.cancel') || 'Болдырмау'}
+              {t('common.cancel')}
             </Button>
             <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? (t('editProfile.saving') || 'Сақталуда...') : (t('common.save') || 'Сақтау')}
+              {loading ? t('editProfile.saving') : t('common.save')}
             </Button>
           </div>
         </form>

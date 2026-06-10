@@ -8,7 +8,12 @@ from websocket import manager
 
 class MessageService:
     """Service for message-related operations"""
-    
+
+    @staticmethod
+    async def get_message_by_id(message_id: str) -> Optional[Dict[str, Any]]:
+        """Get a message by its ID"""
+        return next((msg for msg in messages if msg['id'] == message_id), None)
+
     @staticmethod
     def get_user_messages(user_id: str) -> List[Dict[str, Any]]:
         """Get all messages for a user"""

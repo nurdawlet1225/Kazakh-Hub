@@ -16,7 +16,41 @@
   "fileConfig": {
     "maxFileSizeBytes": 31457280,
     "maxFileSizeMB": 30,
-    "supportedExtensions": [".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".cpp", ".c", ".h", ".html", ".css", ".json", ".md", ".xml", ".yaml", ".yml"]
+    "maxFolderSizeBytes": 524288000,
+    "supportedExtensions": [".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".cpp", ".c", ".h", ".html", ".css", ".json", ".md", ".xml", ".yaml", ".yml"],
+    "dangerousExtensions": [".exe", ".bat", ".cmd", ".com", ".pif", ".scr", ".vbs", ".jar", ".app", ".deb", ".pkg", ".rpm", ".msi", ".dmg", ".sh", ".ps1", ".bin", ".dll", ".so", ".dylib", ".sys", ".drv", ".ocx", ".cpl", ".php", ".asp", ".aspx", ".jsp", ".class"],
+    "allowedExtensions": [".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".cpp", ".c", ".h", ".html", ".css", ".json", ".md", ".xml", ".yaml", ".yml", ".txt", ".sql", ".rb", ".go", ".rs", ".swift", ".kt", ".scala", ".r", ".m", ".pl", ".sh", ".bat", ".ps1", ".dockerfile", ".toml", ".ini", ".cfg", ".conf", ".env", ".gitignore", ".svg", ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp"],
+    "allowedMimeTypes": ["text/plain", "text/html", "text/css", "text/javascript", "text/xml", "application/json", "application/xml", "application/javascript", "application/x-javascript", "image/png", "image/jpeg", "image/gif", "image/svg+xml", "image/webp", "image/x-icon"]
+  },
+  "languageCategories": {
+    "Web": ["html", "css", "javascript", "typescript"],
+    "Backend": ["python", "java", "cpp", "c"],
+    "Markup": ["json", "markdown"],
+    "Other": []
+  },
+  "codeCategoryKeywords": {
+    "ai": ["жи", "ai", "machine learning", "ml", "нейрон", "жасанды", "нейросеть", "deep learning", "nlp", "tensorflow", "pytorch", "gpt", "llm", "chatbot"],
+    "websites": ["сайт", "web", "html", "css", "frontend", "backend", "react", "angular", "vue", "node", "express", "веб", "домен", "серв", "фреймворк"],
+    "mobile": ["мобиль", "mobile", "android", "ios", "flutter", "react native", "swift", "kotlin", "телефон", "приложение", "app"],
+    "api": ["api", "backend", "сервер", "server", "rest", "graphql", "endpoint", "маршрут", "запрос"],
+    "database": ["база", "database", "sql", "mongodb", "postgres", "mysql", "sqlite", "redis", "данных", "схема"],
+    "algorithms": ["алгоритм", "algorithm", "структура", "structure", "сортировка", "sorting", "граф", "graph", "дерево", "tree", "рекурсия", "recursion", "динамик", "dynamic"]
+  },
+  "features": [
+    { "icon": "faCode", "titleKey": "footer.codeSharing", "descriptionKey": "features.codeSharingDesc" },
+    { "icon": "faUsers", "titleKey": "footer.collaboration", "descriptionKey": "features.collaborationDesc" },
+    { "icon": "faGraduationCap", "titleKey": "footer.learning", "descriptionKey": "features.learningDesc" },
+    { "icon": "faShieldAlt", "titleKey": "footer.security", "descriptionKey": "features.securityDesc" },
+    { "icon": "faGlobe", "titleKey": "footer.community", "descriptionKey": "features.communityDesc" },
+    { "icon": "faRocket", "titleKey": "footer.performance", "descriptionKey": "features.performanceDesc" },
+    { "icon": "faMobileAlt", "titleKey": "footer.mobile", "descriptionKey": "features.mobileDesc" },
+    { "icon": "faLock", "titleKey": "footer.privacy", "descriptionKey": "features.privacyDesc" }
+  ],
+  "passwordRules": {
+    "minLength": 6,
+    "requireUppercase": false,
+    "requireNumber": false,
+    "emailRegex": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
   },
   "apiDisplayUrl": "http://127.0.0.1:3000/api"
 }

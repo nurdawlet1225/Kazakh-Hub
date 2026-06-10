@@ -3,7 +3,14 @@ import os
 from datetime import timedelta
 
 # JWT Configuration
-JWT_SECRET_KEY = os.getenv("JWT_SECRET", "kazakh-hub-secret-change-in-production-2024")
+_jwt_secret = os.getenv("JWT_SECRET")
+if not _jwt_secret:
+    raise EnvironmentError(
+        "JWT_SECRET environment variable is required. "
+        "Set it before starting the application. "
+        "Example: export JWT_SECRET=$(python -c 'import secrets; print(secrets.token_hex(32))')"
+    )
+JWT_SECRET_KEY = _jwt_secret
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_EXPIRE", "30"))
 JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_REFRESH_EXPIRE", "7"))
@@ -29,7 +36,12 @@ DANGEROUS_EXTENSIONS = [
     '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.jar',
     '.app', '.deb', '.pkg', '.rpm', '.msi', '.dmg', '.sh', '.ps1',
     '.bin', '.dll', '.so', '.dylib', '.sys', '.drv', '.ocx', '.cpl',
-    '.php', '.asp', '.aspx', '.jsp', '.class'
+    '.php', '.asp', '.aspx', '.jsp', '.class',
+    '.svg', '.svgz', '.xml', '.xhtml', '.xht', '.htm', '.html',
+    '.js', '.mjs', '.cjs', '.ts',
+    '.htaccess', '.htpasswd', '.env',
+    '.py', '.rb', '.pl', '.cgi',
+    '.sql', '.db', '.sqlite', '.sqlite3',
 ]
 
 # Firestore sync availability

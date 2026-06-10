@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { processFile, processFolder, FileInfo, FolderInfo } from '../utils/fileHandler';
 import { apiService } from '../utils/api';
 import { offlineStorage, PendingUpload } from '../utils/offlineStorage';
@@ -28,6 +29,7 @@ const fileListToArray = (files: FileList | File[]): File[] => {
 };
 
 export const useFileUpload = (): UseFileUploadReturn => {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; startTime: number } | null>(null);
@@ -73,7 +75,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
       const pending = await offlineStorage.getPendingUploads();
       if (pending.length === 0) return;
 
-      console.log(`${pending.length} күтудегі жүктеу табылды, жалғастыру...`);
+      console.log(t('fileUpload.pendingUploadsFound', { count: pending.length }));
 
       for (const upload of pending) {
         try {
@@ -92,7 +94,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
 
           await checkPendingUploads();
         } catch (err) {
-          console.error(`Күтудегі жүктеуді жалғастыру қатесі (${upload.id}):`, err);
+          console.error(t('fileUpload.retryError', { id: upload.id }), err);
           // Increment retry count and re-save
           upload.retryCount++;
           if (upload.retryCount < 5) {
@@ -102,7 +104,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
         }
       }
     } catch (err) {
-      console.error('Күтудегі жүктеулерді тексеру қатесі:', err);
+      console.error(t('fileUpload.checkPendingError'), err);
     }
   };
 
@@ -139,7 +141,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
       // Dispatch event to refresh codes list
       window.dispatchEvent(new CustomEvent('codesUpdated'));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Файлды жүктеу қатесі';
+      const errorMessage = err instanceof Error ? err.message : t('fileUpload.uploadFileError');
       setError(errorMessage);
       throw err;
     } finally {
@@ -171,11 +173,11 @@ export const useFileUpload = (): UseFileUploadReturn => {
         };
         await offlineStorage.savePendingUpload(pendingUpload);
         await checkPendingUploads();
-        setError('Интернет жоқ. Жүктеу кэштеуге сақталды. Интернет қосылғанда автоматты жалғасады.');
+        setError(t('fileUpload.uploadOfflineCached'));
         setUploading(false);
         return;
       } catch (cacheErr) {
-        setError('Интернет жоқ және кэштеуге сақтау мүмкін емес.');
+        setError(t('fileUpload.uploadOfflineCacheFailed'));
         setUploading(false);
         throw cacheErr;
       }
@@ -183,18 +185,18 @@ export const useFileUpload = (): UseFileUploadReturn => {
 
     try {
       if (!files || files.length === 0) {
-        throw new Error('Папка бос. Файлдар таңдаңыз.');
+        throw new Error(t('fileUpload.folderEmpty'));
       }
       
-      console.log('Папка өңделуде...', files.length, 'файл');
+      console.log(t('fileUpload.folderProcessing', { count: files.length }));
       const folderInfo: FolderInfo = await processFolder(files);
-      console.log('Папка өңделді:', folderInfo.name, folderInfo.files.length, 'файл');
+      console.log(t('fileUpload.folderProcessed', { name: folderInfo.name, count: folderInfo.files.length }));
       
       if (!folderInfo.files || folderInfo.files.length === 0) {
-        throw new Error('Папкада өңделуге болатын файлдар жоқ. Тек мәтіндік файлдар қолдайды.');
+        throw new Error(t('fileUpload.folderNoProcessableFiles'));
       }
       
-      // Process folder аяқталғаннан кейін прогресс барды бастау
+      // Start progress bar after folder processing completes
       setUploadProgress({ current: 0, total: folderInfo.files.length, startTime });
       
       // Get current user
@@ -208,18 +210,18 @@ export const useFileUpload = (): UseFileUploadReturn => {
         totalSize: folderInfo.totalSize,
       }, null, 2);
 
-      console.log('Папка контейнерін жасауда...');
+      console.log(t('fileUpload.folderContainerCreating'));
       const folderCode = await apiService.createCodeFile({
         title: metadata?.title || folderInfo.name,
         content: folderContent,
         language: metadata?.language || 'folder',
         author: currentUser.username || 'current-user',
-        description: metadata?.description || `${folderInfo.files.length} файл бар папка`,
+        description: metadata?.description || t('fileUpload.folderFileDescription', { name: folderInfo.name }),
         tags: metadata?.tags || ['folder'],
         isFolder: true,
         folderStructure: folderInfo.structure,
       });
-      console.log('Папка контейнері жасалды:', folderCode.id);
+      console.log(t('fileUpload.folderContainerCreated', { id: folderCode.id }));
 
       // Upload files in batches to avoid overwhelming the server
       // Optimized for both small and large folders
@@ -293,7 +295,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
             content: fileInfo.content,
             language: fileInfo.language,
             author: currentUser.username || 'current-user',
-            description: `Файл папкадан: ${metadata?.title || folderInfo.name}`,
+            description: t('fileUpload.folderFileDescription', { name: metadata?.title || folderInfo.name }),
             tags: metadata?.tags || ['folder-file'],
             folderId: folderCode.id,
             folderPath: filePath,
@@ -307,11 +309,11 @@ export const useFileUpload = (): UseFileUploadReturn => {
           if (retryCount < MAX_RETRIES) {
             // Exponential backoff: wait longer with each retry
             const delay = RETRY_DELAY * Math.pow(2, retryCount);
-            console.warn(`Файл ${fileInfo.name} жүктелуден өтпеді. ${delay}ms күтуден кейін қайталау (${retryCount + 1}/${MAX_RETRIES})...`);
+            console.warn(t('fileUpload.fileRetryWarning', { name: fileInfo.name, delay, attempt: retryCount + 1, max: MAX_RETRIES }));
             await new Promise(resolve => setTimeout(resolve, delay));
             return retryUpload(fileInfo, filePath, retryCount + 1);
           } else {
-            console.error(`Файл ${fileInfo.name} ${MAX_RETRIES} рет қайталаудан кейін де жүктелуден өтпеді:`, err);
+            console.error(t('fileUpload.fileRetryFailed', { name: fileInfo.name, max: MAX_RETRIES }), err);
             failed++;
             failedFiles.push({ fileInfo, filePath, retries: retryCount });
             updateProgress();
@@ -386,7 +388,7 @@ export const useFileUpload = (): UseFileUploadReturn => {
           }
           
           // Log batch progress
-          console.log(`Батч ${batchIndex + 1}: ${batchSuccessful}/${batch.length} файл сәтті жүктелді${batchFailed > 0 ? `, ${batchFailed} файл сәтсіз` : ''}`);
+          console.log(t('fileUpload.batchProgress', { batch: batchIndex + 1, successful: batchSuccessful, total: batch.length, failedInfo: batchFailed > 0 ? `, ${batchFailed} ${t('fileUpload.someFilesSucceeded', { successful: 0 }).replace('0', String(batchFailed))}` : '' }));
         };
         
         // Process batches with concurrency control
@@ -416,18 +418,18 @@ export const useFileUpload = (): UseFileUploadReturn => {
       }
       
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-      console.log(`Папка жүктелді: ${successful}/${totalFiles} файл сәтті жүктелді, ${failed} файл сәтсіз (${totalTime} секунд)`);
+      console.log(t('fileUpload.folderUploadComplete', { successful, total: totalFiles, failed, time: totalTime }));
       
-      // Егер барлық файлдар сәтсіз болса, қате көрсету
+      // If all files failed, show error
       if (successful === 0 && totalFiles > 0) {
-        throw new Error('Барлық файлдар жүктелуден өтпеді. Сервер қатесін тексеріңіз.');
+        throw new Error(t('fileUpload.allFilesFailed'));
       }
       
-      // Егер кейбір файлдар сәтсіз болса, ескерту көрсету
+      // If some files failed, show warning
       if (failed > 0 && successful > 0) {
         const failedFileNames = failedFiles.map(f => f.fileInfo.name).join(', ');
-        console.warn(`${failed} файл жүктелуден өтпеді (${MAX_RETRIES} рет қайталаудан кейін): ${failedFileNames}`);
-        console.warn(`${successful} файл сәтті жүктелді`);
+        console.warn(t('fileUpload.someFilesFailed', { failed, maxRetries: MAX_RETRIES, names: failedFileNames }));
+        console.warn(t('fileUpload.someFilesSucceeded', { successful }));
       }
       
       // Remove from cache if it was a retry
@@ -441,14 +443,14 @@ export const useFileUpload = (): UseFileUploadReturn => {
       // Dispatch event to refresh codes list
       window.dispatchEvent(new CustomEvent('codesUpdated'));
     } catch (err) {
-      console.error('Папка жүктеу қатесі:', err);
-      let errorMessage = 'Папканы жүктеу қатесі';
+      console.error(t('fileUpload.folderError'), err);
+      let errorMessage = t('fileUpload.folderUploadError');
       if (err instanceof Error) {
         errorMessage = err.message;
-        console.error('Қате хабарламасы:', errorMessage);
-        // Қазақшаға аудару
+        console.error(t('fileUpload.errorMessage'), errorMessage);
+        // Translate to localized message
         if (errorMessage.includes('Something went wrong')) {
-          errorMessage = 'Қате орын алды! Сервер қатесі.';
+          errorMessage = t('fileUpload.serverError');
         } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
           // If offline, save to cache
           if (!isOnline()) {
@@ -463,18 +465,18 @@ export const useFileUpload = (): UseFileUploadReturn => {
               };
               await offlineStorage.savePendingUpload(pendingUpload);
               await checkPendingUploads();
-              errorMessage = 'Интернет үзілді. Жүктеу кэштеуге сақталды. Интернет қосылғанда автоматты жалғасады.';
+              errorMessage = t('fileUpload.offlineCached');
             } catch (cacheErr) {
-              errorMessage = 'Интернет үзілді және кэштеуге сақтау мүмкін емес.';
+              errorMessage = t('fileUpload.offlineCacheFailed');
             }
           } else {
-            errorMessage = 'Серверге қосылу мүмкін емес. Backend-тің жұмыс істеп тұрғанын тексеріңіз.';
+            errorMessage = t('fileUpload.backendUnreachable');
           }
         } else if (errorMessage.includes('API Error')) {
-          errorMessage = 'API қатесі. Сервер жауап бермейді.';
+          errorMessage = t('fileUpload.apiError');
         }
       }
-      console.error('Қате хабарламасы (қазақша):', errorMessage);
+      console.error(t('fileUpload.errorMessage'), errorMessage);
       setError(errorMessage);
       throw err;
     } finally {

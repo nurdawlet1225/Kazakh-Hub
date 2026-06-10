@@ -12,7 +12,6 @@ interface User {
 
 interface AuthTokens {
   access_token: string;
-  refresh_token: string;
   token_type: string;
 }
 
@@ -37,21 +36,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRefreshing = useRef(false);
 
-  // Initialize from localStorage on mount
+  // Initialize from sessionStorage on mount
+  // Refresh token is stored in HttpOnly cookie (sent automatically by browser)
+  // User data is stored in sessionStorage for UI display purposes
   useEffect(() => {
-    const storedRefresh = localStorage.getItem('refresh_token');
-    const storedUser = localStorage.getItem('user');
+    const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
       try {
         setUserState(JSON.parse(storedUser));
       } catch { /* ignore */ }
     }
-    if (storedRefresh) {
-      // Try to refresh the access token on load
-      refreshAccessToken(storedRefresh);
-    } else {
-      setIsLoading(false);
-    }
+    // Try to refresh the access token on load (cookie is sent automatically)
+    refreshAccessToken();
   }, []);
 
   // Cleanup refresh timer on unmount
@@ -61,16 +57,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const refreshAccessToken = useCallback(async (refreshToken: string) => {
+  const refreshAccessToken = useCallback(async () => {
     if (isRefreshing.current) return;
     isRefreshing.current = true;
     try {
-      const data = await apiService.refreshToken(refreshToken);
+      const data = await apiService.refreshToken();
       setAccessToken(data.access_token);
     } catch {
       // Refresh failed — clear auth
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('user');
       setAccessToken(null);
       setUserState(null);
     } finally {
@@ -81,15 +76,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback((tokens: AuthTokens, userData: User) => {
     setAccessToken(tokens.access_token);
-    localStorage.setItem('refresh_token', tokens.refresh_token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // Store user data in sessionStorage for UI display
+    // Refresh token is stored in HttpOnly cookie by the server
+    sessionStorage.setItem('user', JSON.stringify(userData));
     setUserState(userData);
 
     // Schedule auto-refresh before token expires (25 minutes for 30-min token)
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     refreshTimerRef.current = setTimeout(() => {
-      const rt = localStorage.getItem('refresh_token');
-      if (rt) refreshAccessToken(rt);
+      refreshAccessToken();
     }, 25 * 60 * 1000);
   }, [refreshAccessToken]);
 
@@ -98,9 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiService.logout(accessToken || undefined);
     } catch { /* ignore */ }
     setAccessToken(null);
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('access_token');
+    sessionStorage.removeItem('user');
     setUserState(null);
     isRefreshing.current = false; // Reset so refresh can work after re-login
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -108,11 +101,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setTokens = useCallback((tokens: AuthTokens) => {
     setAccessToken(tokens.access_token);
-    localStorage.setItem('refresh_token', tokens.refresh_token);
   }, []);
 
   const setUser = useCallback((userData: User) => {
-    localStorage.setItem('user', JSON.stringify(userData));
+    sessionStorage.setItem('user', JSON.stringify(userData));
     setUserState(userData);
   }, []);
 

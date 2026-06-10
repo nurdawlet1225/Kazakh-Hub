@@ -178,10 +178,6 @@ const ChatPage: React.FC = () => {
 
   const loadMessages = useCallback(async () => {
     if (!currentUser?.id || !selectedFriend?.id) {
-      console.log('loadMessages: Missing currentUser or selectedFriend', { 
-        currentUserId: currentUser?.id, 
-        selectedFriendId: selectedFriend?.id 
-      });
       setMessages([]);
       setMessagesError(null);
       setLoadingMessages(false);
@@ -192,24 +188,15 @@ const ChatPage: React.FC = () => {
     setMessagesError(null);
     
     try {
-      console.log('loadMessages: Loading messages for', {
-        currentUserId: currentUser.id,
-        selectedFriendId: selectedFriend.id
-      });
       const conversationMessages = await apiService.getConversation(
         currentUser.id,
         selectedFriend.id
       );
       
-      console.log('loadMessages: Received messages from API', {
-        total: conversationMessages.length,
-        messages: conversationMessages
-      });
-      
       if (!Array.isArray(conversationMessages)) {
         console.error('loadMessages: API returned non-array response:', conversationMessages);
         setMessages([]);
-        setMessagesError('API дұрыс жауап қайтармады');
+        setMessagesError(t('chat.apiInvalidResponse'));
         setLoadingMessages(false);
         return;
       }
@@ -225,7 +212,7 @@ const ChatPage: React.FC = () => {
         stack: err.stack,
         response: err.response
       });
-      const errorMessage = err.message || 'Хабарламаларды жүктеу қатесі';
+      const errorMessage = err.message || t('chat.loadMessagesError');
       setMessagesError(errorMessage);
       // Set empty messages array on error to show "no messages" state
       setMessages([]);
@@ -486,21 +473,12 @@ const ChatPage: React.FC = () => {
   // Load messages when friend is selected
   useEffect(() => {
     if (currentUser?.id && selectedFriend?.id) {
-      console.log('useEffect: Friend selected, loading messages', {
-        currentUserId: currentUser.id,
-        selectedFriendId: selectedFriend.id,
-        selectedFriendUsername: selectedFriend.username
-      });
       setMessagesError(null); // Clear any previous errors
       loadMessages();
       markConversationRead();
       // Scroll to bottom immediately when entering conversation
       setTimeout(() => scrollToBottom(true), 100);
     } else {
-      console.log('useEffect: Not loading messages', {
-        currentUserId: currentUser?.id,
-        selectedFriendId: selectedFriend?.id
-      });
       // Clear messages when no friend is selected
       setMessages([]);
       setMessagesError(null);
@@ -566,7 +544,7 @@ const ChatPage: React.FC = () => {
       loadChats();
     } catch (err: any) {
       console.error('Failed to send message:', err);
-      alert(err.message || 'Хабарлама жіберу қатесі');
+      alert(err.message || t('chat.sendMessageError'));
     }
   };
 
@@ -605,9 +583,9 @@ const ChatPage: React.FC = () => {
       
       // Translate common error messages
       if (errorMessage.includes('You can only message friends') || errorMessage.includes('Тек достарға')) {
-        errorMessage = 'Тек достарға хабарлама жіберуге болады. Алдымен дос болыңыз.';
+        errorMessage = t('chat.messageFriendsOnlyFull');
       } else if (errorMessage.includes('403')) {
-        errorMessage = 'Хабарлама жіберуге рұқсат жоқ. Дос болыңыз.';
+        errorMessage = t('chat.messageForbiddenFull');
       }
       
       alert(errorMessage);
@@ -648,7 +626,6 @@ const ChatPage: React.FC = () => {
             numericId = numericId.padStart(12, '0');
           }
           
-          console.log('Searching user by ID:', numericId);
           const user = await apiService.getUserProfile(numericId);
           
           // Егер пайдаланушы табылса және бұл ағымдағы пайдаланушы емес
@@ -657,7 +634,6 @@ const ChatPage: React.FC = () => {
             const friendIds = new Set(chats.map(chat => chat.partnerId));
             if (!friendIds.has(user.id)) {
               results = [user];
-              console.log('User found by ID:', user);
             }
           }
         } catch (err: any) {
@@ -779,7 +755,7 @@ const ChatPage: React.FC = () => {
         await loadChats();
       } catch (err: any) {
         console.error('Failed to clear messages:', err);
-        alert(err.message || 'Хабарламаларды тазалау қатесі');
+        alert(err.message || t('chat.clearMessagesError'));
       }
     }
   };
@@ -1010,7 +986,7 @@ const ChatPage: React.FC = () => {
       try {
         directDownload();
       } catch (fallbackError) {
-        alert('Суретті жүктеу қатесі. Суретті оң жақ батырмамен "Суретті басқа атаумен сақтау" арқылы сақтаңыз.');
+        alert(t('chat.imageUploadError'));
       }
     }
   };
@@ -1031,9 +1007,9 @@ const ChatPage: React.FC = () => {
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
     
-    if (minutes < 1) return 'Қазір';
-    if (minutes < 60) return `${minutes} мин бұрын`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)} сағ бұрын`;
+    if (minutes < 1) return t('chat.timeNow');
+    if (minutes < 60) return `${minutes} ${t('chat.timeMinutesAgo')}`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)} ${t('chat.timeHoursAgo')}`;
     
     return formatDateTime(dateString, i18n.language);
   };
@@ -1299,9 +1275,9 @@ const ChatPage: React.FC = () => {
         <h3 
           onClick={handleChatHeaderClick}
           style={{ cursor: 'pointer' }}
-          title="Чаттың бастапқы бетіне қайту"
+          title={t('chat.backToHome')}
         >
-          <FontAwesomeIcon icon={faComment} /> Чат
+          <FontAwesomeIcon icon={faComment} /> {t('chat.title')}
         </h3>
       </div>
 
@@ -1312,19 +1288,19 @@ const ChatPage: React.FC = () => {
               className={`chat-tab ${activeTab === 'friends' ? 'active' : ''}`}
               onClick={() => setActiveTab('friends')}
             >
-              Достар ({chats.length})
+              {t('chat.friends')} ({chats.length})
             </button>
             <button
               className={`chat-tab ${activeTab === 'add' ? 'active' : ''}`}
               onClick={() => setActiveTab('add')}
             >
-              Қосу
+              {t('chat.addTab')}
             </button>
             <button
               className={`chat-tab ${activeTab === 'requests' ? 'active' : ''}`}
               onClick={() => setActiveTab('requests')}
             >
-              Сұраулар {friendRequests.length > 0 && `(${friendRequests.length})`}
+              {t('chat.requests')} {friendRequests.length > 0 && `(${friendRequests.length})`}
             </button>
           </div>
 
@@ -1336,7 +1312,7 @@ const ChatPage: React.FC = () => {
                   <input
                     type="text"
                     className="chat-friends-search-input"
-                    placeholder="Достарды іздеу..."
+                    placeholder={t('chat.searchFriends')}
                     value={friendsSearchQuery}
                     onChange={(e) => setFriendsSearchQuery(e.target.value)}
                   />
@@ -1351,10 +1327,10 @@ const ChatPage: React.FC = () => {
                 </div>
               </div>
               {loading ? (
-                <div className="chat-loading">Жүктелуде...</div>
+                <div className="chat-loading">{t('common.loading')}</div>
               ) : filteredChats.length === 0 ? (
                 <div className="chat-empty">
-                  {friendsSearchQuery ? 'Дос табылмады' : 'Достар тізімі бос'}
+                  {friendsSearchQuery ? t('chat.friendNotFound') : t('chat.friendsListEmpty')}
                 </div>
               ) : (
                 <div className="chat-friends-items">
@@ -1363,9 +1339,7 @@ const ChatPage: React.FC = () => {
                       key={chat.partnerId}
                       className={`chat-friend-item ${selectedFriend?.id === chat.partnerId ? 'active' : ''} ${chat.unreadCount > 0 ? 'has-unread' : ''}`}
                       onClick={() => {
-                        console.log('Chat item clicked:', { chat, partner: chat.partner });
                         if (chat.partner && chat.partner.id) {
-                          console.log('Setting selectedFriend:', chat.partner);
                           setSelectedFriend(chat.partner);
                         } else {
                           console.error('chat.partner is missing or invalid:', chat);
@@ -1397,7 +1371,7 @@ const ChatPage: React.FC = () => {
                         </div>
                         {chat.lastMessage && (
                           <div className="chat-friend-last-message">
-                            {chat.lastMessage.fromUserId === currentUser?.id ? 'Сіз: ' : ''}
+                            {chat.lastMessage.fromUserId === currentUser?.id ? t('chat.youPrefix') : ''}
                             {(chat.lastMessage.content || '').length > 40
                               ? (chat.lastMessage.content || '').substring(0, 40) + '...'
                               : (chat.lastMessage.content || '')}
@@ -1424,7 +1398,7 @@ const ChatPage: React.FC = () => {
                   <input
                     type="text"
                     className="chat-search-input"
-                    placeholder="Пайдаланушыны іздеу (аты, email немесе ID)..."
+                    placeholder={t('chat.searchUsersPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -1474,13 +1448,13 @@ const ChatPage: React.FC = () => {
                   <div className="chat-info-icon">
                     <FontAwesomeIcon icon={faSearch} />
                   </div>
-                  <p>Достар қосу үшін пайдаланушы атын, email-ді немесе ID-ді енгізіңіз</p>
+                  <p>{t('chat.addFriendInfo')}</p>
                 </div>
               )}
               {searching ? (
-                <div className="chat-loading">Ізделуде...</div>
+                <div className="chat-loading">{t('chat.searching')}</div>
               ) : searchResults.length === 0 && searchQuery ? (
-                <div className="chat-empty">Пайдаланушы табылмады</div>
+                <div className="chat-empty">{t('chat.userNotFound')}</div>
               ) : (
                 <div className="chat-search-results">
                   {searchResults.map((user) => {
@@ -1504,18 +1478,18 @@ const ChatPage: React.FC = () => {
                         {isFriend ? (
                           <button className="chat-add-btn chat-add-btn-pending" disabled>
                             <FontAwesomeIcon icon={faCheck} className="chat-btn-icon" />
-                            Дос
+                            {t('chat.friend')}
                           </button>
                         ) : hasRequest ? (
                           <button className="chat-add-btn chat-add-btn-pending" disabled>
                             <FontAwesomeIcon icon={faClock} className="chat-btn-icon" />
-                            Күтуде
+                            {t('chat.pending')}
                           </button>
                         ) : (
                           <button
                             className="chat-add-btn"
                             onClick={() => handleSendFriendRequest(user.id)}
-                            title="Достық сұрауы жіберу"
+                            title={t('chat.sendFriendRequestTitle')}
                           >
                             <FontAwesomeIcon 
                               icon={clickedAddButtons.has(user.id) ? faCheckCircle : faUserPlus} 
@@ -1534,14 +1508,14 @@ const ChatPage: React.FC = () => {
           {activeTab === 'requests' && (
             <div className="chat-requests">
               {friendRequests.length === 0 && outgoingFriendRequests.length === 0 ? (
-                <div className="chat-empty">Сұраулар жоқ</div>
+                <div className="chat-empty">{t('chat.noRequests')}</div>
               ) : (
                 <div className="chat-requests-items">
-                  {/* Келіп түскен сұраулар - бұл сізге келген сұраулар */}
+                  {/* {t('chat.incomingRequests')} - бұл сізге келген сұраулар */}
                   {friendRequests.length > 0 && (
                     <>
                       {outgoingFriendRequests.length > 0 && (
-                        <div className="chat-requests-section-title">Келіп түскен сұраулар</div>
+                        <div className="chat-requests-section-title">{t('chat.incomingRequests')}</div>
                       )}
                       {friendRequests.map((request) => (
                         <div key={request.id} className="chat-request-item">
@@ -1575,11 +1549,11 @@ const ChatPage: React.FC = () => {
                     </>
                   )}
                   
-                  {/* Жіберілген сұраулар - бұл сіз жіберген сұраулар */}
+                  {/* {t('chat.outgoingRequests')} - бұл сіз жіберген сұраулар */}
                   {outgoingFriendRequests.length > 0 && (
                     <>
                       {friendRequests.length > 0 && (
-                        <div className="chat-requests-section-title">Жіберілген сұраулар</div>
+                        <div className="chat-requests-section-title">{t('chat.outgoingRequests')}</div>
                       )}
                       {outgoingFriendRequests.map((request) => (
                         <div key={request.id} className="chat-request-item chat-request-item-outgoing">
@@ -1598,7 +1572,7 @@ const ChatPage: React.FC = () => {
                             <button
                               className="chat-cancel-btn"
                               onClick={() => handleCancelRequest(request.id)}
-                              title={t('chat.cancelRequest') || 'Сұрауды жою'}
+                              title={t('chat.cancelRequest')}
                             >
                               <FontAwesomeIcon icon={faTimes} />
                             </button>
@@ -1647,14 +1621,14 @@ const ChatPage: React.FC = () => {
                   </div>
                   <span>{chatDisplayNames[selectedFriend.id] || selectedFriend.username}</span>
                   {typingUsers.has(selectedFriend.id) && (
-                    <span className="typing-indicator">жазуда...</span>
+                    <span className="typing-indicator">{t('chat.typing')}</span>
                   )}
                 </div>
                 <div className="chat-menu-container" ref={menuRef}>
                   <button
                     className="chat-menu-btn"
                     onClick={() => setShowChatMenu(!showChatMenu)}
-                    title="Меню"
+                    title={t('chat.menuTitle')}
                   >
                     <FontAwesomeIcon icon={faEllipsisVertical} />
                   </button>
@@ -1665,21 +1639,21 @@ const ChatPage: React.FC = () => {
                         onClick={handleSearchMessages}
                       >
                         <FontAwesomeIcon icon={faSearchIcon} />
-                        <span>Осы беттен жазу іздеу</span>
+                        <span>{t('chat.searchMessagesInChat')}</span>
                       </button>
                       <button
                         className="chat-menu-item"
                         onClick={handleClearMessages}
                       >
                         <FontAwesomeIcon icon={faTrash} />
-                        <span>Осы беттегі жазуларды тазалау</span>
+                        <span>{t('chat.clearMessagesInChat')}</span>
                       </button>
                       <button
                         className="chat-menu-item chat-menu-item-danger"
                         onClick={handleDeleteChat}
                       >
                         <FontAwesomeIcon icon={faTrash} />
-                        <span>Чатті жою</span>
+                        <span>{t('chat.deleteChat')}</span>
                       </button>
                     </div>
                   )}
@@ -1692,7 +1666,7 @@ const ChatPage: React.FC = () => {
                     <input
                       type="text"
                       className="chat-message-search-input"
-                      placeholder="Хабарламаларды іздеу..."
+                      placeholder={t('chat.searchMessagesPlaceholder')}
                       value={messageSearchQuery}
                       onChange={(e) => setMessageSearchQuery(e.target.value)}
                       autoFocus
@@ -1709,7 +1683,7 @@ const ChatPage: React.FC = () => {
                   </div>
                   {messageSearchQuery && (
                     <div className="chat-search-results-info">
-                      {filteredMessages.length} хабарлама табылды
+                      {t('chat.messagesFound', { count: filteredMessages.length })}
                     </div>
                   )}
                 </div>
@@ -1718,12 +1692,12 @@ const ChatPage: React.FC = () => {
                 {loadingMessages ? (
                   <div className="chat-no-messages">
                     <div className="chat-no-messages-icon"><FontAwesomeIcon icon={faComment} /></div>
-                    <p>Хабарламалар жүктелуде...</p>
+                    <p>{t('chat.messagesLoading')}</p>
                   </div>
                 ) : messagesError ? (
                   <div className="chat-no-messages">
                     <div className="chat-no-messages-icon"><FontAwesomeIcon icon={faComment} /></div>
-                    <p>Қате: {messagesError}</p>
+                    <p>{t('chat.errorWithMessage', { message: messagesError })}</p>
                     <button 
                       onClick={() => loadMessages()}
                       className="chat-retry-btn"
@@ -1737,14 +1711,14 @@ const ChatPage: React.FC = () => {
                         cursor: 'pointer'
                       }}
                     >
-                      Қайталау
+                      {t('common.retry')}
                     </button>
                   </div>
                 ) : filteredMessages.length === 0 ? (
                   <div className="chat-no-messages">
                     <div className="chat-no-messages-icon"><FontAwesomeIcon icon={faComment} /></div>
-                    <p>Хабарламалар жоқ</p>
-                    <p className="chat-no-messages-hint">Бірінші хабарламаны жіберіңіз</p>
+                    <p>{t('chat.noMessages')}</p>
+                    <p className="chat-no-messages-hint">{t('chat.sendFirstMessage')}</p>
                   </div>
                 ) : (
                   filteredMessages.map((message) => {
@@ -1780,18 +1754,18 @@ const ChatPage: React.FC = () => {
           ) : (
             <div className="chat-no-selection">
               <div className="chat-no-selection-icon"><FontAwesomeIcon icon={faComment} /></div>
-              <p>Дос таңдаңыз</p>
+              <p>{t('chat.selectFriend')}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Чат профилі модалы */}
+      {/* {t('chat.chatProfile')} модалы */}
       {showChatProfileModal && selectedFriend && currentUser && (
         <div className="chat-profile-modal-overlay" onClick={() => setShowChatProfileModal(false)}>
           <div className="chat-profile-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="chat-profile-modal-header">
-              <h2>Чат профилі</h2>
+              <h2>{t('chat.chatProfile')}</h2>
               <button className="chat-profile-modal-close" onClick={() => setShowChatProfileModal(false)}>
                 <FontAwesomeIcon icon={faTimes} />
               </button>
@@ -1827,7 +1801,7 @@ const ChatPage: React.FC = () => {
                       <button
                         className="chat-profile-save-btn"
                         onClick={handleSaveDisplayName}
-                        title="Сақтау"
+                        title={t('chat.saveTitle')}
                       >
                         <FontAwesomeIcon icon={faCheck} />
                       </button>
@@ -1837,7 +1811,7 @@ const ChatPage: React.FC = () => {
                           setEditingFriendId(null);
                           setEditDisplayName('');
                         }}
-                        title="Болдырмау"
+                        title={t('chat.cancelTitle')}
                       >
                         <FontAwesomeIcon icon={faTimes} />
                       </button>
@@ -1849,7 +1823,7 @@ const ChatPage: React.FC = () => {
                         <button
                           className="chat-profile-name-menu-btn"
                           onClick={() => setShowProfileNameMenu(!showProfileNameMenu)}
-                          title="Меню"
+                          title={t('chat.menuTitle')}
                         >
                           <FontAwesomeIcon icon={faEllipsisVertical} />
                         </button>
@@ -1864,7 +1838,7 @@ const ChatPage: React.FC = () => {
                               }}
                             >
                               <FontAwesomeIcon icon={faEdit} />
-                              <span>Атын өзгерту</span>
+                              <span>{t('chat.editDisplayName')}</span>
                             </button>
                           </div>
                         )}
@@ -1877,7 +1851,7 @@ const ChatPage: React.FC = () => {
                 <div className="chat-profile-info-item">
                   <FontAwesomeIcon icon={faUser} className="chat-profile-info-icon" />
                   <div className="chat-profile-info-content">
-                    <div className="chat-profile-info-label">Пайдаланушы аты</div>
+                    <div className="chat-profile-info-label">{t('chat.username')}</div>
                     <div className="chat-profile-info-value">{selectedFriend.username}</div>
                   </div>
                 </div>
@@ -1885,7 +1859,7 @@ const ChatPage: React.FC = () => {
                   <div className="chat-profile-info-item">
                     <FontAwesomeIcon icon={faAlignLeft} className="chat-profile-info-icon" />
                     <div className="chat-profile-info-content">
-                      <div className="chat-profile-info-label">Сипаттама</div>
+                      <div className="chat-profile-info-label">{t('chat.bio')}</div>
                       <div className="chat-profile-info-value chat-profile-bio">{selectedFriend.bio}</div>
                     </div>
                   </div>
@@ -1894,10 +1868,10 @@ const ChatPage: React.FC = () => {
 
               {/* Медиа бөлімі */}
               <div className="chat-profile-media-section">
-                <h4 className="chat-profile-media-title">Медиа</h4>
+                <h4 className="chat-profile-media-title">{t('chat.media')}</h4>
                 {getChatMedia().length === 0 ? (
                   <div className="chat-profile-media-empty">
-                    Медиа файлдар жоқ
+                    {t('chat.noMediaFiles')}
                   </div>
                 ) : (
                   <div className="chat-profile-media-grid">
@@ -1956,10 +1930,10 @@ const ChatPage: React.FC = () => {
                 e.stopPropagation();
                 handleDownloadImage(selectedImage.url, selectedImage.filename);
               }}
-              title="Сақтау"
+              title={t('chat.saveTitle')}
             >
               <FontAwesomeIcon icon={faDownload} />
-              <span>Сақтау</span>
+              <span>{t('common.save')}</span>
             </button>
             <img 
               src={selectedImage.url} 
@@ -1989,21 +1963,21 @@ const ChatPage: React.FC = () => {
                   }}
                 >
                   <FontAwesomeIcon icon={faDownload} />
-                  <span>Суретті сақтау</span>
+                  <span>{t('chat.saveImage')}</span>
                 </button>
                 <button
                   className="chat-image-context-menu-item"
                   onClick={() => {
                     navigator.clipboard.writeText(selectedImage.url).then(() => {
-                      alert('Сурет сілтемесі алмасу буферіне көшірілді');
+                      alert(t('chat.imageLinkCopied'));
                     }).catch(() => {
-                      alert('Көшіру қатесі');
+                      alert(t('chat.copyError'));
                     });
                     setImageContextMenu(null);
                   }}
                 >
                   <FontAwesomeIcon icon={faFile} />
-                  <span>Сілтемені көшіру</span>
+                  <span>{t('chat.copyLink')}</span>
                 </button>
               </div>
             )}

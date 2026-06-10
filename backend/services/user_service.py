@@ -227,7 +227,6 @@ class UserService:
                 matching_users.append({
                     'id': user['id'],
                     'username': user['username'],
-                    'email': user['email'],
                     'avatar': user.get('avatar')
                 })
         

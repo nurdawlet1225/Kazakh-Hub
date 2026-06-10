@@ -92,7 +92,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
             }
           }}
         >
-          <FontAwesomeIcon icon={faCopy} /> {t('common.copy') || 'Көшіру'}
+          <FontAwesomeIcon icon={faCopy} /> {t('codeEditor.copy')}
         </button>
       </div>
       <textarea

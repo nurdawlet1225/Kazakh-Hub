@@ -1,13 +1,13 @@
 """User-related Pydantic models"""
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from utils.validators import validate_email
 
 
 class UserRegister(BaseModel):
-    username: str
-    email: str
-    password: str
+    username: str = Field(min_length=2, max_length=50, pattern=r'^[a-zA-Z0-9_Ѐ-ӿ]+$')
+    email: str = Field(max_length=255)
+    password: str = Field(min_length=8, max_length=128)
 
     @field_validator('email')
     @classmethod
@@ -16,9 +16,9 @@ class UserRegister(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: Optional[str] = None
-    username: Optional[str] = None
-    password: str
+    email: Optional[str] = Field(default=None, max_length=255)
+    username: Optional[str] = Field(default=None, max_length=50)
+    password: str = Field(max_length=128)
 
     @field_validator('email')
     @classmethod
@@ -29,17 +29,17 @@ class UserLogin(BaseModel):
 
 
 class ChangePassword(BaseModel):
-    currentPassword: str
-    newPassword: str
+    currentPassword: str = Field(max_length=128)
+    newPassword: str = Field(min_length=8, max_length=128)
 
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    email: Optional[str] = None
-    avatar: Optional[str] = None
-    bio: Optional[str] = None
-    userId: Optional[str] = None
-    currentEmail: Optional[str] = None
+    username: Optional[str] = Field(default=None, min_length=2, max_length=50, pattern=r'^[a-zA-Z0-9_Ѐ-ӿ]+$')
+    email: Optional[str] = Field(default=None, max_length=255)
+    avatar: Optional[str] = Field(default=None, max_length=1_500_000)  # ~1MB base64
+    bio: Optional[str] = Field(default=None, max_length=500)
+    userId: Optional[str] = Field(default=None, max_length=50)
+    currentEmail: Optional[str] = Field(default=None, max_length=255)
 
     @field_validator('email', 'currentEmail')
     @classmethod
@@ -50,8 +50,8 @@ class UserUpdate(BaseModel):
 
 
 class DeleteUserRequest(BaseModel):
-    userId: Optional[str] = None
-    email: Optional[str] = None
+    userId: Optional[str] = Field(default=None, max_length=50)
+    email: Optional[str] = Field(default=None, max_length=255)
 
     @field_validator('email')
     @classmethod
@@ -62,11 +62,11 @@ class DeleteUserRequest(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(max_length=500)
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: str = Field(max_length=255)
 
     @field_validator('email')
     @classmethod
@@ -75,22 +75,22 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
+    token: str = Field(max_length=200)
+    new_password: str = Field(min_length=8, max_length=128)
 
 
 class TwoFACode(BaseModel):
-    code: str
+    code: str = Field(max_length=6, pattern=r'^\d{6}$')
 
 
 class TwoFASetupVerify(BaseModel):
-    code: str
+    code: str = Field(max_length=6, pattern=r'^\d{6}$')
 
 
 class TwoFADisable(BaseModel):
-    password: str
+    password: str = Field(max_length=128)
 
 
 class TwoFALoginVerify(BaseModel):
-    temp_token: str
-    code: str
+    temp_token: str = Field(max_length=500)
+    code: str = Field(max_length=6, pattern=r'^\d{6}$')

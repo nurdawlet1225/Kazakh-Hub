@@ -1,4 +1,5 @@
 import { FILE_TYPES, SUPPORTED_EXTENSIONS } from './constants';
+import i18n from '../i18n/config';
 
 export interface FileInfo {
   name: string;
@@ -73,16 +74,16 @@ export const readFileContent = async (file: File): Promise<string> => {
         if (typeof result === 'string') {
           resolve(result); // Returns data:image/...;base64,... format
         } else {
-          reject(new Error(`Кескінді оқу мүмкін емес: ${file.name}`));
+          reject(new Error(i18n.t('fileHandler.imageReadFailed', { name: file.name })));
         }
       };
       reader.onerror = () => {
-        reject(new Error(`Кескінді оқу қатесі: ${file.name}`));
+        reject(new Error(i18n.t('fileHandler.imageReadError', { name: file.name })));
       };
       try {
         reader.readAsDataURL(file);
       } catch (err) {
-        reject(new Error(`Кескінді оқу мүмкін емес: ${file.name}`));
+        reject(new Error(i18n.t('fileHandler.imageReadFailed', { name: file.name })));
       }
     } else {
       // For text files, read as text
@@ -91,16 +92,16 @@ export const readFileContent = async (file: File): Promise<string> => {
         if (typeof result === 'string') {
           resolve(result);
         } else {
-          reject(new Error(`Файлды оқу мүмкін емес: ${file.name} (мәтіндік емес файл)`));
+          reject(new Error(i18n.t('fileHandler.fileNotText', { name: file.name })));
         }
       };
       reader.onerror = () => {
-        reject(new Error(`Файлды оқу қатесі: ${file.name}`));
+        reject(new Error(i18n.t('fileHandler.fileReadError', { name: file.name })));
       };
       try {
         reader.readAsText(file, 'UTF-8');
       } catch (err) {
-        reject(new Error(`Файлды оқу мүмкін емес: ${file.name}`));
+        reject(new Error(i18n.t('fileHandler.fileReadFailed', { name: file.name })));
       }
     }
   });
@@ -205,7 +206,7 @@ export const processFolder = async (files: FileList | File[]): Promise<FolderInf
         processedFiles.push(fileInfo);
         totalSize += file.size;
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Белгісіз қате';
+        const errorMsg = err instanceof Error ? err.message : i18n.t('fileHandler.unknownError');
         console.warn(`Failed to process file ${file.name}:`, errorMsg);
       }
       
@@ -240,7 +241,7 @@ export const processFolder = async (files: FileList | File[]): Promise<FolderInf
           
           return fileInfo;
         } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Белгісіз қате';
+          const errorMsg = err instanceof Error ? err.message : i18n.t('fileHandler.unknownError');
           console.warn(`Failed to process file ${file.name}:`, errorMsg);
           return null;
         }
@@ -262,7 +263,7 @@ export const processFolder = async (files: FileList | File[]): Promise<FolderInf
       // Log progress for large folders
       if (fileArray.length > 50 && (i + FILES_PER_CHUNK) % 30 === 0) {
         const processedCount = Math.min(i + FILES_PER_CHUNK, fileArray.length);
-        console.log(`Өңделуде: ${processedCount}/${fileArray.length} файл`);
+        console.log(`Processing: ${processedCount}/${fileArray.length} files`);
       }
     }
   }

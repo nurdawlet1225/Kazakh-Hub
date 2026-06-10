@@ -106,7 +106,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
       handleClose();
     } catch (err) {
       // Error is handled by the hook
-      console.error('Папка жүктеу қатесі:', err);
+      console.error('Folder upload error:', err);
       // Don't close modal on error so user can see the error message
     }
   };
@@ -126,7 +126,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
     navigator.clipboard.writeText(text).then(() => {
       if (inputElement) {
         const originalValue = inputElement.value;
-        inputElement.value = '✓ Көшірілді!';
+        inputElement.value = '✓ ' + t('uploadModal.commandCopied');
         inputElement.style.color = '#0dbc79';
         setTimeout(() => {
           inputElement.value = originalValue;
@@ -143,10 +143,10 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      
+
       if (inputElement) {
         const originalValue = inputElement.value;
-        inputElement.value = '✓ Көшірілді!';
+        inputElement.value = '✓ ' + t('uploadModal.commandCopied');
         inputElement.style.color = '#0dbc79';
         setTimeout(() => {
           inputElement.value = originalValue;
@@ -173,7 +173,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
               onClick={() => setUploadMode('folder')}
             >
               <FontAwesomeIcon icon={faFolder} style={{ marginRight: '0.5rem' }} />
-              Папка/Файл
+              {t('settings.folder')}/{t('settings.filesProgress')}
             </button>
             <button
               type="button"
@@ -181,7 +181,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
               onClick={() => setUploadMode('terminal')}
             >
               <FontAwesomeIcon icon={faTerminal} style={{ marginRight: '0.5rem' }} />
-              Терминал
+              {t('uploadModal.openTerminal')}
             </button>
           </div>
 
@@ -227,17 +227,17 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
           {uploadMode === 'terminal' && (
             <div className="terminal-upload-section">
               <div className="terminal-instructions">
-                <h3>Терминал арқылы код жүктеу</h3>
+                <h3>{t('uploadModal.terminalTitle')}</h3>
               </div>
 
               <div className="terminal-command-section">
-                <p className="terminal-start-title"><strong>1. Мәліметтерді енгізу (PowerShell):</strong></p>
+                <p className="terminal-start-title"><strong>{t('uploadModal.windowsPowerShell')}</strong></p>
                 <div className="terminal-command-box">
                   <input
                     ref={terminalCommandRef}
                     type="text"
                     readOnly
-                    value={`$body=@{title="<Код атауы>";content="";language="<тіл>";author="<Автор>";description="<сипаттамасы>"}|ConvertTo-Json;Invoke-RestMethod -Uri "${apiDisplayUrl}/codes" -Method POST -Body $body -ContentType "application/json"`}
+                    value={`$body=@{title="CodeTitle";content="";language="language";author="Author";description="description"}|ConvertTo-Json;Invoke-RestMethod -Uri "${apiDisplayUrl}/codes" -Method POST -Body $body -ContentType "application/json"`}
                     className="terminal-command-input"
                     onClick={(e) => {
                       const target = e.currentTarget;
@@ -247,12 +247,12 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
                   />
                 </div>
                 
-                <p className="terminal-start-title" style={{ marginTop: '1rem' }}><strong>2. Кодты жүктеу:</strong></p>
+                <p className="terminal-start-title" style={{ marginTop: '1rem' }}><strong>{t('uploadModal.uploadCommand')}</strong></p>
                 <div className="terminal-command-box">
                   <input
                     type="text"
                     readOnly
-                    value={`$file=Get-Content "<файл_жолы>" -Raw;$body=@{title="<Атауы>";content=$file;language="<тіл>";author="<Автор>"}|ConvertTo-Json;Invoke-RestMethod -Uri "${apiDisplayUrl}/codes" -Method POST -Body $body -ContentType "application/json"`}
+                    value={`$file=Get-Content "filepath" -Raw;$body=@{title="Title";content=$file;language="language";author="Author"}|ConvertTo-Json;Invoke-RestMethod -Uri "${apiDisplayUrl}/codes" -Method POST -Body $body -ContentType "application/json"`}
                     className="terminal-command-input"
                     onClick={(e) => {
                       const target = e.currentTarget;
@@ -262,7 +262,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
                   />
                 </div>
 
-                <p className="terminal-start-title" style={{ marginTop: '1rem' }}><strong>Кодты жүктеп алу:</strong></p>
+                <p className="terminal-start-title" style={{ marginTop: '1rem' }}><strong>GET:</strong></p>
                 <div className="terminal-command-box">
                   <input
                     type="text"
@@ -356,25 +356,25 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess })
             >
               <option value="">{t('uploadModal.selectCategory')}</option>
               <optgroup label={t('uploadModal.categoryAI')}>
-                <option value="Машиндық оқыту">{t('uploadModal.categoryAIOption1')}</option>
-                <option value="Табиғи тілді өңдеу">{t('uploadModal.categoryAIOption2')}</option>
-                <option value="Компьютерлік көру">{t('uploadModal.categoryAIOption3')}</option>
-                <option value="ЖИ қосымшалары">{t('uploadModal.categoryAIOption4')}</option>
+                <option value="machine-learning">{t('uploadModal.categoryAIOption1')}</option>
+                <option value="natural-language-processing">{t('uploadModal.categoryAIOption2')}</option>
+                <option value="computer-vision">{t('uploadModal.categoryAIOption3')}</option>
+                <option value="ai-applications">{t('uploadModal.categoryAIOption4')}</option>
               </optgroup>
               <optgroup label={t('uploadModal.categoryMobile')}>
-                <option value="iOS қосымша">{t('uploadModal.categoryMobileOption1')}</option>
-                <option value="Android қосымша">{t('uploadModal.categoryMobileOption2')}</option>
-                <option value="Кросс-платформалық қосымша">{t('uploadModal.categoryMobileOption3')}</option>
-                <option value="Мобильды ойын">{t('uploadModal.categoryMobileOption4')}</option>
+                <option value="ios-app">{t('uploadModal.categoryMobileOption1')}</option>
+                <option value="android-app">{t('uploadModal.categoryMobileOption2')}</option>
+                <option value="cross-platform-app">{t('uploadModal.categoryMobileOption3')}</option>
+                <option value="mobile-game">{t('uploadModal.categoryMobileOption4')}</option>
               </optgroup>
               <optgroup label={t('uploadModal.categoryOther')}>
-                <option value="Веб-қосымша">{t('uploadModal.categoryOtherOption1')}</option>
-                <option value="Десктоп қосымша">{t('uploadModal.categoryOtherOption2')}</option>
-                <option value="Ойын">{t('uploadModal.categoryOtherOption3')}</option>
-                <option value="API">{t('uploadModal.categoryOtherOption4')}</option>
-                <option value="База деректері">{t('uploadModal.categoryOtherOption5')}</option>
-                <option value="DevOps">{t('uploadModal.categoryOtherOption6')}</option>
-                <option value="Басқа">{t('uploadModal.categoryOtherOption7')}</option>
+                <option value="web-app">{t('uploadModal.categoryOtherOption1')}</option>
+                <option value="desktop-app">{t('uploadModal.categoryOtherOption2')}</option>
+                <option value="game">{t('uploadModal.categoryOtherOption3')}</option>
+                <option value="api">{t('uploadModal.categoryOtherOption4')}</option>
+                <option value="database">{t('uploadModal.categoryOtherOption5')}</option>
+                <option value="devops">{t('uploadModal.categoryOtherOption6')}</option>
+                <option value="other">{t('uploadModal.categoryOtherOption7')}</option>
               </optgroup>
             </select>
           </div>
