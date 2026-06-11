@@ -28,18 +28,19 @@ const Register: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Hide scrollbar on mount
+  // Set up auth page layout on mount
   useEffect(() => {
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow;
     const originalBodyHeight = document.body.style.height;
     const originalHtmlHeight = document.documentElement.style.height;
-    
-    document.body.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
-    document.documentElement.style.overflow = 'hidden';
-    document.documentElement.style.height = '100vh';
-    
+
+    // Allow vertical scroll on mobile (for keyboard), hide horizontal scrollbar
+    document.body.style.overflow = 'auto';
+    document.body.style.minHeight = '100dvh';
+    document.documentElement.style.overflowX = 'hidden';
+    document.documentElement.style.minHeight = '100dvh';
+
     return () => {
       document.body.style.overflow = originalBodyOverflow;
       document.body.style.height = originalBodyHeight;

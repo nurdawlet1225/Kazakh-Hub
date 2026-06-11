@@ -28,6 +28,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VibecodingPage = lazy(() => import('./pages/VibecodingPage'));
 
 // Bridge: connect AuthContext token to apiService
 const AuthBridge: React.FC = () => {
@@ -67,16 +68,18 @@ const AppContent: React.FC = () => {
   const { t } = useTranslation();
   const location = useLocation();
   
-  // Hide header and sidebar on login/register pages
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  // Hide footer on chat page, view code page, and profile page
+  // Hide header and sidebar on auth pages (login, register, forgot/reset password)
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register'
+    || location.pathname === '/forgot-password' || location.pathname === '/reset-password';
+  // Hide footer on chat page, view code page, profile page, and vibecoding page
   const isChatPage = location.pathname === '/chat';
   const isViewCodePage = location.pathname.startsWith('/view/');
   const isProfilePage = location.pathname.startsWith('/profile');
+  const isVibecodingPage = location.pathname === '/vibecoding';
   
   return (
     <div className="app">
-      {!isAuthPage && <Header />}
+      {!isAuthPage && !isVibecodingPage && <Header />}
       {!isAuthPage ? (
         <main className="app-main">
           <Suspense fallback={<PageLoader />}>
@@ -92,8 +95,7 @@ const AppContent: React.FC = () => {
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/contact" element={<ContactPage />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/vibecoding" element={<VibecodingPage />} />
               <Route path="*" element={
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                   <h1>{t('viewCode.404')}</h1>
@@ -109,11 +111,13 @@ const AppContent: React.FC = () => {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
           </Suspense>
         </main>
       )}
-      {!isAuthPage && !isChatPage && !isViewCodePage && !isProfilePage && <Footer />}
+      {!isAuthPage && !isChatPage && !isViewCodePage && !isProfilePage && !isVibecodingPage && <Footer />}
     </div>
   );
 };

@@ -1706,7 +1706,21 @@
     height: calc(100vh - 50px);
     height: calc(100dvh - 50px);
   }
-  
+
+  .chat-friend-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .chat-menu-dropdown {
+    min-width: 0;
+    width: 90vw;
+    left: 5vw;
+    right: 5vw;
+  }
+
   .chat-container {
     left: 0;
     width: 100%;
@@ -2438,7 +2452,14 @@
   .chat-close-btn {
     min-height: 44px;
   }
-  
+
+  .chat-friend-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
   .chat-input-container button {
     min-width: 44px;
     min-height: 44px;

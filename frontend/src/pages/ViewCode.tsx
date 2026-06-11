@@ -104,15 +104,15 @@ const CommentItem: React.FC<CommentItemProps> = ({
 
   return (
     <div 
-      className={`relative w-full mb-6 ${isReply ? 'ml-12 pl-6 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''}`}
+      className={`relative w-full mb-4 md:mb-6 ${isReply ? 'ml-8 md:ml-12 pl-4 md:pl-6 border-l-2 border-l-blue-200 dark:border-l-blue-800' : ''}`}
       data-comment-id={comment.id}
     >
       {isReply && parentComment && (
-        <div className="mb-3 pl-4 py-2 bg-[var(--primary-color)]/10 border-l-3 border-l-[var(--primary-color)] rounded-r-lg">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[var(--primary-color)] font-semibold text-sm">{parentComment.author}</span>
+        <div className="mb-2 md:mb-3 pl-3 md:pl-4 py-1.5 md:py-2 bg-[var(--primary-color)]/10 border-l-3 border-l-[var(--primary-color)] rounded-r-lg">
+          <div className="flex items-center gap-1.5 md:gap-2 mb-0.5 md:mb-1">
+            <span className="text-[var(--primary-color)] font-semibold text-xs md:text-sm">{parentComment.author}</span>
           </div>
-          <p className="text-[var(--text-secondary)] text-xs italic truncate">
+          <p className="text-[var(--text-secondary)] text-[10px] md:text-xs italic truncate">
             {parentComment.content.length > 60 
               ? parentComment.content.substring(0, 60) + '...' 
               : parentComment.content}
@@ -120,10 +120,10 @@ const CommentItem: React.FC<CommentItemProps> = ({
         </div>
       )}
       
-      <div className="flex gap-4 w-full items-start">
+      <div className="flex gap-3 md:gap-4 w-full items-start">
         {/* Avatar */}
-        <div 
-          className="w-12 h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-lg flex-shrink-0 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 self-start overflow-hidden"
+        <div
+          className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold text-base md:text-lg flex-shrink-0 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 self-start overflow-hidden"
           onClick={handleAvatarClick}
           title={t('viewCode.viewProfile', { author: comment.author })}
         >
@@ -141,9 +141,9 @@ const CommentItem: React.FC<CommentItemProps> = ({
         {/* Comment Body */}
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-semibold text-[var(--text-primary)] text-base">
+          <div className="flex items-start justify-between gap-2 md:gap-3 mb-1.5 md:mb-2">
+            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+              <span className="font-semibold text-[var(--text-primary)] text-sm md:text-base">
                 {comment.author}
               </span>
               <span className="text-xs text-[var(--text-secondary)]">
@@ -177,7 +177,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-sm border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:shadow-md relative">
+            <div className="bg-[var(--bg-secondary)] rounded-xl md:rounded-2xl p-3 md:p-4 shadow-sm border border-[var(--primary-color)]/20 hover:border-[var(--primary-color)]/40 hover:shadow-md relative">
               {currentUser && currentUser.username === comment.author && (
                 <div className="absolute top-2 right-2" ref={menuRef}>
                   <button
@@ -213,7 +213,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   )}
                 </div>
               )}
-              <div className="text-[var(--text-primary)] text-sm leading-relaxed whitespace-pre-wrap break-words mb-3">
+              <div className="text-[var(--text-primary)] text-xs md:text-sm leading-relaxed whitespace-pre-wrap break-words mb-2 md:mb-3">
                 {comment.content.split(/(<img[^>]*>)/).map((part, index) => {
                   if (part.startsWith('<img')) {
                     // Extract src from img tag
@@ -238,7 +238,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   return <span key={index}>{part}</span>;
                 })}
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--primary-color)]/20">
+              <div className="flex items-center justify-end gap-1.5 md:gap-2 pt-1.5 md:pt-2 border-t border-[var(--primary-color)]/20">
                 <button
                   className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-xs font-medium active:scale-95 w-auto ${
                     isLiked 
@@ -268,25 +268,25 @@ const CommentItem: React.FC<CommentItemProps> = ({
       </div>
       
       {replyingToCommentId === comment.id && currentUser && (
-        <div className="mt-4 ml-16">
-          <div className="mb-3 flex items-center justify-between gap-3 px-4 py-2.5 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-xl">
-            <span className="text-sm text-[var(--text-primary)]">
+        <div className="mt-3 md:mt-4 ml-10 md:ml-16">
+          <div className="mb-2 md:mb-3 flex items-center justify-between gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-2.5 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-lg md:rounded-xl">
+            <span className="text-xs md:text-sm text-[var(--text-primary)]">
               {t('viewCode.replyingTo')}: <strong className="text-[var(--primary-color)]">{comment.author}</strong>
             </span>
             <button
               type="button"
-              className="w-6 h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+              className="w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
               onClick={onCancelReply}
             >
-              <FontAwesomeIcon icon={faTimes} className="w-3 h-3" />
+              <FontAwesomeIcon icon={faTimes} className="w-2.5 h-2.5 md:w-3 md:h-3" />
             </button>
           </div>
-          <form 
-            onSubmit={(e) => onSubmitReply(e, comment.id)} 
-            className="p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl shadow-lg backdrop-blur-sm focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
+          <form
+            onSubmit={(e) => onSubmitReply(e, comment.id)}
+            className="p-3 md:p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl md:rounded-2xl shadow-lg backdrop-blur-sm focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
           >
-            <div className="flex items-end gap-3">
-              <label className="w-10 h-10 rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
+            <div className="flex items-end gap-2 md:gap-3">
+              <label className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
                 <input
                   type="file"
                   accept="image/*"
@@ -313,7 +313,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                   </div>
                 )}
                 <textarea
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-y min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
+                  className="w-full px-3 md:px-4 py-2 md:py-3 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-lg md:rounded-xl text-[var(--text-primary)] text-xs md:text-sm resize-y min-h-[60px] md:min-h-[80px] focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)]"
                   placeholder={t('viewCode.replyPlaceholder')}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
@@ -328,7 +328,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               </div>
               <button
                 type="submit"
-                className="w-12 h-12 flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-lg md:rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 disabled={(!replyText.trim() && !replyImage) || isSubmittingReply}
                 title={isSubmittingReply ? t('common.loading') : t('viewCode.addReply')}
               >
@@ -1252,6 +1252,221 @@ const ViewCode: React.FC = () => {
         </div>
       </div>
 
+      {/* Single file (non-folder) code view */}
+      {!code.isFolder && (
+        <>
+          <div className="code-content">
+            <div className="file-code-container">
+              {isImageFile(code.title) ? (
+                <div className="image-preview-wrapper">
+                  <div className="image-preview-container">
+                    <img
+                      src={(() => {
+                        const content = code.content;
+                        if (content.startsWith('data:') || content.startsWith('http://') || content.startsWith('https://')) {
+                          return content;
+                        }
+                        const ext = code.title.split('.').pop()?.toLowerCase() || 'png';
+                        const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' :
+                                       ext === 'png' ? 'image/png' :
+                                       ext === 'gif' ? 'image/gif' :
+                                       ext === 'webp' ? 'image/webp' :
+                                       ext === 'svg' ? 'image/svg+xml' :
+                                       ext === 'bmp' ? 'image/bmp' : 'image/png';
+                        return `data:${mimeType};base64,${content}`;
+                      })()}
+                      alt={code.title}
+                      className="image-preview"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'image-error';
+                        errorDiv.textContent = t('viewCode.errorDisplayImage');
+                        target.parentElement?.appendChild(errorDiv);
+                      }}
+                    />
+                  </div>
+                  <button
+                    className="btn-copy-code-sticky"
+                    onClick={async () => {
+                      try {
+                        const img = document.querySelector('.image-preview') as HTMLImageElement;
+                        if (img && img.src) {
+                          const response = await fetch(img.src);
+                          const blob = await response.blob();
+                          await navigator.clipboard.write([
+                            new ClipboardItem({ [blob.type]: blob })
+                          ]);
+                          setIsCopied(true);
+                          setTimeout(() => setIsCopied(false), 5000);
+                        }
+                      } catch (err) {
+                        console.error('Failed to copy image:', err);
+                      }
+                    }}
+                  >
+                    {isCopied ? <><FontAwesomeIcon icon={faCheck} /> {t('viewCode.imageCopied')}</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyImage')}</>}
+                  </button>
+                </div>
+              ) : (
+                <div className="code-wrapper">
+                  <CodeEditor
+                    code={code.content}
+                    language={code.language}
+                    readOnly={true}
+                    lineNumbers={true}
+                  />
+                  <button
+                    className="btn-copy-code-sticky"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(code.content);
+                        setIsCopied(true);
+                        setTimeout(() => setIsCopied(false), 5000);
+                      } catch (err) {
+                        console.error('Failed to copy:', err);
+                      }
+                    }}
+                  >
+                    {isCopied ? <><FontAwesomeIcon icon={faCheck} /> {t('viewCode.codeCopied')}</> : <><FontAwesomeIcon icon={faCopy} /> {t('viewCode.copyCode')}</>}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Single file comments */}
+          <div
+            className="bg-[var(--bg-secondary)] border-[1.5px] border-[var(--border-color)] rounded-2xl md:p-8 p-3 md:mt-8 mt-4 w-full max-w-[1100px] mx-auto md:h-[calc(100vh-120px)] h-auto md:max-h-[calc(100vh-120px)] max-h-none overflow-y-auto overflow-x-hidden flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.06)] box-border flex-shrink-0 relative folder-comments-container"
+            ref={commentsContainerRef}
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#00AFCA var(--bg-secondary)' }}
+          >
+            <div className="flex flex-col min-h-0 overflow-hidden w-full max-w-full box-border flex-1 h-auto">
+              <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-8 pb-2 md:pb-4 border-b border-[var(--primary-color)]/20 flex-shrink-0">
+                <h2 className="text-lg md:text-2xl text-[var(--text-primary)] m-0 font-bold flex items-center gap-2 md:gap-3">
+                  <FontAwesomeIcon icon={faComment} className="text-[var(--primary-color)]" />
+                  {t('viewCode.comments')} ({code.comments?.length || 0})
+                </h2>
+                <div className="flex-1 h-px bg-gradient-to-r from-[var(--primary-color)]/20 to-transparent"></div>
+              </div>
+
+              <div className="flex flex-col gap-3 md:gap-4 mb-0 min-h-0 overflow-y-auto overflow-x-hidden pb-2 md:pb-4 pr-0 md:pr-2 w-full max-w-full box-border flex-1">
+                {code.comments && code.comments.length > 0 ? (
+                  organizeComments(code.comments).map((comment: Comment) => (
+                    <CommentItem
+                      key={comment.id}
+                      comment={comment}
+                      currentUser={currentUser}
+                      editingCommentId={editingCommentId}
+                      editingCommentText={editingCommentText}
+                      setEditingCommentText={setEditingCommentText}
+                      replyingToCommentId={replyingToCommentId}
+                      replyText={replyText}
+                      setReplyText={setReplyText}
+                      replyImage={replyImage}
+                      setReplyImage={setReplyImage}
+                      isSubmittingReply={isSubmittingReply}
+                      onEdit={handleEditComment}
+                      onSave={handleSaveComment}
+                      onCancelEdit={handleCancelEdit}
+                      onDelete={handleDeleteComment}
+                      onReply={handleReply}
+                      onCancelReply={handleCancelReply}
+                      onSubmitReply={handleSubmitReply}
+                      onLike={handleLikeComment}
+                      allComments={code.comments || []}
+                      currentLanguage={currentLanguage}
+                      authorAvatar={userAvatars[comment.author]}
+                      onReplyImageSelect={handleReplyImageSelect}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-8 md:py-12">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">{t('viewCode.noComments')}</p>
+                  </div>
+                )}
+              </div>
+
+              {currentUser && !replyingToCommentId ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddComment(e);
+                  }}
+                  className="sticky bottom-0 mt-4 md:mt-6 mb-0 p-2 md:p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl md:rounded-2xl shadow-lg backdrop-blur-sm flex-shrink-0 z-10 focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
+                >
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <label className="h-[28px] w-[28px] md:h-[32px] md:w-[32px] min-h-[28px] min-w-[28px] md:min-h-[32px] md:min-w-[32px] box-border rounded-lg md:rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleCommentImageSelect}
+                      />
+                      <FontAwesomeIcon icon={faImage} className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                    </label>
+                    <div className="relative flex-1">
+                      {commentImage && (
+                        <div className="mb-2 relative">
+                          <img
+                            src={commentImage}
+                            alt="Preview"
+                            className="max-w-full max-h-24 md:max-h-32 rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setCommentImage(null)}
+                            className="absolute top-1 right-1 w-5 h-5 md:w-6 md:h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                      <textarea
+                        className="w-full px-3 md:px-4 py-1 md:py-1.5 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-lg md:rounded-xl text-[var(--text-primary)] text-xs md:text-sm resize-none h-[28px] md:h-[32px] min-h-[28px] md:min-h-[32px] max-h-[28px] md:max-h-[32px] box-border focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)] overflow-y-hidden"
+                        placeholder={t('viewCode.commentPlaceholder')}
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment(e);
+                          }
+                        }}
+                        rows={1}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="h-[28px] w-[28px] md:h-[32px] md:w-[32px] min-h-[28px] min-w-[28px] md:min-h-[32px] md:min-w-[32px] box-border flex items-center justify-center rounded-lg md:rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      disabled={(!commentText.trim() && !commentImage) || isSubmittingComment}
+                      title={isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
+                    >
+                      <FontAwesomeIcon icon={faPaperPlane} className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                    </button>
+                  </div>
+                </form>
+              ) : !currentUser ? (
+                <div className="sticky bottom-0 mt-4 md:mt-6 mb-0 p-3 md:p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl md:rounded-2xl flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs md:text-sm text-[var(--text-secondary)]">
+                      {t('viewCode.loginToComment')}
+                    </p>
+                    <button
+                      onClick={() => navigate('/login')}
+                      className="px-3 md:px-4 py-1.5 md:py-2 bg-[var(--primary-color)] hover:opacity-90 text-white text-xs md:text-sm font-medium rounded-lg shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
+                    >
+                      {t('common.login')}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
+
       {code.isFolder && (
       <div className="folder-view-wrapper">
         <div className="folder-view">
@@ -1382,15 +1597,15 @@ const ViewCode: React.FC = () => {
 
           {/* Папка үшін ортақ пікірлер контейнері */}
           <div 
-            className="bg-[var(--bg-secondary)] border-[1.5px] border-[var(--border-color)] rounded-2xl p-8 mt-8 w-full max-w-[1100px] mx-auto h-[calc(100vh-120px)] overflow-y-auto overflow-x-hidden flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.06)] box-border col-span-full flex-shrink-0 relative folder-comments-container" 
+            className="bg-[var(--bg-secondary)] border-[1.5px] border-[var(--border-color)] rounded-2xl md:p-8 p-3 md:mt-8 mt-4 w-full max-w-[1100px] mx-auto md:h-[calc(100vh-120px)] h-auto md:max-h-[calc(100vh-120px)] max-h-none overflow-y-auto overflow-x-hidden flex flex-col shadow-[0_4px_12px_rgba(0,0,0,0.1),0_2px_4px_rgba(0,0,0,0.06)] box-border col-span-full flex-shrink-0 relative folder-comments-container"
             ref={commentsContainerRef}
             style={{ scrollbarWidth: 'thin', scrollbarColor: '#00AFCA var(--bg-secondary)' }}
           >
             {/* Пікірлер бөлімі */}
             <div className="flex flex-col min-h-0 overflow-hidden w-full max-w-full box-border flex-1 h-auto">
               {/* Header */}
-              <div className="flex items-center gap-4 mb-8 pb-4 border-b border-[var(--primary-color)]/20 flex-shrink-0">
-                <h2 className="text-2xl text-[var(--text-primary)] m-0 font-bold flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-4 mb-4 md:mb-8 pb-2 md:pb-4 border-b border-[var(--primary-color)]/20 flex-shrink-0">
+                <h2 className="text-lg md:text-2xl text-[var(--text-primary)] m-0 font-bold flex items-center gap-2 md:gap-3">
                   <FontAwesomeIcon icon={faComment} className="text-[var(--primary-color)]" /> 
                   {t('viewCode.comments')} ({code.comments?.length || 0})
                 </h2>
@@ -1398,7 +1613,7 @@ const ViewCode: React.FC = () => {
               </div>
 
               {/* Пікірлер тізімі */}
-              <div className="flex flex-col gap-4 mb-0 min-h-0 overflow-y-auto overflow-x-hidden pb-4 pr-2 w-full max-w-full box-border flex-1 scrollbar-thin scrollbar-thumb-blue-300 dark:scrollbar-thumb-blue-700 scrollbar-track-transparent">
+              <div className="flex flex-col gap-3 md:gap-4 mb-0 min-h-0 overflow-y-auto overflow-x-hidden pb-2 md:pb-4 pr-0 md:pr-2 w-full max-w-full box-border flex-1 scrollbar-thin scrollbar-thumb-blue-300 dark:scrollbar-thumb-blue-700 scrollbar-track-transparent">
                 {code.comments && code.comments.length > 0 ? (
                   organizeComments(code.comments).map((comment: Comment) => (
                     <CommentItem
@@ -1429,30 +1644,30 @@ const ViewCode: React.FC = () => {
                     />
                   ))
                 ) : (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('viewCode.noComments')}</p>
+                  <div className="text-center py-8 md:py-12">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">{t('viewCode.noComments')}</p>
                   </div>
                 )}
               </div>
 
               {/* Пікір формасы - тек жауап бермегенде */}
               {currentUser && !replyingToCommentId ? (
-                <form 
-                  onSubmit={(e) => { 
+                <form
+                  onSubmit={(e) => {
                     e.preventDefault();
                     handleAddComment(e);
-                  }} 
-                  className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl shadow-lg backdrop-blur-sm flex-shrink-0 z-10 focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
+                  }}
+                  className="sticky bottom-0 mt-4 md:mt-6 mb-0 p-2 md:p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl md:rounded-2xl shadow-lg backdrop-blur-sm flex-shrink-0 z-10 focus-within:border-[var(--primary-color)] focus-within:shadow-xl transition-all duration-200"
                 >
-                  <div className="flex items-center gap-3">
-                    <label className="h-[32px] w-[32px] min-h-[32px] min-w-[32px] box-border rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <label className="h-[28px] w-[28px] md:h-[32px] md:w-[32px] min-h-[28px] min-w-[28px] md:min-h-[32px] md:min-w-[32px] box-border rounded-lg md:rounded-xl bg-[var(--primary-color)] flex items-center justify-center text-white font-semibold flex-shrink-0 cursor-pointer shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95">
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
                         onChange={handleCommentImageSelect}
                       />
-                      <FontAwesomeIcon icon={faImage} className="w-3.5 h-3.5" />
+                      <FontAwesomeIcon icon={faImage} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                     </label>
                     <div className="relative flex-1">
                       {commentImage && (
@@ -1460,19 +1675,19 @@ const ViewCode: React.FC = () => {
                           <img
                             src={commentImage}
                             alt="Preview"
-                            className="max-w-full max-h-32 rounded-lg"
+                            className="max-w-full max-h-24 md:max-h-32 rounded-lg"
                           />
                           <button
                             type="button"
                             onClick={() => setCommentImage(null)}
-                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                            className="absolute top-1 right-1 w-5 h-5 md:w-6 md:h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
                           >
                             ×
                           </button>
                         </div>
                       )}
                       <textarea
-                        className="w-full px-4 py-1.5 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-xl text-[var(--text-primary)] text-sm resize-none h-[32px] min-h-[32px] max-h-[32px] box-border focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)] overflow-y-hidden"
+                        className="w-full px-3 md:px-4 py-1 md:py-1.5 bg-[var(--bg-primary)] border border-[var(--primary-color)]/30 rounded-lg md:rounded-xl text-[var(--text-primary)] text-xs md:text-sm resize-none h-[28px] md:h-[32px] min-h-[28px] md:min-h-[32px] max-h-[28px] md:max-h-[32px] box-border focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] transition-all duration-200 placeholder:text-[var(--text-secondary)] overflow-y-hidden"
                         placeholder={t('viewCode.commentPlaceholder')}
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
@@ -1487,16 +1702,16 @@ const ViewCode: React.FC = () => {
                     </div>
                     <button
                       type="submit"
-                      className="h-[32px] w-[32px] min-h-[32px] min-w-[32px] box-border flex items-center justify-center rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      className="h-[28px] w-[28px] md:h-[32px] md:w-[32px] min-h-[28px] min-w-[28px] md:min-h-[32px] md:min-w-[32px] box-border flex items-center justify-center rounded-lg md:rounded-xl bg-[var(--primary-color)] text-white border-none cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       disabled={(!commentText.trim() && !commentImage) || isSubmittingComment}
                       title={isSubmittingComment ? t('common.loading') : t('viewCode.addComment')}
                     >
-                      <FontAwesomeIcon icon={faPaperPlane} className="w-3.5 h-3.5" />
+                      <FontAwesomeIcon icon={faPaperPlane} className="w-3 h-3 md:w-3.5 md:h-3.5" />
                     </button>
                   </div>
                 </form>
               ) : !currentUser ? (
-                <div className="sticky bottom-0 mt-6 mb-0 p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-2xl flex-shrink-0">
+                <div className="sticky bottom-0 mt-4 md:mt-6 mb-0 p-3 md:p-4 bg-[var(--bg-secondary)] border border-[var(--primary-color)]/30 rounded-xl md:rounded-2xl flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-[var(--text-secondary)]">
                       {t('viewCode.loginToComment')}

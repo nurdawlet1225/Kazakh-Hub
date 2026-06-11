@@ -6,54 +6,61 @@
   .home-container {
     padding: 1rem !important;
   }
-  
-  /* Sidebar adjustments */
+
+  /* Sidebar adjustments — collapsible on mobile */
   aside {
     width: 100% !important;
     position: relative !important;
     top: 0 !important;
     max-height: none !important;
     padding: 1rem !important;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #e5e7eb);
   }
-  
+
   /* Statistics cards */
   aside .flex.flex-col.gap-4 {
     gap: 1rem !important;
   }
-  
+
   aside .flex.items-center.gap-4 {
     padding: 0.875rem !important;
     gap: 0.75rem !important;
   }
-  
+
   aside .text-2xl {
     font-size: 1.5rem !important;
   }
-  
+
   /* Language filter */
   aside button {
     font-size: 0.875rem !important;
     padding: 0.5rem !important;
   }
-  
+
   /* Main content area */
   main {
     width: 100% !important;
     padding: 0 !important;
   }
-  
+
   /* Search and filters */
   .search-container,
   .filters-container {
     flex-direction: column !important;
     gap: 0.75rem !important;
   }
-  
+
   /* Code cards grid */
   .codes-grid {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
+  }
+
+  /* Make sidebar sections collapsible-looking on mobile */
+  aside > div {
+    padding: 0.75rem !important;
   }
 }
 
@@ -61,11 +68,11 @@
   .home-container {
     padding: 0.75rem !important;
   }
-  
+
   aside {
     padding: 0.75rem !important;
   }
-  
+
   aside h2 {
     font-size: 1rem !important;
   }

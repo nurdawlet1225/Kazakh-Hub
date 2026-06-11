@@ -29,25 +29,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Token refresh interval: every 5 minutes (access token expires in 30 min)
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+// Retry interval for soft failures (CSRF/network)
+const RETRY_INTERVAL_MS = 30 * 1000;
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUserState] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isRefreshing = useRef(false);
+  // Track the timestamp of the last successful login
+  const lastLoginTime = useRef<number>(0);
 
-  // Initialize from sessionStorage on mount
-  // Refresh token is stored in HttpOnly cookie (sent automatically by browser)
-  // User data is stored in sessionStorage for UI display purposes
+  // Initialize from localStorage on mount
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('user');
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       try {
         setUserState(JSON.parse(storedUser));
       } catch { /* ignore */ }
+      // Only try to refresh if there's a stored user — skip for guests
+      refreshAccessToken();
+    } else {
+      // No stored user → skip refresh, immediately mark as loaded
+      setIsLoading(false);
     }
-    // Try to refresh the access token on load (cookie is sent automatically)
-    refreshAccessToken();
   }, []);
 
   // Cleanup refresh timer on unmount
@@ -57,45 +65,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // Schedule periodic token refresh
+  const scheduleRefresh = useCallback((intervalMs: number = REFRESH_INTERVAL_MS) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      refreshAccessToken();
+    }, intervalMs);
+  }, []);
+
+  const clearAuthState = useCallback(() => {
+    localStorage.removeItem('user');
+    setAccessToken(null);
+    setUserState(null);
+    lastLoginTime.current = 0;
+  }, []);
+
   const refreshAccessToken = useCallback(async () => {
     if (isRefreshing.current) return;
     isRefreshing.current = true;
     try {
       const data = await apiService.refreshToken();
       setAccessToken(data.access_token);
-    } catch {
-      // Refresh failed — clear auth
-      sessionStorage.removeItem('user');
-      setAccessToken(null);
-      setUserState(null);
+      // Schedule next regular refresh on success
+      scheduleRefresh(REFRESH_INTERVAL_MS);
+    } catch (error: any) {
+      const errMsg = String(error?.message || '').toLowerCase();
+
+      // Hard failure: token genuinely invalid/expired/revoked → must log out
+      const isHardFailure =
+        (errMsg.includes('401') &&
+          !errMsg.includes('network') &&
+          !errMsg.includes('failed to fetch') &&
+          !errMsg.includes('err_connection')) ||
+        errMsg.includes('invalid refresh token') ||
+        errMsg.includes('refresh token revoked') ||
+        errMsg.includes('refresh token required');
+
+      if (isHardFailure) {
+        // Session is truly dead — clear it
+        clearAuthState();
+      } else {
+        // Soft failure: CSRF (403), network error, server down, timeout, etc.
+        // Do NOT log out — just retry sooner. The user stays logged in.
+        // The refresh token cookie persists, so next attempt may succeed
+        // (e.g. after network reconnects or server restarts).
+        scheduleRefresh(RETRY_INTERVAL_MS);
+      }
     } finally {
       isRefreshing.current = false;
       setIsLoading(false);
     }
-  }, []);
+  }, [scheduleRefresh, clearAuthState]);
 
   const login = useCallback((tokens: AuthTokens, userData: User) => {
     setAccessToken(tokens.access_token);
-    // Store user data in sessionStorage for UI display
-    // Refresh token is stored in HttpOnly cookie by the server
-    sessionStorage.setItem('user', JSON.stringify(userData));
+    // Store user data in localStorage for UI display and persistence
+    localStorage.setItem('user', JSON.stringify(userData));
     setUserState(userData);
+    // Mark the time of this login
+    lastLoginTime.current = Date.now();
+    // Mark loading as complete immediately after login
+    setIsLoading(false);
 
-    // Schedule auto-refresh before token expires (25 minutes for 30-min token)
-    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    refreshTimerRef.current = setTimeout(() => {
-      refreshAccessToken();
-    }, 25 * 60 * 1000);
-  }, [refreshAccessToken]);
+    // Schedule periodic refresh (every 5 minutes)
+    scheduleRefresh(REFRESH_INTERVAL_MS);
+  }, [scheduleRefresh]);
 
   const logout = useCallback(async () => {
     try {
       await apiService.logout(accessToken || undefined);
     } catch { /* ignore */ }
     setAccessToken(null);
-    sessionStorage.removeItem('user');
+    localStorage.removeItem('user');
     setUserState(null);
-    isRefreshing.current = false; // Reset so refresh can work after re-login
+    lastLoginTime.current = 0;
+    isRefreshing.current = false;
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
   }, [accessToken]);
 
@@ -104,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const setUser = useCallback((userData: User) => {
-    sessionStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(userData));
     setUserState(userData);
   }, []);
 

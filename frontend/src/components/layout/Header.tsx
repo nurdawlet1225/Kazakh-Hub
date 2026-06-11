@@ -1,181 +1,117 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faLock, faUser, faComment } from '@fortawesome/free-solid-svg-icons';
+import { faUpload, faLock, faUser, faComment, faCode } from '@fortawesome/free-solid-svg-icons';
 import UploadModal from '../modals/UploadModal';
 import ProfileModal from '../modals/ProfileModal';
 import Button from '../ui/Button';
 import LinkButton from '../ui/LinkButton';
 import { apiService, User } from '../../utils/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { imageStorage } from '../../utils/imageStorage';
 import './Header.css';
 
 const Header: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const { user: authUser, isAuthenticated } = useAuth();
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [incomingRequestCount, setIncomingRequestCount] = useState(0);
+  const [displayUser, setDisplayUser] = useState<User | null>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
 
-  const loadUser = async () => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        
-        // Load avatar from imageStorage if it exists
-        if (userData.id) {
-          try {
-            const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
-            if (avatarFromStorage) {
-              userData.avatar = avatarFromStorage;
-            } else if (userData.avatar === 'stored') {
-              // Avatar flag exists but image not found in storage
-              userData.avatar = undefined;
-            }
-          } catch (err) {
-            // If avatar not found or error loading, set to undefined
-            if (userData.avatar === 'stored') {
-              userData.avatar = undefined;
-            }
-          }
-        }
-        
-        setIsLoggedIn(true);
-        setUser(userData);
-      } catch (err) {
-        setIsLoggedIn(false);
-        setUser(null);
-      }
-    } else {
-      setIsLoggedIn(false);
-      setUser(null);
-    }
-  };
-
+  // Load avatar from imageStorage for display
   useEffect(() => {
-    let isMounted = true;
-    const loadUserSafe = async () => {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
+    if (!authUser?.id) {
+      setDisplayUser(null);
+      return;
+    }
 
-          // Load avatar from imageStorage if it exists
-          if (userData.id) {
-            try {
-              const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
-              if (!isMounted) return;
-              if (avatarFromStorage) {
-                userData.avatar = avatarFromStorage;
-              } else if (userData.avatar === 'stored') {
-                userData.avatar = undefined;
-              }
-            } catch (err) {
-              if (!isMounted) return;
-              if (userData.avatar === 'stored') {
-                userData.avatar = undefined;
-              }
-            }
-          }
+    const loadDisplayUser = async () => {
+      const userData = { ...authUser };
 
-          setIsLoggedIn(true);
-          setUser(userData);
-        } catch (err) {
-          if (!isMounted) return;
-          setIsLoggedIn(false);
-          setUser(null);
+      // Load avatar from imageStorage if it exists
+      try {
+        const avatarFromStorage = await imageStorage.getImage(`avatar-${userData.id}`);
+        if (avatarFromStorage) {
+          userData.avatar = avatarFromStorage;
+        } else if (userData.avatar === 'stored') {
+          userData.avatar = undefined;
         }
-      } else {
-        if (!isMounted) return;
-        setIsLoggedIn(false);
-        setUser(null);
+      } catch {
+        if (userData.avatar === 'stored') {
+          userData.avatar = undefined;
+        }
       }
+
+      setDisplayUser(userData);
     };
-    loadUserSafe();
-    return () => { isMounted = false; };
-  }, [location]);
+
+    loadDisplayUser();
+  }, [authUser]);
 
   const loadIncomingRequestCount = useCallback(async () => {
-    if (!user?.id) return;
+    if (!authUser?.id) return;
     try {
-      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(user.id);
+      const { incomingRequestCount } = await apiService.getIncomingFriendRequestCount(authUser.id);
       setIncomingRequestCount(incomingRequestCount);
-    } catch (err) {
-      // Тыныштықпен қатені елемеу - бұл маңызды емес функционалдық
-      // console.error('Failed to load incoming request count:', err);
+    } catch {
+      // Silently ignore — non-critical feature
     }
-  }, [user?.id]);
+  }, [authUser?.id]);
 
   useEffect(() => {
-    // Load incoming friend request count
-    if (isLoggedIn && user?.id) {
+    if (isAuthenticated && authUser?.id) {
       loadIncomingRequestCount();
-      
-      // Use Page Visibility API to pause polling when tab is hidden
+
       let interval: NodeJS.Timeout | null = null;
-      
+
       const startPolling = () => {
         if (document.visibilityState === 'visible') {
-          interval = setInterval(loadIncomingRequestCount, 10000); // Update every 10 seconds
+          interval = setInterval(loadIncomingRequestCount, 10000);
         }
       };
-      
+
       const stopPolling = () => {
         if (interval) {
           clearInterval(interval);
           interval = null;
         }
       };
-      
+
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
-          // Reload immediately when tab becomes visible
           loadIncomingRequestCount();
           startPolling();
         } else {
           stopPolling();
         }
       };
-      
-      // Start polling if tab is visible
+
       if (document.visibilityState === 'visible') {
         startPolling();
       }
-      
-      // Listen for visibility changes
+
       document.addEventListener('visibilitychange', handleVisibilityChange);
-      
+
       return () => {
         stopPolling();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
     }
-  }, [isLoggedIn, user?.id, loadIncomingRequestCount]);
+  }, [isAuthenticated, authUser?.id, loadIncomingRequestCount]);
 
+  // Listen for profile update events
   useEffect(() => {
-    // Listen for storage changes (when user profile is updated in another tab/component)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user') {
-        loadUser();
-      }
-    };
-
-    // Listen for custom event when profile is updated in the same tab
     const handleProfileUpdate = () => {
-      loadUser();
+      // AuthContext will update authUser, which triggers the effect above
     };
 
-    window.addEventListener('storage', handleStorageChange);
     window.addEventListener('userProfileUpdated', handleProfileUpdate);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('userProfileUpdated', handleProfileUpdate);
     };
   }, []);
@@ -201,7 +137,7 @@ const Header: React.FC = () => {
         {/* Батырмалар - оң жақта */}
         <div className="flex gap-2 sm:gap-4 items-center flex-shrink-0 flex-nowrap flex-row">
           {/* Upload батырмасы */}
-          <Button 
+          <Button
             variant="primary"
             onClick={() => {
               navigate('/');
@@ -212,13 +148,13 @@ const Header: React.FC = () => {
           >
             <span className="max-[360px]:hidden">{t('common.upload')}</span>
           </Button>
-          
+
           {/* Chat батырмасы */}
-          {isLoggedIn && (
-            <LinkButton 
-              to="/chat" 
-              variant="secondary" 
-              className="relative h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 min-w-[60px] sm:min-w-[80px] header-btn-chat" 
+          {isAuthenticated && (
+            <LinkButton
+              to="/chat"
+              variant="secondary"
+              className="relative h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 min-w-[60px] sm:min-w-[80px] header-btn-chat"
               title={t('header.chat')}
               icon={
                 <>
@@ -234,34 +170,45 @@ const Header: React.FC = () => {
               <span className="max-[360px]:hidden">{t('header.chat')}</span>
             </LinkButton>
           )}
-          
+
+          {/* Vibecoding батырмасы */}
+          <LinkButton
+            to="/vibecoding"
+            variant="secondary"
+            className="h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 min-w-[60px] sm:min-w-[80px] header-btn-vibecoding"
+            title={t('vibecoding.title', 'Vibecoding')}
+            icon={<FontAwesomeIcon icon={faCode} />}
+          >
+            <span className="max-[360px]:hidden">{t('vibecoding.title', 'Vibecoding')}</span>
+          </LinkButton>
+
           {/* Профиль батырмасы - ең оң жақта */}
-          {isLoggedIn && (
-            <button 
+          {isAuthenticated && displayUser && (
+            <button
               ref={profileButtonRef}
               onClick={() => setIsProfileModalOpen(!isProfileModalOpen)}
               className="flex items-center justify-center gap-0 p-0 rounded-full no-underline text-text-primary transition-all bg-transparent border-none relative overflow-visible cursor-pointer w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] box-border font-inherit text-inherit dark:bg-gradient-to-br dark:from-[rgba(0,153,204,0.08)] dark:to-[rgba(0,175,202,0.05)] hover:-translate-y-[1.3px] header-btn-profile"
             >
               <div className="w-[30px] h-[30px] sm:w-[34px] sm:h-[34px] rounded-full bg-accent-gradient flex items-center justify-center text-sm font-bold text-white flex-shrink-0 shadow-md drop-shadow-[0_0_12.8px_rgba(0,175,202,0.3)] transition-all overflow-hidden relative border-[1.3px] border-[rgba(0,175,202,0.3)] hover:shadow-lg hover:drop-shadow-[0_0_19.2px_rgba(0,175,202,0.5)] hover:border-primary hover:scale-105">
-                {user?.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.username || 'User'} 
+                {displayUser.avatar ? (
+                  <img
+                    src={displayUser.avatar}
+                    alt={displayUser.username || 'User'}
                     className="w-full h-full object-cover rounded-full transition-transform hover:scale-110"
                   />
                 ) : (
                   <span className="flex items-center justify-center w-full h-full transition-transform hover:scale-110">
-                    {user?.username?.[0]?.toUpperCase() || <FontAwesomeIcon icon={faUser} />}
+                    {displayUser.username?.[0]?.toUpperCase() || <FontAwesomeIcon icon={faUser} />}
                   </span>
                 )}
               </div>
             </button>
           )}
-          
+
           {/* Login батырмасы (егер кіру жасамаған болса) */}
-          {!isLoggedIn && (
-            <LinkButton 
-              to="/login" 
+          {!isAuthenticated && (
+            <LinkButton
+              to="/login"
               variant="secondary"
               className="h-[32px] sm:h-[36px] text-xs sm:text-sm px-2 sm:px-3 py-0.5 header-btn-login"
               icon={<FontAwesomeIcon icon={faLock} />}
@@ -288,4 +235,3 @@ const Header: React.FC = () => {
 };
 
 export default Header;
-

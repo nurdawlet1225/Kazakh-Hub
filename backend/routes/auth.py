@@ -28,7 +28,7 @@ router = APIRouter()
 # Cookie settings for refresh token
 REFRESH_TOKEN_COOKIE = "refresh_token"
 CSRF_TOKEN_COOKIE = "csrf_token"
-COOKIE_MAX_AGE = 7 * 24 * 60 * 60  # 7 days in seconds
+COOKIE_MAX_AGE = 30 * 24 * 60 * 60  # 30 days in seconds
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"  # MUST be "true" in production with HTTPS
 COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "strict")
 
@@ -48,6 +48,9 @@ def _set_refresh_token_cookie(response: JSONResponse, refresh_token: str) -> JSO
     )
     # CSRF token cookie: readable by JS (not HttpOnly) so the frontend can
     # send it back as a custom header. Same lifetime as the refresh token.
+    # Path must be "/" so document.cookie can read it from any frontend page.
+    # (The double-submit pattern requires the frontend to read this cookie
+    # and send it as a header — a restricted path would hide it from JS.)
     response.set_cookie(
         key=CSRF_TOKEN_COOKIE,
         value=csrf_token,
@@ -55,7 +58,7 @@ def _set_refresh_token_cookie(response: JSONResponse, refresh_token: str) -> JSO
         httponly=False,
         secure=COOKIE_SECURE,
         samesite=COOKIE_SAMESITE,
-        path="/api/auth",
+        path="/",
     )
     return response
 
@@ -68,7 +71,7 @@ def _clear_refresh_token_cookie(response: JSONResponse) -> JSONResponse:
     )
     response.delete_cookie(
         key=CSRF_TOKEN_COOKIE,
-        path="/api/auth",
+        path="/",
     )
     return response
 
@@ -240,13 +243,24 @@ async def refresh_token(request: Request, db: Session = Depends(get_db)):
     if not user.refresh_token_hash or not verify_password(refresh_token_value, user.refresh_token_hash):
         raise HTTPException(status_code=401, detail="Refresh token revoked")
 
+    # Issue new access token
     access_token = create_access_token(
         data={"sub": user.id, "username": user.username, "session_id": user.session_id}
     )
+
+    # Refresh token rotation: issue a new refresh token so the session
+    # never expires as long as the user is active (refreshing every 5 min).
+    # The old refresh token is invalidated by overwriting its hash.
+    new_refresh_token = create_refresh_token(data={"sub": user.id})
+    user.refresh_token_hash = hash_password(new_refresh_token)
+    db.commit()
+
     response = JSONResponse(content={
         "access_token": access_token,
         "token_type": "bearer",
     })
+    # Set the new refresh token cookie (replaces the old one)
+    _set_refresh_token_cookie(response, new_refresh_token)
     return response
 
 
@@ -308,10 +322,22 @@ async def forgot_password(request: Request, forgot_request: ForgotPasswordReques
     db.add(reset)
     db.commit()
 
-    # In production, send via email. For now, return token in response.
-    # Security: reset_token is no longer returned in the API response.
-    # In a production system, this token should be sent via email as part of a reset link.
-    # For development/testing, the token can be checked in the database directly.
+    # Send password reset email
+    from utils.email import send_password_reset_email
+    email_sent = send_password_reset_email(
+        to_email=user.email,
+        token=token,
+        username=user.username,
+    )
+
+    if not email_sent:
+        import logging
+        logging.getLogger("kazakh_hub").warning(
+            "Password reset email could not be sent to %s. "
+            "SMTP may not be configured. Reset token: %s",
+            user.email, token,
+        )
+
     return {
         "message": "If the email exists, a reset link has been sent.",
     }

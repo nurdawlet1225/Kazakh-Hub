@@ -368,7 +368,11 @@
     "activeSession": "Active session",
     "singleSessionNote": "Only one session can be active at a time. Logging in from another device will close this session.",
     "logout": "Log out",
-    "logoutDescription": "Sign out of your account"
+    "logoutDescription": "Sign out of your account",
+    "folderTab": "Folders",
+    "myFolders": "My Folders",
+    "noFolders": "No folders",
+    "noFoldersDescription": "Upload your first folder and share your code!"
   },
   "about": {
     "title": "About Us",
@@ -824,5 +828,67 @@
     "months.10.long": "November",
     "months.11.short": "Dec",
     "months.11.long": "December"
+  },
+  "vibecoding": {
+    "title": "Vibecoding",
+    "description": "Online Code Editor",
+    "fileExplorer": {
+      "title": "Explorer",
+      "newFile": "New File",
+      "newFolder": "New Folder",
+      "rename": "Rename",
+      "delete": "Delete",
+      "deleteConfirm": "Are you sure you want to delete \"{name}\"?",
+      "emptyProject": "No files yet. Create a new file to get started.",
+      "projects": "Projects",
+      "switchProject": "Switch Project",
+      "newProject": "New Project"
+    },
+    "editor": {
+      "noFileOpen": "No file is open",
+      "noFileOpenHint": "Select a file from the explorer or create a new one",
+      "unsaved": "Unsaved",
+      "save": "Save",
+      "saveAll": "Save All",
+      "closeTab": "Close Tab",
+      "closeOtherTabs": "Close Other Tabs",
+      "closeAllTabs": "Close All Tabs",
+      "loading": "Loading editor..."
+    },
+    "terminal": {
+      "title": "Terminal",
+      "connecting": "Connecting...",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "reconnect": "Connect",
+      "disconnect": "Disconnect",
+      "clear": "Clear Terminal",
+      "copy": "Copy Selection",
+      "error": "Connection error"
+    },
+    "chat": {
+      "title": "AI Assistant",
+      "placeholder": "Ask me anything about your code...",
+      "send": "Send",
+      "thinking": "Thinking...",
+      "copyCode": "Copy Code",
+      "insertCode": "Insert into Editor",
+      "newChat": "New Chat",
+      "clearChat": "Clear Chat",
+      "copied": "Copied",
+      "copy": "Copy",
+      "insert": "Insert",
+      "ready": "Ready",
+      "closeChat": "Close",
+      "fakeResponseActiveFile": "I can work with your **{{fileName}}** file. I received your question!\n\nAI integration will be added soon (OyJI.org).\n\nYou can currently use these features:\n- Write and edit code\n- Work with files\n- Execute commands in the terminal",
+      "fakeResponseNoFile": "Hello! I am the Vibecoding AI assistant.\n\nAI integration will be added soon (OyJI.org).\n\nYou can currently use these features:\n- Write and edit code\n- Work with files\n- Execute commands in the terminal"
+    },
+    "layout": {
+      "toggleExplorer": "Toggle Explorer",
+      "toggleTerminal": "Toggle Terminal",
+      "toggleChat": "Toggle AI Chat",
+      "upload": "Upload",
+      "focusEditor": "Focus Editor"
+    }
   }
 }

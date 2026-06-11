@@ -95,19 +95,23 @@
     right: -3px !important;
   }
   
-  /* Button order: Upload (1), Chat (2), Profile (3) */
+  /* Button order: Upload (1), Chat (2), Vibecoding (2.5), Profile (3) */
   .header-btn-upload {
     order: 1;
   }
-  
+
   .header-btn-chat {
     order: 2;
   }
-  
+
+  .header-btn-vibecoding {
+    order: 2.5;
+  }
+
   .header-btn-profile {
     order: 3;
   }
-  
+
   .header-btn-login {
     order: 1;
   }

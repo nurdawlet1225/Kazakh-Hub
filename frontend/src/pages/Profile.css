@@ -1,7 +1,7 @@
 .profile-container {
   position: relative;
-  max-width: 60%;
-  width: 60%;
+  max-width: 90%;
+  width: 90%;
   margin: 20px auto 0;
   padding: 1.60rem;
   padding-top: 1.60rem;
@@ -20,6 +20,13 @@
     width: 100%;
     max-width: 100%;
     padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-container {
+    width: 95%;
+    max-width: 95%;
   }
 }
 

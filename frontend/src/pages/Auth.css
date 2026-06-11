@@ -1,22 +1,22 @@
 /* Landing Page Layout */
 .landing-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 1fr;
   background: var(--bg-primary);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
-  /* Hide scrollbar but allow parallax elements to extend */
-  height: 100vh;
-  max-height: 100vh;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Hide scrollbar on auth pages */
+/* Auth page container — allow scrolling on mobile */
 .app-main-auth {
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   overflow-x: hidden !important;
-  height: 100vh;
-  max-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 769px) {
@@ -759,9 +759,10 @@
   padding: 2rem 2.5rem 1.5rem 2.5rem;
   max-height: auto;
   max-width: 420px;
-  min-width: 380px;
-  width: auto;
-  overflow: hidden;
+  min-width: 0;
+  width: 90%;
+  overflow-y: auto;
+  overflow-x: hidden;
   color: white;
 }
 
@@ -1516,14 +1517,15 @@
 
   .landing-auth {
     padding: 1rem;
-    height: 100vh;
-    max-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
   }
 
   .auth-card {
     padding: 2rem 1.5rem;
     max-width: 100%;
-    max-height: calc(100vh - 2rem);
+    max-height: none;
+    overflow-y: auto;
   }
 
   .auth-title {
@@ -1564,9 +1566,9 @@
   }
 
   .landing-auth {
-    padding: 1rem;
-    height: 100vh;
-    max-height: 100vh;
+    padding: 0.5rem;
+    min-height: 100dvh;
+    height: auto;
   }
 
   .auth-container {
@@ -1576,7 +1578,8 @@
   .auth-card {
     padding: 1.5rem 1rem;
     border-radius: 20px;
-    max-height: calc(100vh - 2rem);
+    max-height: none;
+    overflow-y: auto;
   }
 
   .auth-title {

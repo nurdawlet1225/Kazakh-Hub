@@ -47,50 +47,50 @@ const Home: React.FC = () => {
   // Жаңа жүктеу стратегиясы: жеңілдетілген және тиімді
   const loadCodes = useCallback(async (limit: number = 50, offset: number = 0, retryCount: number = 0): Promise<{ codes: CodeFile[]; total: number } | null> => {
     const MAX_RETRIES = 2;
-    
+
     try {
       const response = await apiService.getCodeFiles(undefined, limit, offset, false);
-      
+
       setCodes(response.codes);
       setTotalCodesCount(response.total);
       setError(null);
       setLoading(false);
-      
-      console.log('Home: Loaded codes from API:', response.codes.length, '/', response.total, 'folders:', response.codes.filter(c => c.isFolder === true).length);
+
       return response;
     } catch (err: any) {
       // Егер желі қатесі болса, қайталау
       if ((err?.message?.includes('timeout') || err?.message?.includes('Failed to fetch') || err?.message?.includes('қосылу')) && retryCount < MAX_RETRIES) {
-        // Retry логикасы - хабарлама errorSuppression.ts арқылы басқарылады
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
         return loadCodes(limit, offset, retryCount + 1);
       }
-      
+
       setError(err instanceof Error ? err.message : t('home.error'));
       setLoading(false);
       setCodes([]);
       return null;
     }
-  }, [t]);
+  // t is only used for error messages and rarely changes — suppress dep warning
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
     let unsubscribeListener: (() => void) | null = null;
     let apiCodesLoaded = false;
-    
+
     // Негізгі жүктеу функциясы
     const initializeCodes = async () => {
       setLoading(true);
-      
+
       // API-дан кодтарды жүктеу
       const response = await loadCodes(50, 0);
-      
+
       if (!isMounted) return;
-      
+
       if (response && response.codes.length > 0) {
         apiCodesLoaded = true;
       }
-      
+
       // Real-time listener қосу (тек Firestore блокталмаған болса)
       if (!isFirestoreBlocked()) {
         try {
@@ -98,28 +98,23 @@ const Home: React.FC = () => {
             null,
             (updatedCodes) => {
               if (!isMounted) return;
-              
-              // Real-time жаңартуларды тек API-дан жүктелген кодтар болған кезде елемеу
-              // Бұл пагинацияны сақтайды - API деректерін басым ету
+
               if (!apiCodesLoaded && updatedCodes.length > 0) {
-                // Егер API жүктемесе, real-time деректерді пайдалану
                 setCodes(updatedCodes);
               }
-              // Егер API деректері жүктелген болса, оларды сақтау (real-time тек жаңартулар үшін)
             },
             (_error: any) => {
-              // Real-time қателерін тыныштықпен елемеу - API деректері пайдаланылады
               if (!isMounted) return;
             }
           );
         } catch (err) {
-          console.warn('Real-time listener failed to initialize, using API only');
+          // Real-time listener қатесін елемеу - API деректері пайдаланылады
         }
       }
     };
-    
+
     initializeCodes();
-    
+
     return () => {
       isMounted = false;
       if (unsubscribeListener) {
@@ -127,11 +122,14 @@ const Home: React.FC = () => {
         unsubscribe('codes-all');
       }
     };
-  }, [loadCodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Папка жүктелгеннен кейін тізімді жаңарту
     const handleCodesUpdated = () => {
+      // Кэшті жою және қайта жүктеу
+      apiService.invalidateCodesCache();
       loadCodes(50, 0);
     };
 
@@ -140,7 +138,8 @@ const Home: React.FC = () => {
     return () => {
       window.removeEventListener('codesUpdated', handleCodesUpdated);
     };
-  }, [loadCodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // Sync search query with URL params

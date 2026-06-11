@@ -153,8 +153,13 @@ export interface SiteConfig {
 
 class ApiService {
   private baseUrl: string;
-  private connectionChecked: boolean = false;
   private _getToken: (() => string | null) | null = null;
+  private configCache: SiteConfig | null = null;
+  private configCacheExpiry: number = 0;
+  private static readonly CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private codesCache: { codes: CodeFile[]; total: number; offset: number; hasMore: boolean } | null = null;
+  private codesCacheExpiry: number = 0;
+  private static readonly CODES_CACHE_TTL = 30 * 1000; // 30 seconds
 
   /**
    * Read the CSRF token from the csrf_token cookie (set by the server
@@ -177,38 +182,11 @@ class ApiService {
   }
 
   /**
-   * Check if backend server is reachable
+   * Invalidate the codes cache so next request fetches fresh data
    */
-  async checkConnection(): Promise<boolean> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for health check
-      
-      const healthUrl = `${this.baseUrl.replace(/\/api\/?$/, '')}/api/health`;
-      const response = await fetch(healthUrl, {
-        method: 'GET',
-        signal: controller.signal,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      clearTimeout(timeoutId);
-      this.connectionChecked = true;
-      return response.ok;
-    } catch (error) {
-      // Don't set connectionChecked on failure so subsequent requests can retry
-      console.warn('Backend connection check failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Reset connection check flag (useful after reconnecting)
-   */
-  resetConnectionCheck(): void {
-    this.connectionChecked = false;
+  invalidateCodesCache(): void {
+    this.codesCache = null;
+    this.codesCacheExpiry = 0;
   }
 
   private async request<T>(
@@ -216,15 +194,6 @@ class ApiService {
     options?: RequestInit
   ): Promise<T> {
     try {
-      // Check connection first if not already checked (only for first request)
-      if (!this.connectionChecked && endpoint !== '/health') {
-        const isConnected = await this.checkConnection();
-        if (!isConnected) {
-          const serverUrl = this.baseUrl.replace(/\/api\/?$/, '');
-          throw new Error(tApi('apiErrors.backendUnreachable', { serverUrl }));
-        }
-      }
-      
       const url = `${this.baseUrl}${endpoint}`;
       if (import.meta.env.DEV) {
         console.log(`API Request: ${options?.method || 'GET'} ${url}`);
@@ -331,33 +300,49 @@ class ApiService {
 
   // Code files
   async getCodeFiles(
-    folderId?: string, 
-    limit?: number, 
-    offset?: number, 
+    folderId?: string,
+    limit?: number,
+    offset?: number,
     includeContent?: boolean
   ): Promise<{ codes: CodeFile[]; total: number; limit?: number; offset: number; hasMore: boolean }> {
+    // Use cache for default listing (no folderId, default limit/offset, no content)
+    const isDefaultQuery = !folderId && limit === 50 && offset === 0 && !includeContent;
+    const now = Date.now();
+
+    if (isDefaultQuery && this.codesCache && now < this.codesCacheExpiry) {
+      return this.codesCache;
+    }
+
     const params = new URLSearchParams();
     if (folderId) params.append('folderId', folderId);
     if (limit !== undefined) params.append('limit', limit.toString());
     if (offset !== undefined) params.append('offset', offset.toString());
     if (includeContent) params.append('includeContent', 'true');
-    
+
     const endpoint = `/codes${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await this.request<any>(endpoint);
-    
+
     // Кері үйлесімділік: егер жауап массив болса (ескі формат), оны жаңа форматқа түрлендіру
+    let result: { codes: CodeFile[]; total: number; limit?: number; offset: number; hasMore: boolean };
     if (Array.isArray(response)) {
-      return {
+      result = {
         codes: response,
         total: response.length,
         limit: limit,
         offset: offset || 0,
         hasMore: false
       };
+    } else {
+      result = response;
     }
-    
-    // Жаңа формат (пагинациямен)
-    return response;
+
+    // Cache default listing
+    if (isDefaultQuery) {
+      this.codesCache = result;
+      this.codesCacheExpiry = now + ApiService.CODES_CACHE_TTL;
+    }
+
+    return result;
   }
 
   async getCodeFile(id: string): Promise<CodeFile> {
@@ -791,8 +776,16 @@ class ApiService {
    * Get site configuration (app name, contact, external links, file limits) from backend.
    */
   async getConfig(): Promise<SiteConfig> {
+    // Return cached config if still fresh
+    const now = Date.now();
+    if (this.configCache && now < this.configCacheExpiry) {
+      return this.configCache;
+    }
     try {
-      return await this.request<SiteConfig>('/config');
+      const data = await this.request<SiteConfig>('/config');
+      this.configCache = data;
+      this.configCacheExpiry = now + ApiService.CONFIG_CACHE_TTL;
+      return data;
     } catch (error) {
       console.warn('Failed to load site config, using defaults:', error);
       return {
@@ -804,7 +797,7 @@ class ApiService {
           maxFileSizeMB: 30,
           supportedExtensions: ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.html', '.css', '.json', '.md', '.xml', '.yaml', '.yml']
         },
-        apiDisplayUrl: API_BASE_URL.replace(/\/api$/, '') + '/api'
+        apiDisplayUrl: this.baseUrl.replace(/\/api$/, '') + '/api'
       };
     }
   }

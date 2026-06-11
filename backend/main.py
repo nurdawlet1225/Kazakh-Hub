@@ -1,4 +1,7 @@
 """Kazakh Hub Backend API - Main application file"""
+from dotenv import load_dotenv
+load_dotenv()
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,9 +11,9 @@ from datetime import datetime
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 import uvicorn
 import os
+import asyncio
 import logging
 
 # Import database and config
@@ -35,7 +38,6 @@ limiter = Limiter(key_func=get_remote_address)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan event handler for startup and shutdown"""
-    import asyncio
 
     # Startup
     # Initialize SQL database
@@ -107,28 +109,11 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Add SlowAPI middleware for rate limiting
-app.add_middleware(SlowAPIMiddleware)
-
-
-# Security headers middleware
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    response.headers["X-Request-ID"] = os.urandom(16).hex()
-    # Remove server header to avoid fingerprinting
-    try:
-        del response.headers["server"]
-    except KeyError:
-        pass
-    return response
-
-# CORS middleware - use environment variable for allowed origins
-_cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174")
+# CORS middleware - MUST be the outermost layer so OPTIONS preflight
+# requests are handled before any rate-limiting or other middleware.
+_cors_origins_str = os.getenv("CORS_ORIGINS",
+    "http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://localhost:5179,"
+    "http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:5175,http://127.0.0.1:5176,http://127.0.0.1:5177,http://127.0.0.1:5178,http://127.0.0.1:5179")
 _cors_origins = [origin.strip() for origin in _cors_origins_str.split(",") if origin.strip()]
 
 app.add_middleware(
@@ -139,19 +124,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request logging middleware
-@app.middleware("http")
-async def log_requests(request, call_next):
-    print(f"{datetime.now().isoformat()} - {request.method} {request.url.path}")
-    
-    response = await call_next(request)
+# NOTE: SlowAPIMiddleware is NOT added as global middleware because it
+# intercepts CORS OPTIONS preflight requests and returns 400 without
+# Access-Control-Allow-Origin headers. Rate limiting is applied per-route
+# via the @limiter.limit() decorator instead.
 
-    # Add caching headers for GET requests
-    if request.method == "GET" and request.url.path.startswith("/api/codes"):
-        # Cache codes list for 30 seconds
-        response.headers["Cache-Control"] = "public, max-age=30"
 
-    return response
+# Security headers and logging middleware.
+# These are added via add_middleware() so they sit INSIDE (after) the CORS
+# middleware in the request path — CORS handles OPTIONS preflight first,
+# then these run only for actual requests.
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["X-Request-ID"] = os.urandom(16).hex()
+        try:
+            del response.headers["server"]
+        except KeyError:
+            pass
+        return response
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        print(f"{datetime.now().isoformat()} - {request.method} {request.url.path}")
+        response = await call_next(request)
+        if request.method == "GET" and request.url.path.startswith("/api/codes"):
+            response.headers["Cache-Control"] = "public, max-age=30"
+        return response
+
+# Add inner middleware BEFORE CORS (LIFO: last added = runs first on request)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Root endpoints
 @app.get("/")
@@ -341,6 +350,113 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str, token: str = Qu
     except Exception as e:
         print(f"WebSocket error for user {user_id}: {e}")
         manager.disconnect(websocket, user_id)
+
+
+# Terminal WebSocket endpoint for Vibecoding
+from services.terminal_service import terminal_manager
+
+@app.websocket("/api/ws/terminal")
+async def terminal_websocket_endpoint(websocket: WebSocket, token: str = Query(None)):
+    """WebSocket endpoint for terminal sessions in Vibecoding (requires JWT token)"""
+    # Validate Origin header
+    origin = websocket.headers.get("origin", "")
+    allowed_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:5174")
+    allowed_origins = [o.strip() for o in allowed_origins_str.split(",") if o.strip()]
+    if not origin or origin not in allowed_origins:
+        await websocket.close(code=4003, reason="Origin not allowed")
+        return
+
+    # Validate JWT token
+    if not token:
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    user_id = None
+    try:
+        payload = decode_token(token)
+        user_id = payload.get("sub")
+        if not user_id:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+    except Exception:
+        await websocket.close(code=4001, reason="Invalid token")
+        return
+
+    # Accept the WebSocket connection
+    await websocket.accept()
+
+    # Create a new terminal session
+    session = None
+    output_task = None
+    try:
+        session = await terminal_manager.create_session(user_id)
+
+        # Send connected message
+        await websocket.send_json({
+            "type": "connected",
+            "sessionId": session.session_id
+        })
+
+        # Start reading output from the terminal
+        async def read_terminal_output():
+            """Read output from the terminal and send it to the WebSocket"""
+            if not hasattr(session, '_output_queue'):
+                return
+            try:
+                while True:
+                    data = await session._output_queue.get()
+                    if data is None:
+                        # Process exited
+                        await websocket.send_json({
+                            "type": "exit",
+                            "code": session.process.returncode if session.process else 0
+                        })
+                        break
+                    await websocket.send_json({
+                        "type": "output",
+                        "data": data
+                    })
+            except Exception as e:
+                logger.error(f"Error reading terminal output: {e}")
+
+        # Start output reader task
+        output_task = asyncio.create_task(read_terminal_output())
+
+        # Handle incoming messages
+        while True:
+            data = await websocket.receive_json()
+            message_type = data.get("type")
+
+            if message_type == "input":
+                input_data = data.get("data", "")
+                await session.write(input_data)
+
+            elif message_type == "resize":
+                cols = data.get("cols", 80)
+                rows = data.get("rows", 24)
+                await session.resize(cols, rows)
+
+            elif message_type == "ping":
+                await websocket.send_json({"type": "pong"})
+
+    except WebSocketDisconnect:
+        logger.info(f"Terminal WebSocket disconnected for user {user_id}")
+    except Exception as e:
+        logger.error(f"Terminal WebSocket error for user {user_id}: {e}")
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except Exception:
+            pass
+    finally:
+        # Cleanup
+        if output_task and not output_task.done():
+            output_task.cancel()
+            try:
+                await output_task
+            except asyncio.CancelledError:
+                pass
+        if session:
+            await terminal_manager.close_session(session.session_id)
 
 if __name__ == "__main__":
     # Default to 3000 for local development, 8080 for Cloud Run

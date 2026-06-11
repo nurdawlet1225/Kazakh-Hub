@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faFolder, faTrash, faEye } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { apiService } from '../utils/api';
+import { apiService, CodeFile } from '../utils/api';
+import { formatDate } from '../utils/dateFormatter';
 import Button from '../components/ui/Button';
 import './Settings.css';
 
-type SettingsTab = 'general' | 'account' | 'danger';
+type SettingsTab = 'general' | 'account' | 'folder' | 'danger';
 
 const Settings: React.FC = () => {
   const { i18n, t } = useTranslation();
@@ -43,6 +46,38 @@ const Settings: React.FC = () => {
   const [deleteConfirmStep, setDeleteConfirmStep] = useState(0);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // Folders
+  const [folders, setFolders] = useState<CodeFile[]>([]);
+  const [foldersLoading, setFoldersLoading] = useState(false);
+  const [folderError, setFolderError] = useState('');
+
+  const loadFolders = useCallback(async () => {
+    if (!user?.username) return;
+    setFoldersLoading(true);
+    setFolderError('');
+    try {
+      const codesResponse = await apiService.getCodeFiles(undefined, 1000, 0, false);
+      const userFolders = codesResponse.codes.filter(
+        (code) => code.author === user.username && code.language === 'folder'
+      );
+      setFolders(userFolders);
+    } catch (err: any) {
+      setFolderError(err?.message || t('common.error'));
+    } finally {
+      setFoldersLoading(false);
+    }
+  }, [user?.username, t]);
+
+  const handleDeleteFolder = async (folderId: string, folderTitle: string) => {
+    if (!window.confirm(t('viewCode.folderDeleteConfirm') + ` "${folderTitle}"?`)) return;
+    try {
+      await apiService.deleteCodeFile(folderId);
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
+    } catch (err: any) {
+      setFolderError(err?.message || t('viewCode.errorDeleteCode'));
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated && !isLoading) {
       navigate('/login');
@@ -59,6 +94,12 @@ const Settings: React.FC = () => {
       setTotpEnabled(user.totp_enabled);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'folder' && user?.username) {
+      loadFolders();
+    }
+  }, [activeTab, user?.username, loadFolders]);
 
   const handleLanguageChange = (value: string) => {
     i18n.changeLanguage(value);
@@ -170,6 +211,7 @@ const Settings: React.FC = () => {
   const tabs: { key: SettingsTab; label: string }[] = [
     { key: 'general', label: t('settings.general') },
     { key: 'account', label: t('settings.account') },
+    { key: 'folder', label: t('settings.folderTab') },
     { key: 'danger', label: t('settings.dangerZone') },
   ];
 
@@ -365,6 +407,64 @@ const Settings: React.FC = () => {
             <div className="settings-section">
               <h2 className="section-title">{t('settings.activeSession')}</h2>
               <p className="setting-info">{t('settings.singleSessionNote')}</p>
+            </div>
+          </>
+        )}
+
+        {/* Folder Tab */}
+        {activeTab === 'folder' && (
+          <>
+            <div className="settings-section">
+              <h2 className="section-title">{t('settings.myFolders')}</h2>
+              {foldersLoading ? (
+                <p className="setting-info">{t('common.loading')}</p>
+              ) : folderError ? (
+                <p className="settings-error">{folderError}</p>
+              ) : folders.length === 0 ? (
+                <div className="settings-folder-empty">
+                  <FontAwesomeIcon icon={faFolder} className="settings-folder-empty-icon" />
+                  <p className="setting-info">{t('settings.noFolders')}</p>
+                  <p className="setting-info">{t('settings.noFoldersDescription')}</p>
+                </div>
+              ) : (
+                <div className="settings-folder-list">
+                  {folders.map((folder) => (
+                    <div key={folder.id} className="settings-folder-item">
+                      <div className="settings-folder-info">
+                        <div className="settings-folder-header">
+                          <FontAwesomeIcon icon={faFolder} className="settings-folder-icon" />
+                          <span className="settings-folder-title">{folder.title}</span>
+                        </div>
+                        {folder.description && (
+                          <p className="settings-folder-description">{folder.description}</p>
+                        )}
+                        <div className="settings-folder-meta">
+                          <span>{formatDate(folder.createdAt, i18n.language)}</span>
+                          {folder.folderStructure && (
+                            <span>{Object.keys(folder.folderStructure).length} {t('settings.files')}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="settings-folder-actions">
+                        <button
+                          className="settings-folder-btn view"
+                          onClick={() => navigate(`/view/${folder.id}`)}
+                          title={t('viewCode.title')}
+                        >
+                          <FontAwesomeIcon icon={faEye} />
+                        </button>
+                        <button
+                          className="settings-folder-btn delete"
+                          onClick={() => handleDeleteFolder(folder.id, folder.title)}
+                          title={t('common.delete')}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}

@@ -177,3 +177,76 @@
   --info-color: #f59e0b;
   --info-light: #fef3c7;
 }
+
+/* ========================================
+   IDE-specific variables (Vibecoding page)
+   ======================================== */
+
+/* IDE Dark theme (default - IDEs are traditionally dark) */
+:root {
+  --ide-bg: #1e1e1e;
+  --ide-sidebar-bg: #252526;
+  --ide-editor-bg: #1e1e1e;
+  --ide-terminal-bg: #1a1a2e;
+  --ide-tab-active-bg: #1e1e1e;
+  --ide-tab-inactive-bg: #2d2d2d;
+  --ide-tab-border: #3c3c3c;
+  --ide-text: #d4d4d4;
+  --ide-text-muted: #858585;
+  --ide-accent: #00AFCA;
+  --ide-accent-hover: #0099CC;
+  --ide-selection: rgba(0, 175, 202, 0.3);
+  --ide-border: #3c3c3c;
+  --ide-hover: rgba(255, 255, 255, 0.08);
+  --ide-resize-handle: #4a4a4a;
+  --ide-resize-handle-hover: #00AFCA;
+  --ide-scrollbar-thumb: #4a4a4a;
+  --ide-status-bar-bg: #00AFCA;
+  --ide-status-bar-text: #ffffff;
+}
+
+/* IDE Light theme override */
+.light-theme {
+  --ide-bg: #ffffff;
+  --ide-sidebar-bg: #f3f3f3;
+  --ide-editor-bg: #ffffff;
+  --ide-terminal-bg: #1e1e1e;
+  --ide-tab-active-bg: #ffffff;
+  --ide-tab-inactive-bg: #ececec;
+  --ide-tab-border: #e0e0e0;
+  --ide-text: #333333;
+  --ide-text-muted: #888888;
+  --ide-accent: #f59e0b;
+  --ide-accent-hover: #d97706;
+  --ide-selection: rgba(245, 158, 11, 0.3);
+  --ide-border: #e0e0e0;
+  --ide-hover: rgba(0, 0, 0, 0.06);
+  --ide-resize-handle: #cccccc;
+  --ide-resize-handle-hover: #f59e0b;
+  --ide-scrollbar-thumb: #cccccc;
+  --ide-status-bar-bg: #f59e0b;
+  --ide-status-bar-text: #ffffff;
+}
+
+/* IDE Dark theme override (explicit dark) */
+.dark-theme {
+  --ide-bg: #1e1e1e;
+  --ide-sidebar-bg: #252526;
+  --ide-editor-bg: #1e1e1e;
+  --ide-terminal-bg: #1a1a2e;
+  --ide-tab-active-bg: #1e1e1e;
+  --ide-tab-inactive-bg: #2d2d2d;
+  --ide-tab-border: #3c3c3c;
+  --ide-text: #d4d4d4;
+  --ide-text-muted: #858585;
+  --ide-accent: #00AFCA;
+  --ide-accent-hover: #0099CC;
+  --ide-selection: rgba(0, 175, 202, 0.3);
+  --ide-border: #3c3c3c;
+  --ide-hover: rgba(255, 255, 255, 0.08);
+  --ide-resize-handle: #4a4a4a;
+  --ide-resize-handle-hover: #00AFCA;
+  --ide-scrollbar-thumb: #4a4a4a;
+  --ide-status-bar-bg: #00AFCA;
+  --ide-status-bar-text: #ffffff;
+}

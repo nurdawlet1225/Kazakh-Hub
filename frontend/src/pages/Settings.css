@@ -2,8 +2,8 @@
   max-width: 614.4px;
   margin: 20px auto 0;
   padding: 1.60rem;
-  width: 70%;
-  max-width: 100vw;
+  width: 90%;
+  max-width: 614.4px;
   overflow-x: hidden;
   box-sizing: border-box;
 }
@@ -494,6 +494,149 @@
 .btn-delete-account span {
   font-weight: 700;
   letter-spacing: 0.19px;
+}
+
+@media (max-width: 768px) {
+  .settings-container {
+    width: 95%;
+  }
+}
+
+/* Folder Tab Styles */
+.settings-folder-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.settings-folder-empty-icon {
+  font-size: 2.5rem;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  margin-bottom: 1rem;
+}
+
+.settings-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-folder-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border: 0.64px solid var(--border-color);
+  border-radius: 7.7px;
+  transition: all 0.2s;
+  gap: 1rem;
+}
+
+.settings-folder-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 1.3px 5.1px rgba(0, 0, 0, 0.08);
+}
+
+.settings-folder-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.settings-folder-icon {
+  color: #f59e0b;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.settings-folder-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-folder-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-folder-meta {
+  display: flex;
+  gap: 1rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.settings-folder-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.settings-folder-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.64px solid var(--border-color);
+  border-radius: 6.4px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.settings-folder-btn.view:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.dark-theme .settings-folder-btn.view:hover {
+  background: rgba(0, 175, 202, 0.08);
+}
+
+.settings-folder-btn.delete:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+@media (max-width: 491.5px) {
+  .settings-folder-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-folder-actions {
+    align-self: flex-end;
+    margin-top: 0.5rem;
+  }
+
+  .settings-folder-title {
+    white-space: normal;
+  }
+
+  .settings-folder-description {
+    white-space: normal;
+  }
 }
 
 @media (max-width: 491.5px) {
